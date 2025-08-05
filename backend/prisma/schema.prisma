@@ -1,0 +1,476 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UserRole {
+  id        Int       @id @default(autoincrement())
+  roleName  String    @unique(map: "roleName") @db.VarChar(50)
+  createdAt DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  users     User[]
+
+  @@map("userroles")
+}
+
+model User {
+  id                            Int                      @id @default(autoincrement())
+  username                      String                   @unique(map: "username") @db.VarChar(255)
+  email                         String                   @unique(map: "email") @db.VarChar(255)
+  password                      String                   @db.VarChar(255)
+  roleId                        Int
+  createdAt                     DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt                     DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted                     Boolean?                 @default(false)
+  deletedAt                     DateTime?                @db.Timestamp(0)
+  updatedBy                     Int?
+  updatedAcademicClubAttendance AcademicClubAttendance[] @relation("AcademicClubAttendanceUpdatedBy")
+  updatedAcademicClubs          AcademicClub[]           @relation("AcademicClubUpdatedBy")
+  updatedAdmins                 Admin[]                  @relation("AdminUpdatedBy")
+  updatedAttendanceStatuses     AttendanceStatus[]       @relation("AttendanceStatusUpdatedBy")
+  blogs                         Blog[]
+  updatedBlogs                  Blog[]                   @relation("BlogUpdatedBy")
+  updatedClassSchedules         ClassSchedule[]          @relation("ClassScheduleUpdatedBy")
+  comments                      Comment[]
+  updatedFlagpoleAttendance     FlagpoleAttendance[]     @relation("FlagpoleAttendanceUpdatedBy")
+  updatedHomeroomAttendance     HomeroomAttendance[]     @relation("HomeroomAttendanceUpdatedBy")
+  updatedHomeVisits             HomeVisit[]              @relation("HomeVisitUpdatedBy")
+  updatedStudentBehaviorScores  StudentBehaviorScore[]   @relation("StudentBehaviorScoreUpdatedBy")
+  student                       Student?
+  updatedStudents               Student[]                @relation("StudentUpdatedBy")
+  updatedSubjects               Subject[]                @relation("SubjectUpdatedBy")
+  superAdmin                    SuperAdmin?
+  teacher                       Teacher?
+  updatedTeachers               Teacher[]                @relation("TeacherUpdatedBy")
+  role                          UserRole                 @relation(fields: [roleId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
+  updatedByUser                 User?                    @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "users_ibfk_2")
+  updatedUsers                  User[]                   @relation("UserUpdatedBy")
+
+  @@index([roleId], map: "roleId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("users")
+}
+
+model Gender {
+  id          Int          @id @default(autoincrement())
+  genderName  String       @unique(map: "genderName") @db.VarChar(20)
+  createdAt   DateTime     @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime     @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt   DateTime?    @db.Timestamp(0)
+  students    Student[]
+  superAdmins SuperAdmin[]
+  teachers    Teacher[]
+
+  @@map("genders")
+}
+
+model DayOfWeek {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique(map: "name") @db.VarChar(20)
+  createdAt      DateTime        @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime        @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt      DateTime?       @db.Timestamp(0)
+  classSchedules ClassSchedule[]
+
+  @@map("daysofweek")
+}
+
+model AttendanceStatus {
+  id                     Int                      @id @default(autoincrement())
+  name                   String                   @unique(map: "name") @db.VarChar(50)
+  createdAt              DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt              DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted              Boolean?                 @default(false)
+  deletedAt              DateTime?                @db.Timestamp(0)
+  updatedBy              Int?
+  academicClubAttendance AcademicClubAttendance[]
+  updatedByUser          User?                    @relation("AttendanceStatusUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "attendancestatuses_ibfk_1")
+  flagpoleAttendance     FlagpoleAttendance[]
+  homeroomAttendance     HomeroomAttendance[]
+
+  @@index([updatedBy], map: "updatedBy")
+  @@map("attendancestatuses")
+}
+
+model SuperAdmin {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique(map: "userId")
+  namePrefix  String?   @db.VarChar(10)
+  fullName    String    @db.VarChar(255)
+  genderId    Int
+  phoneNumber String?   @db.VarChar(10)
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted   Boolean?  @default(false)
+  deletedAt   DateTime? @db.Timestamp(0)
+  user        User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "superadmin_ibfk_1")
+  gender      Gender    @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "superadmin_ibfk_2")
+
+  @@index([genderId], map: "genderId")
+  @@map("superadmin")
+}
+
+model Department {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(100)
+  headTeacherId Int?      @unique(map: "headTeacherId")
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt     DateTime? @db.Timestamp(0)
+  headTeacher   Teacher?  @relation("DepartmentHead", fields: [headTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "departments_ibfk_1")
+  subjects      Subject[]
+  teachers      Teacher[] @relation("DepartmentTeachers")
+
+  @@map("departments")
+}
+
+model Teacher {
+  id                         Int                      @id @default(autoincrement())
+  userId                     Int                      @unique(map: "userId")
+  departmentId               Int?
+  namePrefix                 String?                  @db.VarChar(10)
+  fullName                   String                   @db.VarChar(255)
+  genderId                   Int
+  dob                        DateTime?                @db.Date
+  nationality                String?                  @db.VarChar(50)
+  position                   String?                  @db.VarChar(50)
+  level                      String?                  @db.VarChar(50)
+  phoneNumber                String?                  @db.VarChar(10)
+  createdAt                  DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt                  DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted                  Boolean?                 @default(false)
+  deletedAt                  DateTime?                @db.Timestamp(0)
+  updatedBy                  Int?
+  academicClubAttendance     AcademicClubAttendance[] @relation("AcademicClubAttendanceRecorder")
+  academicClubs              AcademicClub[]
+  admin                      Admin?
+  classSchedules             ClassSchedule[]
+  headOfDepartment           Department?              @relation("DepartmentHead")
+  flagpoleAttendance         FlagpoleAttendance[]     @relation("FlagpoleAttendanceRecorder")
+  homeroomAttendance         HomeroomAttendance[]     @relation("HomeroomAttendanceTeacher")
+  homeroomAttendanceRecorder HomeroomAttendance[]     @relation("HomeroomAttendanceRecorder")
+  homeroomTeacherStudents    HomeroomTeacherStudent[]
+  homeVisits                 HomeVisit[]
+  studentBehaviorScores      StudentBehaviorScore[]
+  students                   Student[]                @relation("HomeroomTeacher")
+  user                       User                     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "teachers_ibfk_1")
+  department                 Department?              @relation("DepartmentTeachers", fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "teachers_ibfk_2")
+  gender                     Gender                   @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "teachers_ibfk_3")
+  updatedByUser              User?                    @relation("TeacherUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "teachers_ibfk_4")
+  teacherSubjects            TeacherSubject[]
+
+  @@index([departmentId], map: "departmentId")
+  @@index([genderId], map: "genderId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("teachers")
+}
+
+model Admin {
+  id            Int      @id @default(autoincrement())
+  teacherId     Int      @unique(map: "teacherId")
+  createdAt     DateTime @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean? @default(false)
+  deletedAt     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  updatedBy     Int?
+  teacher       Teacher  @relation(fields: [teacherId], references: [id], onUpdate: Restrict, map: "admins_ibfk_1")
+  updatedByUser User?    @relation("AdminUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "admins_ibfk_2")
+
+  @@index([updatedBy], map: "updatedBy")
+  @@map("admins")
+}
+
+model Student {
+  id                      Int                      @id @default(autoincrement())
+  userId                  Int                      @unique(map: "userId")
+  namePrefix              String?                  @db.VarChar(10)
+  fullName                String                   @db.VarChar(255)
+  genderId                Int
+  dob                     DateTime?                @db.Date
+  nationality             String?                  @db.VarChar(50)
+  height                  Decimal?                 @db.Decimal(5, 2)
+  weight                  Decimal?                 @db.Decimal(5, 2)
+  disease                 String?                  @db.Text
+  classRoom               String                   @db.VarChar(50)
+  studentNumber           Int
+  phoneNumber             String?                  @db.VarChar(10)
+  homeroomTeacherId       Int?
+  guardianName            String?                  @db.VarChar(255)
+  guardianRelation        String?                  @db.VarChar(50)
+  createdAt               DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt               DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted               Boolean?                 @default(false)
+  deletedAt               DateTime?                @db.Timestamp(0)
+  updatedBy               Int?
+  academicClubAttendance  AcademicClubAttendance[]
+  flagpoleAttendance      FlagpoleAttendance[]
+  homeroomAttendance      HomeroomAttendance[]
+  homeroomTeacherStudents HomeroomTeacherStudent[]
+  homeVisits              HomeVisit[]
+  studentBehaviorScores   StudentBehaviorScore[]
+  user                    User                     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "students_ibfk_1")
+  gender                  Gender                   @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "students_ibfk_2")
+  homeroomTeacher         Teacher?                 @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_3")
+  updatedByUser           User?                    @relation("StudentUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_4")
+
+  @@index([genderId], map: "genderId")
+  @@index([homeroomTeacherId], map: "homeroomTeacherId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("students")
+}
+
+model Subject {
+  id              Int              @id @default(autoincrement())
+  codeSubject     String           @unique(map: "codeSubject") @db.VarChar(10)
+  name            String           @db.VarChar(100)
+  description     String?          @db.Text
+  departmentId    Int?
+  createdAt       DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime         @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt       DateTime?        @db.Timestamp(0)
+  updatedBy       Int?
+  classSchedules  ClassSchedule[]
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "subjects_ibfk_1")
+  updatedByUser   User?            @relation("SubjectUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "subjects_ibfk_2")
+  teacherSubjects TeacherSubject[]
+
+  @@index([departmentId], map: "departmentId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("subjects")
+}
+
+model TeacherSubject {
+  teacherId Int
+  subjectId Int
+  createdAt DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  teacher   Teacher   @relation(fields: [teacherId], references: [id], onUpdate: Restrict, map: "teachersubjects_ibfk_1")
+  subject   Subject   @relation(fields: [subjectId], references: [id], onUpdate: Restrict, map: "teachersubjects_ibfk_2")
+
+  @@id([teacherId, subjectId])
+  @@index([subjectId], map: "subjectId")
+  @@map("teachersubjects")
+}
+
+model ClassSchedule {
+  id            Int        @id @default(autoincrement())
+  class         String     @db.VarChar(50)
+  subjectId     Int?
+  teacherId     Int?
+  dayOfWeekId   Int?
+  room          String?    @db.VarChar(50)
+  createdAt     DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime   @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt     DateTime?  @db.Timestamp(0)
+  updatedBy     Int?
+  subject       Subject?   @relation(fields: [subjectId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_1")
+  teacher       Teacher?   @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_2")
+  dayOfWeek     DayOfWeek? @relation(fields: [dayOfWeekId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_3")
+  updatedByUser User?      @relation("ClassScheduleUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_4")
+
+  @@index([dayOfWeekId], map: "dayOfWeekId")
+  @@index([subjectId], map: "subjectId")
+  @@index([teacherId], map: "teacherId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("classschedules")
+}
+
+model AcademicClub {
+  id                     Int                      @id @default(autoincrement())
+  name                   String                   @db.VarChar(100)
+  description            String?                  @db.Text
+  maxMembers             Int?
+  teacherId              Int?
+  createdAt              DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt              DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt              DateTime?                @db.Timestamp(0)
+  updatedBy              Int?
+  academicClubAttendance AcademicClubAttendance[]
+  teacher                Teacher?                 @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubs_ibfk_1")
+  updatedByUser          User?                    @relation("AcademicClubUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubs_ibfk_2")
+
+  @@index([teacherId], map: "teacherId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("academicclubs")
+}
+
+model AcademicClubAttendance {
+  id            Int              @id @default(autoincrement())
+  clubId        Int?
+  date          DateTime?        @db.Date
+  studentId     Int?
+  statusId      Int
+  summary       String?          @db.Text
+  imagePath     String?          @db.VarChar(255)
+  recorderId    Int?
+  createdAt     DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime         @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?         @default(false)
+  deletedAt     DateTime?        @db.Timestamp(0)
+  updatedBy     Int?
+  club          AcademicClub?    @relation(fields: [clubId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_1")
+  student       Student?         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_2")
+  status        AttendanceStatus @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "academicclubattendance_ibfk_3")
+  recorder      Teacher?         @relation("AcademicClubAttendanceRecorder", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_4")
+  updatedByUser User?            @relation("AcademicClubAttendanceUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_5")
+
+  @@index([clubId], map: "clubId")
+  @@index([recorderId], map: "recorderId")
+  @@index([statusId], map: "statusId")
+  @@index([studentId], map: "studentId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("academicclubattendance")
+}
+
+model FlagpoleAttendance {
+  id            Int              @id @default(autoincrement())
+  studentId     Int?
+  date          DateTime?        @db.Date
+  statusId      Int
+  recorderId    Int?
+  createdAt     DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime         @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?         @default(false)
+  deletedAt     DateTime?        @db.Timestamp(0)
+  updatedBy     Int?
+  student       Student?         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_1")
+  status        AttendanceStatus @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "flagpoleattendance_ibfk_2")
+  recorder      Teacher?         @relation("FlagpoleAttendanceRecorder", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_3")
+  updatedByUser User?            @relation("FlagpoleAttendanceUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_4")
+
+  @@index([recorderId], map: "recorderId")
+  @@index([statusId], map: "statusId")
+  @@index([studentId], map: "studentId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("flagpoleattendance")
+}
+
+model HomeroomTeacherStudent {
+  homeroomTeacherId Int
+  studentId         Int
+  createdAt         DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt         DateTime? @db.Timestamp(0)
+  homeroomTeacher   Teacher   @relation(fields: [homeroomTeacherId], references: [id], onUpdate: Restrict, map: "homeroomteacherstudent_ibfk_1")
+  student           Student   @relation(fields: [studentId], references: [id], onUpdate: Restrict, map: "homeroomteacherstudent_ibfk_2")
+
+  @@id([homeroomTeacherId, studentId])
+  @@index([studentId], map: "studentId")
+  @@map("homeroomteacherstudent")
+}
+
+model HomeroomAttendance {
+  id                Int              @id @default(autoincrement())
+  homeroomTeacherId Int?
+  studentId         Int?
+  date              DateTime         @db.Date
+  statusId          Int
+  topic             String?          @db.Text
+  summary           String?          @db.Text
+  recorderId        Int?
+  createdAt         DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime         @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted         Boolean?         @default(false)
+  deletedAt         DateTime?        @db.Timestamp(0)
+  updatedBy         Int?
+  homeroomTeacher   Teacher?         @relation("HomeroomAttendanceTeacher", fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_1")
+  student           Student?         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_2")
+  status            AttendanceStatus @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "homeroomattendance_ibfk_3")
+  recorder          Teacher?         @relation("HomeroomAttendanceRecorder", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_4")
+  updatedByUser     User?            @relation("HomeroomAttendanceUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_5")
+
+  @@unique([homeroomTeacherId, studentId, date], name: "HomeroomAttendance_index_0", map: "HomeroomAttendance_index_0")
+  @@index([recorderId], map: "recorderId")
+  @@index([statusId], map: "statusId")
+  @@index([studentId], map: "studentId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("homeroomattendance")
+}
+
+model HomeVisit {
+  id            Int       @id @default(autoincrement())
+  teacherId     Int?
+  studentId     Int?
+  mainAddress   String?   @db.Text
+  visitDate     DateTime? @db.Date
+  notes         String?   @db.Text
+  imagePath     String?   @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?  @default(false)
+  deletedAt     DateTime? @db.Timestamp(0)
+  updatedBy     Int?
+  teacher       Teacher?  @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homevisits_ibfk_1")
+  student       Student?  @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homevisits_ibfk_2")
+  updatedByUser User?     @relation("HomeVisitUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homevisits_ibfk_3")
+
+  @@index([studentId], map: "studentId")
+  @@index([teacherId], map: "teacherId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("homevisits")
+}
+
+model StudentBehaviorScore {
+  id            Int       @id @default(autoincrement())
+  studentId     Int?
+  score         Int
+  comments      String?   @db.Text
+  recorderId    Int?
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?  @default(false)
+  deletedAt     DateTime? @db.Timestamp(0)
+  updatedBy     Int?
+  student       Student?  @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "studentbehaviorscores_ibfk_1")
+  recorder      Teacher?  @relation(fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "studentbehaviorscores_ibfk_2")
+  updatedByUser User?     @relation("StudentBehaviorScoreUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "studentbehaviorscores_ibfk_3")
+
+  @@index([recorderId], map: "recorderId")
+  @@index([studentId], map: "studentId")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("studentbehaviorscores")
+}
+
+model Blog {
+  id            Int       @id @default(autoincrement())
+  title         String    @db.VarChar(255)
+  description   String?   @db.Text
+  coverImg      String?   @db.VarChar(255)
+  content       Json?   @db.Json
+  category      String?   @db.VarChar(100)
+  author        Int?
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?  @default(false)
+  deletedAt     DateTime? @db.Timestamp(0)
+  updatedBy     Int?
+  authorUser    User?     @relation(fields: [author], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "blogs_ibfk_1")
+  updatedByUser User?     @relation("BlogUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "blogs_ibfk_2")
+  comments      Comment[]
+
+  @@index([author], map: "author")
+  @@index([updatedBy], map: "updatedBy")
+  @@map("blogs")
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  comment   String    @db.Text
+  userId    Int
+  postId    Int
+  createdAt DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  user      User      @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "comments_ibfk_1")
+  post      Blog      @relation(fields: [postId], references: [id], onUpdate: Restrict, map: "comments_ibfk_2")
+
+  @@index([postId], map: "postId")
+  @@index([userId], map: "userId")
+  @@map("comments")
+}
