@@ -15,22 +15,34 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({ 
-  origin: 'http://localhost:5173',
-  credentials: true,
+  origin: [
+    'http://localhost:5173',
+    'http://192.168.60.230:5173'
+  ],
+  credentials: true
 }));
 
 const authRoutes = require('./src/routes/auth.user');
 const blogRoutes = require('./src/routes/blog.route');
+const aboutRoutes = require('./src/routes/about.route');
 const commentRoutes = require('./src/routes/comment.route');
-
+const teachersRoutes = require('./src/routes/teachers.route');
 const blogRoutesOld = require('./src/routes/blog.route.old');
+const clubsRoutes = require('./src/routes/clubs.route');
+const homeVisitRoutes = require('./src/routes/homevisits.route');
 // Routes setup
 
 // app.get('/api/test', isAdmin); // Apply isAdmin middleware to all routes under /api
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/about', aboutRoutes);
 app.use('/api/blogsOld', blogRoutesOld);
 app.use('/api/comments', commentRoutes);
+app.use('/api/teachers', teachersRoutes);
+app.use('/api/clubs', clubsRoutes);
+app.use('/api/home-visits', homeVisitRoutes);
+
+app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 
 
 async function main() {

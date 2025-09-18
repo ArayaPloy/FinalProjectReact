@@ -17,7 +17,7 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
             data: {
                 title,
                 description,
-                content,
+                content: JSON.stringify(content), // ✅ convert object -> string
                 category,
                 coverImg,
                 author: req.userId, // จาก middleware verifyToken
@@ -33,9 +33,9 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
-        res.status(201).json({ 
-            message: 'Post created successfully', 
-            post: newPost 
+        res.status(201).json({
+            message: 'Post created successfully',
+            post: newPost
         });
     } catch (error) {
         console.error('Error creating post:', error);
@@ -43,84 +43,50 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get all posts (public route)
-router.get('/', async (req, res) => {
+// @route   GET /api/blogs
+router.get("/", async (req, res) => {
     try {
-        const { search, category, page = 1, limit = 10 } = req.query;
-        
+        const { search, category, location, page = 1, limit = 10 } = req.query;
+
         let whereClause = {
-            isDeleted: false, // เฉพาะโพสต์ที่ไม่ถูกลบ
+            isDeleted: false,
         };
 
-        // Search functionality
         if (search) {
-            whereClause.OR = [
-                {
-                    title: {
-                        contains: search
-                    }
-                },
-                {
-                    description: {
-                        contains: search
-                    }
-                }
-            ];
+            whereClause.title = { contains: search, mode: 'insensitive' };
         }
-
-        // Category filter
         if (category) {
             whereClause.category = category;
+        }
+        if (location) {
+            whereClause.location = location;
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const [posts, totalPosts] = await Promise.all([
-            prisma.blog.findMany({
-                where: whereClause,
-                include: {
-                    authorUser: {
-                        select: {
-                            id: true,
-                            username: true,
-                            email: true
-                        }
-                    },
-                    _count: {
-                        select: {
-                            comments: true
-                        }
-                    }
+        const posts = await prisma.blog.findMany({
+            where: whereClause,
+            include: {
+                authorUser: {
+                    select: { id: true, username: true, email: true }
                 },
-                orderBy: {
-                    createdAt: 'desc'
-                },
-                skip,
-                take: parseInt(limit)
-            }),
-            prisma.blog.count({
-                where: whereClause
-            })
-        ]);
+                _count: {
+                    select: { comments: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: parseInt(limit)
+        });
 
-        // res.status(200).json({
-        //     posts,
-        //     pagination: {
-        //         currentPage: parseInt(page),
-        //         totalPages: Math.ceil(totalPosts / parseInt(limit)),
-        //         totalPosts,
-        //         hasNext: skip + posts.length < totalPosts,
-        //         hasPrev: parseInt(page) > 1
-        //     }
-        // });
-        res.status(200).json(
-            posts,
-        );
+        res.status(200).json(posts);
     } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error(error);
         res.status(500).json({ message: 'Failed to fetch posts' });
     }
 });
+
+
 
 // Get a single post (public route)
 router.get('/:id', async (req, res) => {
@@ -168,9 +134,9 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Post not found' });
         }
 
-        res.status(200).json({ 
-            post, 
-            comments: post.comments 
+        res.status(200).json({
+            post,
+            comments: post.comments
         });
     } catch (error) {
         console.error('Error fetching post:', error);
@@ -178,6 +144,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Update a post (protected route)
 // Update a post (protected route)
 router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -207,7 +174,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
             data: {
                 title,
                 description,
-                content,
+                content: JSON.stringify(content), // ✅ convert object -> string (FIXED!)
                 category,
                 coverImg,
                 updatedBy: req.userId
@@ -223,9 +190,9 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
-        res.status(200).json({ 
-            message: 'Post updated successfully', 
-            post: updatedPost 
+        res.status(200).json({
+            message: 'Post updated successfully',
+            post: updatedPost
         });
     } catch (error) {
         console.error('Error updating post:', error);
@@ -278,8 +245,8 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
             });
         });
 
-        res.status(200).json({ 
-            message: 'Post and associated comments deleted successfully' 
+        res.status(200).json({
+            message: 'Post and associated comments deleted successfully'
         });
     } catch (error) {
         console.error('Error deleting post:', error);
@@ -304,7 +271,7 @@ router.get('/related/:id', async (req, res) => {
             }
         });
 
-        if (!blog) {
+        if (!blog) {เปิดทำการเรียนการสอนครั้งแรก
             return res.status(404).json({ message: 'Blog post not found' });
         }
 
@@ -371,5 +338,6 @@ router.get('/categories/all', async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch categories' });
     }
 });
+
 
 module.exports = router;

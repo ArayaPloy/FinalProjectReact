@@ -1,75 +1,105 @@
 // โครงสร้างสายงาน
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { IoChevronBack } from 'react-icons/io5';
 import teacherStructure from "../../assets/images/teacher_structure.jpg";
 
 const SchoolBoard = () => {
+    // Set viewport meta tag to prevent zooming issues on mobile
+    useEffect(() => {
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (!metaViewport) {
+            const viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            document.head.appendChild(viewport);
+        } else {
+            metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        }
+
+        // Prevent zoom on double-tap for iOS
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    }, []);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="min-h-screen bg-gradient-to-b from-amber-50 to-white py-12"
+            className="min-h-screen bg-gradient-to-b from-amber-50 to-white py-8 sm:py-12"
+            style={{ minWidth: '320px' }}
         >
             <div className="container mx-auto px-4 max-w-6xl">
                 {/* ปุ่มกลับ */}
                 <Link
                     to="/"
-                    className="flex items-center text-amber-700 hover:text-amber-900 mb-6 transition-colors"
+                    className="flex items-center text-amber-700 hover:text-amber-900 mb-4 sm:mb-6 transition-colors text-sm sm:text-base"
                 >
                     <IoChevronBack className="mr-1" />
                     กลับสู่หน้าหลัก
                 </Link>
 
                 {/* หัวข้อหลัก */}
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">โครงสร้างสายงานโรงเรียน</h1>
-                    <p className="text-gray-600 mb-4">ข้อมูลคณะกรรมการและโครงสร้างการบริหารงาน</p>
-                    <div className="w-24 h-1 bg-amber-600 mx-auto"></div>
+                <div className="text-center mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-amber-900 mb-2">โครงสร้างสายงานโรงเรียน</h1>
+                    <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base px-4">ข้อมูลคณะกรรมการและโครงสร้างการบริหารงาน</p>
+                    <div className="w-16 sm:w-24 h-1 bg-amber-600 mx-auto"></div>
                 </div>
 
                 {/* คำอธิบาย */}
-                <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-                    <h2 className="text-xl font-semibold text-amber-800 mb-3">โครงสร้างการบริหารงานโรงเรียนท่าบ่อพิทยาคม</h2>
-                    <p className="text-gray-700 leading-relaxed">
+                <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+                    <h2 className="text-lg sm:text-xl font-semibold text-amber-800 mb-2 sm:mb-3">โครงสร้างการบริหารงานโรงเรียนท่าบ่อพิทยาคม</h2>
+                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
                         โรงเรียนท่าบ่อพิทยาคมมีการจัดโครงสร้างการบริหารงานตามนโยบายของสำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน
                         โดยมีผู้อำนวยการโรงเรียนเป็นผู้บังคับบัญชาสูงสุด และมีรองผู้อำนวยการช่วยบริหารงานในด้านต่างๆ
                     </p>
                 </div>
 
                 {/* รูปภาพโครงสร้าง */}
-                <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-                    <div className="p-4 border-b border-gray-200">
-                        <h3 className="text-lg font-medium text-gray-800">แผนผังโครงสร้างสายงาน</h3>
+                <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden mb-6 sm:mb-8">
+                    <div className="p-3 sm:p-4 border-b border-gray-200">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-800">แผนผังโครงสร้างสายงาน</h3>
                     </div>
-                    <div className="p-4">
+                    <div className="p-3 sm:p-4">
                         <img
                             src={teacherStructure}
                             alt="โครงสร้างสายงานโรงเรียนท่าบ่อพิทยาคม"
                             className="w-full h-auto rounded-lg border border-gray-200"
                         />
-                        <p className="text-sm text-gray-500 mt-2 text-center">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-2 text-center">
                             อัปเดตล่าสุด: 1 เมษายน 2568
                         </p>
                     </div>
                 </div>
 
                 {/* ตารางข้อมูล */}
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="p-4 border-b border-gray-200">
-                        <h3 className="text-lg font-medium text-gray-800">รายชื่อโครงสร้างสายงานโรงเรียนท่าบ่อพิทยาคม</h3>
+                <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden">
+                    <div className="p-3 sm:p-4 border-b border-gray-200">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-800">รายชื่อโครงสร้างสายงานโรงเรียนท่าบ่อพิทยาคม</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-amber-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ลำดับ</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ชื่อ-สกุล</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ตำแหน่ง</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">บทบาทหน้าที่</th>
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ลำดับ</th>
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ชื่อ-สกุล</th>
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">ตำแหน่ง</th>
+                                    <th className="hidden sm:table-cell px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">บทบาทหน้าที่</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -97,10 +127,18 @@ const SchoolBoard = () => {
                                     { id: 17, name: "นางสาวสุรางคนา เหลืองกิจไพบูลย์", position: "เจ้าหน้าที่พัสดุ", role: "ดูแลพัสดุโรงเรียน" },
                                 ].map((person) => (
                                     <tr key={person.id} className="hover:bg-amber-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{person.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{person.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{person.position}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{person.role}</td>
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-700">{person.id}</td>
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-900">
+                                            <div className="sm:whitespace-nowrap">
+                                                {person.name}
+                                                {/* แสดงบทบาทใน mobile */}
+                                                <div className="sm:hidden text-xs text-gray-500 mt-1">{person.role}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
+                                            <div className="sm:whitespace-nowrap break-words">{person.position}</div>
+                                        </td>
+                                        <td className="hidden sm:table-cell px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-700">{person.role}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -109,7 +147,7 @@ const SchoolBoard = () => {
                 </div>
 
                 {/* หมายเหตุ */}
-                <div className="mt-6 text-sm text-gray-500">
+                <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-500">
                     <p>หมายเหตุ: ข้อมูลอาจมีการเปลี่ยนแปลงตามนโยบายของโรงเรียนและสำนักงานเขตพื้นที่การศึกษา</p>
                 </div>
             </div>

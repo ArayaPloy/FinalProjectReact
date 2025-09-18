@@ -15,10 +15,15 @@ const loadUserFromLocalStorage = () => {
     // }
 
     const serializedState = localStorage.getItem('user');
+    const serialzedToken = localStorage.getItem('token');
     if (serializedState === null) return { user: null };
-    return { user: JSON.parse(serializedState) };
+    if (serialzedToken === null) return { user: null };
+    return {
+      user: serializedUser ? JSON.parse(serializedUser) : null,
+      token: serializedToken ? serializedToken : null,
+    };
   } catch (err) {
-    return { user: null };
+    return { user: null, token: null };
   }
 };
 
@@ -30,13 +35,17 @@ const authSlice = createSlice({
   reducers: {
     setUser: (state, action) => {
       state.user = action.payload.user;
+      state.token = action.payload.token;
       // Save user state to localStorage
       localStorage.setItem('user', JSON.stringify(state.user));
+      localStorage.setItem('token', state.token);
     },
     logout: (state) => {
       state.user = null;
+      state.token = null;
       // Remove user from localStorage
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
     },
   },
 });

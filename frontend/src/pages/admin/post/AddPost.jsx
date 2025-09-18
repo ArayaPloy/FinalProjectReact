@@ -87,7 +87,7 @@ const AddPost = () => {
           {/* ด้านซ้าย */}
           <div className="md:w-2/3 w-full">
             <p className="font-semibold text-xl mb-5">ส่วนเนื้อหา</p>
-            <p className="text-sm text-gray-600 mb-4">เขียนเนื้อหาบทความของคุณที่นี่...</p>
+            <p className="text-sm text-gray-600 mb-4">เขียนเนื้อหาบทความ</p>
             <div id="editorjs" className="bg-gray-100 p-4 rounded-lg"></div>
           </div>
 

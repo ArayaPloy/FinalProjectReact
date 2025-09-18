@@ -1,6 +1,7 @@
 import "./App.css";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
+import 'antd/dist/reset.css';
 import { Outlet } from "react-router-dom";
 // นำเข้าน้ำหนักปกติ (400) และตัวหนา (700)
 import '@fontsource/kanit/400.css';

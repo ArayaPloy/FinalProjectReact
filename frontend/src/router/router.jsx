@@ -11,6 +11,7 @@ import Admissions from "../pages/miniPage/Admissions";
 import Ita from "../pages/miniPage/Ita";  
 import AcademicClubs from "../pages/miniPage/AcademicClubs";
 import FacultyStaff from "../pages/miniPage/FacultyStaff"; 
+import HomeVisits from "../pages/miniPage/HomeVisits";
 import AllStudents from "../pages/miniPage/AllStudents";
 import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
 import ContactUs from "../pages/miniPage/ContactUs";
@@ -25,7 +26,8 @@ import ManageUser from "../pages/admin/user/ManageUser";
 import Dashboard from "../pages/admin/dashboard/Dashboard";
 import UpdatePosts from "../pages/admin/post/UpdatePosts";
 import ErrorPage from "../components/ErrorPage";
-
+import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
+import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
 
 
 const router = createBrowserRouter([
@@ -87,6 +89,10 @@ const router = createBrowserRouter([
         element: <AllStudents/>
       },
       {
+        path: "/home-visits",
+        element: <HomeVisits/>
+      },
+      {
         path: "/privacy-policy",
         element: <PrivacyPolicy/>
       },
@@ -127,7 +133,16 @@ const router = createBrowserRouter([
           {
             path: 'users',
             element: <ManageUser/>,
+          },
+          {
+            path: 'manage-school-history',
+            element: <EditSchoolHistory/>,
+          },
+          {
+            path: 'manage-clubs',
+            element: <ManageClubsPosts/>,
           }
+
           
         ],
       },

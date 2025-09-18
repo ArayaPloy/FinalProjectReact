@@ -1,14 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useFetchBlogByIdQuery, useUpdateBlogMutation } from "../../../redux/features/blogs/blogsApi";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import EditorJS from '@editorjs/editorjs';
-import List from '@editorjs/list'; 
-import Header from '@editorjs/header';
 
 const UpdatePosts = () => {
-  const editorRef = useRef(null);
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [description, setDescription] = useState("");
   const [coverImg, setCoverImg] = useState("");
   const [category, setCategory] = useState("");
@@ -19,46 +16,13 @@ const UpdatePosts = () => {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  // Initialize editor js with default content
-  useEffect(() => {
-    if (blog.post) {
-      const editor = new EditorJS({
-        holder: 'editorjs',
-        onReady: () => {
-          editorRef.current = editor;
-          editor.isReady.then(() => {
-            editor.render(blog.post.content);
-          });
-        },
-        autofocus: true,
-        tools: {
-          header: {
-            class: Header,
-            inlineToolbar: true 
-          },
-          list: { 
-            class: List, 
-            inlineToolbar: true 
-          },
-        },
-        data: blog.post.content, // Set the default content
-      });
-
-      return () => {
-        editor.destroy();
-        editorRef.current = null;
-      };
-    }
-  }, [blog]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      const content = await editorRef.current.save();
       const updatedPost = {
         title: title || blog.post.title,
-        content,
+        content: content || blog.post.content,
         coverImg: coverImg || blog.post.coverImg,
         category: category || blog.post.category,
         description: description || blog.post.metaDescription,
@@ -95,7 +59,15 @@ const UpdatePosts = () => {
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <div className="md:w-2/3 w-full">
             <p className="font-semibold text-xl mb-5">Content Section</p>
-            <div id="editorjs" className="bg-gray-100 p-4 rounded-lg"></div>
+            <textarea
+              rows={15}
+              cols={50}
+              defaultValue={blog?.post?.description}
+              className="w-full bg-gray-100 focus:outline-none px-5 py-3 rounded-lg resize-y"
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write your blog content here..."
+              required
+            />
           </div>
 
           <div className="md:w-1/3 w-full bg-gray-50 p-6 rounded-lg shadow-sm space-y-5">

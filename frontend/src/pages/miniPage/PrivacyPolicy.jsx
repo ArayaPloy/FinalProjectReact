@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { IoChevronBack, IoSchool, IoBook, IoMedal, IoLibrary } from "react-icons/io5";
@@ -6,9 +6,38 @@ import thaboSchool from "../../assets/images/thabo_school.jpg";
 import schoolRewards from "../../assets/images/school_rewards.jpg";
 
 const AcademicInfo = () => {
+  // Set viewport meta tag to prevent zooming issues on mobile
+  useEffect(() => {
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    if (!metaViewport) {
+      const viewport = document.createElement('meta');
+      viewport.name = 'viewport';
+      viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      document.head.appendChild(viewport);
+    } else {
+      metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+    }
+
+    // Prevent zoom on double-tap for iOS
+    document.addEventListener('touchstart', function (event) {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  }, []);
+
   return (
-    <section className="bg-gray-50 text-gray-800">
-      {/* Hero Section */}
+    <section className="bg-gray-50 text-gray-800" style={{ minWidth: '320px' }}>
+      {/* Hero Section - คงเดิม */}
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
@@ -30,11 +59,11 @@ const AcademicInfo = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-6xl mx-auto">
           {/* Back Button */}
-          <div className="mb-8">
-            <Link to="/" className="flex items-center text-amber-700 hover:text-amber-900 transition-colors">
+          <div className="mb-6 sm:mb-8">
+            <Link to="/" className="flex items-center text-amber-700 hover:text-amber-900 transition-colors text-sm sm:text-base">
               <IoChevronBack className="mr-1" />
               กลับหน้าหลัก
             </Link>
@@ -45,30 +74,30 @@ const AcademicInfo = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden mb-12 border-t-4 border-amber-500"
+            className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden mb-8 sm:mb-12 border-t-4 border-amber-500"
           >
-            <div className="p-8">
-              <div className="flex items-center mb-6">
-                <div className="bg-amber-100 p-3 rounded-full mr-4">
-                  <IoSchool className="text-amber-600 text-2xl" />
+            <div className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center mb-4 sm:mb-6">
+                <div className="bg-amber-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0">
+                  <IoSchool className="text-amber-600 text-lg sm:text-xl md:text-2xl" />
                 </div>
-                <h2 className="text-2xl font-bold text-amber-800">ข้อมูลทั่วไป</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-amber-800">ข้อมูลทั่วไป</h2>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 <div>
-                  <p className="text-gray-700 mb-4 leading-relaxed">
+                  <p className="text-gray-700 mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base">
                     โรงเรียนท่าบ่อพิทยาคมเป็นโรงเรียนมัธยมศึกษาขนาดเล็ก สังกัดสำนักงานเขตพื้นที่การศึกษามัธยมศึกษาหนองคาย
                     ก่อตั้งเมื่อปี พ.ศ. 2534 ปัจจุบันเปิดสอนระดับชั้นมัธยมศึกษาปีที่ 1 ถึงปีที่ 6
                   </p>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
                     มีวิสัยทัศน์ "เรียนดี   กีฬาเด่น   เน้นคุณธรรม   นำอาชีพ"
                   </p>
                 </div>
                 <div>
-                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                    <h3 className="font-semibold text-amber-700 mb-2">ข้อมูลพื้นฐาน</h3>
-                    <ul className="text-gray-700 space-y-1">
+                  <div className="bg-amber-50 p-3 sm:p-4 rounded-lg border border-amber-200">
+                    <h3 className="font-semibold text-amber-700 mb-2 text-sm sm:text-base">ข้อมูลพื้นฐาน</h3>
+                    <ul className="text-gray-700 space-y-1 text-sm sm:text-base">
                       <li>จำนวนครู: 13 คน</li>
                       <li>จำนวนนักเรียน: 153 คน</li>
                       <li>จำนวนห้องเรียน: 8 ห้อง</li>
@@ -85,32 +114,32 @@ const AcademicInfo = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden mb-12 border-t-4 border-amber-500"
+            className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden mb-8 sm:mb-12 border-t-4 border-amber-500"
           >
-            <div className="p-8">
-              <div className="flex items-center mb-6">
-                <div className="bg-amber-100 p-3 rounded-full mr-4">
-                  <IoBook className="text-amber-600 text-2xl" />
+            <div className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center mb-4 sm:mb-6">
+                <div className="bg-amber-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0">
+                  <IoBook className="text-amber-600 text-lg sm:text-xl md:text-2xl" />
                 </div>
-                <h2 className="text-2xl font-bold text-amber-800">หลักสูตรการศึกษา</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-amber-800">หลักสูตรการศึกษา</h2>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-800 mb-3">หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน</h3>
-                  <p className="text-gray-700 mb-4 leading-relaxed">
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-800 mb-2 sm:mb-3">หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน</h3>
+                  <p className="text-gray-700 mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base">
                     โรงเรียนใช้หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พ.ศ. 2551 (ปรับปรุง พ.ศ. 2560)
                     โดยจัดการเรียนการสอน 8 กลุ่มสาระการเรียนรู้หลัก
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     {[
                       "ภาษาไทย", "คณิตศาสตร์", "วิทยาศาสตร์", "สังคมศึกษา",
                       "สุขศึกษา", "ศิลปะ", "การงานอาชีพ", "ภาษาต่างประเทศ"
                     ].map((subject, index) => (
                       <motion.div
                         key={index}
-                        whileHover={{ scale: 1.03 }}
-                        className="bg-amber-50 px-3 py-2 rounded text-center text-amber-800 font-medium"
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-amber-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded text-center text-amber-800 font-medium text-xs sm:text-sm"
                       >
                         {subject}
                       </motion.div>
@@ -118,17 +147,17 @@ const AcademicInfo = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-800 mb-3">โครงสร้างเวลาเรียน</h3>
-                  <div className="space-y-4">
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-800 mb-2 sm:mb-3">โครงสร้างเวลาเรียน</h3>
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <h4 className="font-medium text-gray-700">มัธยมศึกษาตอนต้น</h4>
-                      <p className="text-gray-600">1,200 ชั่วโมง/ปี</p>
-                      <p className="text-gray-600 text-sm">เน้นพื้นฐานวิชาการและทักษะชีวิต</p>
+                      <h4 className="font-medium text-gray-700 text-sm sm:text-base">มัธยมศึกษาตอนต้น</h4>
+                      <p className="text-gray-600 text-sm sm:text-base">1,200 ชั่วโมง/ปี</p>
+                      <p className="text-gray-600 text-xs sm:text-sm">เน้นพื้นฐานวิชาการและทักษะชีวิต</p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-700">มัธยมศึกษาตอนปลาย</h4>
-                      <p className="text-gray-600">1,400 ชั่วโมง/ปี</p>
-                      <p className="text-gray-600 text-sm">เน้นการเตรียมความพร้อมสู่ระดับอุดมศึกษา</p>
+                      <h4 className="font-medium text-gray-700 text-sm sm:text-base">มัธยมศึกษาตอนปลาย</h4>
+                      <p className="text-gray-600 text-sm sm:text-base">1,400 ชั่วโมง/ปี</p>
+                      <p className="text-gray-600 text-xs sm:text-sm">เน้นการเตรียมความพร้อมสู่ระดับอุดมศึกษา</p>
                     </div>
                   </div>
                 </div>
@@ -141,51 +170,51 @@ const AcademicInfo = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden mb-12 border-t-4 border-amber-500"
+            className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden mb-8 sm:mb-12 border-t-4 border-amber-500"
           >
-            <div className="p-8">
-              <div className="flex items-center mb-6">
-                <div className="bg-amber-100 p-3 rounded-full mr-4">
-                  <IoMedal className="text-amber-600 text-2xl" />
+            <div className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center mb-4 sm:mb-6">
+                <div className="bg-amber-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0">
+                  <IoMedal className="text-amber-600 text-lg sm:text-xl md:text-2xl" />
                 </div>
-                <h2 className="text-2xl font-bold text-amber-800">ผลงานทางวิชาการ</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-amber-800">ผลงานทางวิชาการ</h2>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 <div>
                   <motion.img
                     src={schoolRewards}
                     alt="รางวัลโรงเรียนท่าบ่อพิทยาคม"
-                    className="w-full h-auto rounded-lg shadow-md mb-4"
-                    whileHover={{ scale: 1.02 }}
+                    className="w-full h-auto rounded-lg shadow-md mb-3 sm:mb-4"
+                    whileHover={{ scale: 1.01 }}
                   />
-                  <h3 className="font-semibold text-lg text-gray-800 mb-3">งานศิลปหัตถกรรมนักเรียน ครั้งที่ 72</h3>
-                  <p className="text-gray-700 mb-3">ปีการศึกษา 2567 ระดับเขตพื้นที่การศึกษา</p>
-                  <div className="grid grid-cols-4 gap-2 text-center">
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-800 mb-2 sm:mb-3">งานศิลปหัตถกรรมนักเรียน ครั้งที่ 72</h3>
+                  <p className="text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">ปีการศึกษา 2567 ระดับเขตพื้นที่การศึกษา</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                     <div className="bg-amber-100 p-2 rounded">
-                      <div className="text-amber-800 font-bold text-xl">29</div>
+                      <div className="text-amber-800 font-bold text-lg sm:text-xl">29</div>
                       <div className="text-xs text-gray-600">เหรียญทอง</div>
                     </div>
                     <div className="bg-gray-200 p-2 rounded">
-                      <div className="text-gray-800 font-bold text-xl">3</div>
+                      <div className="text-gray-800 font-bold text-lg sm:text-xl">3</div>
                       <div className="text-xs text-gray-600">เหรียญเงิน</div>
                     </div>
                     <div className="bg-amber-700 p-2 rounded">
-                      <div className="text-white font-bold text-xl">1</div>
+                      <div className="text-white font-bold text-lg sm:text-xl">1</div>
                       <div className="text-xs text-white">เหรียญทองแดง</div>
                     </div>
                     <div className="bg-blue-100 p-2 rounded">
-                      <div className="text-blue-800 font-bold text-xl">33</div>
+                      <div className="text-blue-800 font-bold text-lg sm:text-xl">33</div>
                       <div className="text-xs text-blue-600">รางวัลทั้งหมด</div>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-800 mb-3">ผลสัมฤทธิ์ทางการเรียน</h3>
-                  <div className="space-y-4">
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-800 mb-2 sm:mb-3">ผลสัมฤทธิ์ทางการเรียน</h3>
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <h4 className="font-medium text-gray-700">ผลการสอบ O-NET ปีการศึกษา 2566</h4>
-                      <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                      <h4 className="font-medium text-gray-700 text-sm sm:text-base">ผลการสอบ O-NET ปีการศึกษา 2566</h4>
+                      <ul className="list-disc pl-4 sm:pl-5 text-gray-700 space-y-1 text-sm sm:text-base">
                         <li>ภาษาไทย: 57.35% </li>
                         <li>คณิตศาสตร์: 45.28% </li>
                         <li>วิทยาศาสตร์: 43.72% </li>
@@ -193,8 +222,8 @@ const AcademicInfo = () => {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-700">อัตราการศึกษาต่อ</h4>
-                      <p className="text-gray-700">85% ของนักเรียนชั้น ม.6 สามารถศึกษาต่อในระดับอุดมศึกษา</p>
+                      <h4 className="font-medium text-gray-700 text-sm sm:text-base">อัตราการศึกษาต่อ</h4>
+                      <p className="text-gray-700 text-sm sm:text-base">85% ของนักเรียนชั้น ม.6 สามารถศึกษาต่อในระดับอุดมศึกษา</p>
                     </div>
                   </div>
                 </div>
@@ -207,17 +236,17 @@ const AcademicInfo = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-white rounded-xl shadow-lg overflow-hidden mb-12 border-t-4 border-amber-500"
+            className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden mb-8 sm:mb-12 border-t-4 border-amber-500"
           >
-            <div className="p-8">
-              <div className="flex items-center mb-6">
-                <div className="bg-amber-100 p-3 rounded-full mr-4">
-                  <IoLibrary className="text-amber-600 text-2xl" />
+            <div className="p-4 sm:p-6 md:p-8">
+              <div className="flex items-center mb-4 sm:mb-6">
+                <div className="bg-amber-100 p-2 sm:p-3 rounded-full mr-3 sm:mr-4 flex-shrink-0">
+                  <IoLibrary className="text-amber-600 text-lg sm:text-xl md:text-2xl" />
                 </div>
-                <h2 className="text-2xl font-bold text-amber-800">แหล่งเรียนรู้และสิ่งอำนวยความสะดวก</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-amber-800 leading-tight">แหล่งเรียนรู้และสิ่งอำนวยความสะดวก</h2>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 {[
                   { name: "ห้องสมุด", desc: "หนังสือกว่า 1,200 เล่ม" },
                   { name: "ห้องปฏิบัติการวิทยาศาสตร์", desc: "2 ห้อง" },
@@ -228,11 +257,11 @@ const AcademicInfo = () => {
                 ].map((resource, index) => (
                   <motion.div
                     key={index}
-                    whileHover={{ y: -3 }}
-                    className="bg-amber-50 p-4 rounded-lg border border-amber-200"
+                    whileHover={{ y: -2 }}
+                    className="bg-amber-50 p-3 sm:p-4 rounded-lg border border-amber-200"
                   >
-                    <h3 className="font-semibold text-amber-800">{resource.name}</h3>
-                    <p className="text-gray-600 text-sm">{resource.desc}</p>
+                    <h3 className="font-semibold text-amber-800 text-sm sm:text-base leading-tight mb-1">{resource.name}</h3>
+                    <p className="text-gray-600 text-xs sm:text-sm">{resource.desc}</p>
                   </motion.div>
                 ))}
               </div>

@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
             include: {
                 role: true,
                 student: true,
-                teacher: true,
+                // teacher: true,
                 superAdmin: true
             }
         });

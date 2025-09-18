@@ -13,7 +13,7 @@ const formatData = (blogs) => {
 };
 
 const BlogsChart = ({ blogs }) => {
-  const data = formatData(blogs);
+  const data = formatData(blogs?.posts || []);
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">

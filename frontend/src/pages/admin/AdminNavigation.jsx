@@ -10,11 +10,9 @@ const AdminNavigation = () => {
   const dispatch = useDispatch();
 
   const handleLogout = async () => {
-    // ยืนยันการออกจากระบบ
     const confirmLogout = window.confirm("คุณแน่ใจหรือไม่ที่ต้องการออกจากระบบ?");
-    
-    if (!confirmLogout) return; // ถ้าผู้ใช้ยกเลิก ไม่ทำอะไรต่อ
-    
+    if (!confirmLogout) return;
+
     try {
       await logoutUser().unwrap();
       dispatch(logout());
@@ -68,7 +66,22 @@ const AdminNavigation = () => {
               }
             >
               <span>📝</span>
-              <span>เพิ่มบทความใหม่</span>
+              <span>เพิ่มบทความ</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/manage-school-history"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>🏫</span>
+              <span>จัดการประวัติโรงเรียน</span>
             </NavLink>
           </li>
           <li>
@@ -82,8 +95,83 @@ const AdminNavigation = () => {
                 }`
               }
             >
-              <span>🛠️</span>
+              <span>📄</span>
               <span>จัดการบทความ</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/manage-clubs"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>🎯</span>
+              <span>จัดการชุมนุมวิชาการ</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/manage-teachers"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>👨‍🏫</span>
+              <span>จัดการบุคลากร</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/manage-schedule"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>📅</span>
+              <span>จัดการตารางเรียน</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/homeroom-activities"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>📋</span>
+              <span>รายงานกิจกรรมโฮมรูม</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/home-visit-reports"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>🏠</span>
+              <span>รายงานการเยี่ยมบ้านนักเรียน</span>
             </NavLink>
           </li>
           <li>
@@ -98,7 +186,7 @@ const AdminNavigation = () => {
               }
             >
               <span>👥</span>
-              <span>ผู้ใช้งาน</span>
+              <span>จัดการผู้ใช้</span>
             </NavLink>
           </li>
         </ul>

@@ -25,7 +25,7 @@ const Login = () => {
     try {
       const response = await loginUser(data).unwrap();
       const { token, user } = response;
-      dispatch(setUser({ user }));
+      dispatch(setUser({ user, token }));
       alert("เข้าสู่ระบบสำเร็จ");
       navigate("/");
       document.cookie = `token=${token}; path=/; ${rememberMe ? "max-age=2592000" : ""}`; // 30 days if remember me
@@ -94,7 +94,7 @@ const Login = () => {
               <label className="ml-2 text-sm text-amber-800">จำฉันไว้</label>
             </div>
             <Link
-              to="/forgot-password"
+              to="/forgot-password" 
               className="text-sm text-amber-600 hover:text-amber-800"
             >
               ลืมรหัสผ่าน?
