@@ -8,7 +8,7 @@ import { logout } from '../redux/features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
 
-{/* กำหนดเมนูหลักและเมนูย่อย */}
+{/* กำหนดเมนูหลักและเมนูย่อย */ }
 const navLists = [
   { name: 'หน้าหลัก', path: '/' },
   {
@@ -42,21 +42,21 @@ const navLists = [
 ];
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false); {/* สถานะการเปิด/ปิดเมนูบนมือถือ */}
-  const [openDropdown, setOpenDropdown] = useState(null); {/* สถานะการเปิด/ปิด dropdown */}
-  const { user } = useSelector((state) => state.auth); {/* ดึงข้อมูลผู้ใช้จาก Redux store */}
-  const dispatch = useDispatch(); {/* ใช้ dispatch เพื่อส่ง action ไปยัง Redux store */}
-  const [logoutUser] = useLogoutUserMutation(); {/* ใช้ mutation สำหรับการ logout */}
+  const [isMenuOpen, setIsMenuOpen] = useState(false); {/* สถานะการเปิด/ปิดเมนูบนมือถือ */ }
+  const [openDropdown, setOpenDropdown] = useState(null); {/* สถานะการเปิด/ปิด dropdown */ }
+  const { user } = useSelector((state) => state.auth); {/* ดึงข้อมูลผู้ใช้จาก Redux store */ }
+  const dispatch = useDispatch(); {/* ใช้ dispatch เพื่อส่ง action ไปยัง Redux store */ }
+  const [logoutUser] = useLogoutUserMutation(); {/* ใช้ mutation สำหรับการ logout */ }
 
-  {/* ฟังก์ชันเปิด/ปิดเมนูบนมือถือ */}
+  {/* ฟังก์ชันเปิด/ปิดเมนูบนมือถือ */ }
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  {/* ฟังก์ชันเปิด/ปิด dropdown */}
+  {/* ฟังก์ชันเปิด/ปิด dropdown */ }
   const toggleDropdown = (index) => {
     setOpenDropdown(openDropdown === index ? null : index);
   };
 
-  {/* ฟังก์ชันจัดการการ logout */}
+  {/* ฟังก์ชันจัดการการ logout */ }
   const handleLogout = async () => {
     try {
       await logoutUser().unwrap();
@@ -124,7 +124,7 @@ const Navbar = () => {
                   )}
                 </>
               ) : (
-                {/* เมนูทั่วไป */},
+                {/* เมนูทั่วไป */ },
                 <NavLink
                   to={list.path}
                   className={({ isActive }) =>
@@ -164,7 +164,7 @@ const Navbar = () => {
                     transition={{ duration: 0.2 }}
                   >
                     {/* ปุ่ม Dashboard สำหรับ Admin */}
-                    {user.role === 'admin' && (
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
                       <Link
                         to="/dashboard"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
@@ -173,12 +173,14 @@ const Navbar = () => {
                       </Link>
                     )}
                     {/* ปุ่ม Profile */}
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
-                    >
-                      <User className="mr-2 h-4 w-4" /> Profile
-                    </Link>
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                      <Link
+                        to="/profile"
+                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
+                      >
+                        <User className="mr-2 h-4 w-4" /> Profile
+                      </Link>)}
+
                     {/* ปุ่ม Logout */}
                     <button
                       onClick={handleLogout}
@@ -191,7 +193,7 @@ const Navbar = () => {
               </div>
             </li>
           ) : (
-            {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอิน */},
+            {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอิน */ },
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <NavLink to="/login" className="text-gray-700 hover:text-primary">
                 เข้าสู่ระบบ
@@ -249,7 +251,7 @@ const Navbar = () => {
                     )}
                   </>
                 ) : (
-                  {/* เมนูทั่วไปบน Mobile */},
+                  {/* เมนูทั่วไปบน Mobile */ },
                   <NavLink
                     to={list.path}
                     className={({ isActive }) =>
@@ -284,7 +286,7 @@ const Navbar = () => {
                 {openDropdown === 'user' && (
                   <div className="pl-4">
                     {/* ปุ่ม Dashboard สำหรับ Admin บน Mobile */}
-                    {user.role === 'admin' && (
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
                       <Link
                         to="/dashboard"
                         className="flex items-center py-2 text-gray-700 hover:text-primary"
@@ -294,13 +296,14 @@ const Navbar = () => {
                       </Link>
                     )}
                     {/* ปุ่ม Profile บน Mobile */}
-                    <Link
-                      to="/profile"
-                      className="flex items-center py-2 text-gray-700 hover:text-primary"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <User className="mr-2 h-4 w-4" /> Profile
-                    </Link>
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                      <Link
+                        to="/profile"
+                        className="flex items-center py-2 text-gray-700 hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <User className="mr-2 h-4 w-4" /> Profile
+                      </Link>)}
                     {/* ปุ่ม Logout บน Mobile */}
                     <button
                       onClick={handleLogout}
@@ -312,7 +315,7 @@ const Navbar = () => {
                 )}
               </li>
             ) : (
-              {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอินบน Mobile */},
+              {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอินบน Mobile */ },
               <li className='mt-5'>
                 <NavLink
                   to="/login"

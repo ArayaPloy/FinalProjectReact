@@ -8,10 +8,7 @@ import AdminNavigation from './AdminNavigation';
 const AdminLayout = () => {
   const { user } = useSelector((state) => state.auth);
 
-  console.log(user)
-
-
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== 'admin' && user.role !== 'super_admin') {
     alert("You must be a admin!")
     // Redirect to home or login if the user is not an admin
     return <Navigate to="/login" />;

@@ -22,7 +22,7 @@ import PrivateRoute from "./PrivateRoute";
 import AdminLayout from "../pages/admin/AdminLayout";
 import AddPost from "../pages/admin/post/AddPost";
 import ManagePost from "../pages/admin/post/ManagePosts";
-import ManageUser from "../pages/admin/user/ManageUser";
+import ManageUser from "../pages/admin/users/ManageUser";
 import Dashboard from "../pages/admin/dashboard/Dashboard";
 import UpdatePosts from "../pages/admin/post/UpdatePosts";
 import ErrorPage from "../components/ErrorPage";
@@ -142,7 +142,6 @@ const router = createBrowserRouter([
             path: 'manage-clubs',
             element: <ManageClubsPosts/>,
           }
-
           
         ],
       },

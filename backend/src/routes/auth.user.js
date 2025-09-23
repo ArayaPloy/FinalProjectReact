@@ -65,7 +65,7 @@ router.post('/login', async (req, res) => {
                 role: true,
                 student: true,
                 // teacher: true,
-                superAdmin: true
+                superAdmin: false
             }
         });
 

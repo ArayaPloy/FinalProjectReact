@@ -53,7 +53,11 @@ router.get("/", async (req, res) => {
         };
 
         if (search) {
-            whereClause.title = { contains: search, mode: 'insensitive' };
+            // ใช้ contains แทน search (ไม่ต้องมี fulltext index)
+            whereClause.OR = [
+                { title: { contains: search } },
+                { description: { contains: search } }
+            ];
         }
         if (category) {
             whereClause.category = category;
@@ -81,12 +85,10 @@ router.get("/", async (req, res) => {
 
         res.status(200).json(posts);
     } catch (error) {
-        console.error(error);
+        console.error('Detailed error:', error);
         res.status(500).json({ message: 'Failed to fetch posts' });
     }
 });
-
-
 
 // Get a single post (public route)
 router.get('/:id', async (req, res) => {
@@ -144,7 +146,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Update a post (protected route)
 // Update a post (protected route)
 router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -271,7 +272,7 @@ router.get('/related/:id', async (req, res) => {
             }
         });
 
-        if (!blog) {เปิดทำการเรียนการสอนครั้งแรก
+        if (!blog) {
             return res.status(404).json({ message: 'Blog post not found' });
         }
 

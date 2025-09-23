@@ -141,7 +141,7 @@ const Dashboard = () => {
           </div>
 
           {/* การ์ดความคิดเห็น */}
-          <div className="bg-orange-100 p-6 rounded-lg shadow-md flex flex-col items-center hover:shadow-lg transition-shadow duration-300">
+          <div className="bg-orange-100  p-6 rounded-lg shadow-md flex flex-col items-center hover:shadow-lg transition-shadow duration-300">
             <FaRegComment className="text-4xl text-orange-600 mb-4" />
             <h2 className="text-xl font-semibold text-gray-800">{comments.totalComments || 0}</h2>
             <p className="text-gray-600">ความคิดเห็น</p>

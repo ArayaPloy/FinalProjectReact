@@ -858,7 +858,7 @@ const ManageClubsPosts = () => {
                                                 <p className="text-2xl font-bold text-purple-800">{statsData.totalCapacity}</p>
                                             </div>
                                             <div className="bg-purple-100 p-2 rounded-lg">
-                                                <IoFitness className="text-purple-600 text-2xl" />
+                                                <IoPeople className="text-purple-600 text-2xl" />
                                             </div>
                                         </div>
                                     </div>
