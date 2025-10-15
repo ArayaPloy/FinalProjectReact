@@ -17,6 +17,7 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors({ 
   origin: [
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3000',
     'http://192.168.60.230:5173',
     'http://10.52.203.24:5173',      // Add your current network IP
