@@ -13,7 +13,7 @@ import AcademicClubs from "../pages/miniPage/AcademicClubs";
 import FacultyStaff from "../pages/miniPage/FacultyStaff";
 import HomeVisits from "../pages/miniPage/HomeVisits";
 import AllStudents from "../pages/miniPage/AllStudents";
-//import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
+import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
 import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
 import ContactUs from "../pages/miniPage/ContactUs";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
@@ -89,10 +89,10 @@ const router = createBrowserRouter([
         path: "/all-students", // นักเรียนทั้งหมด
         element: <AllStudents />
       },
-     /* {
+      {
         path: "/flagpoleattendance", // เช็คชื่อเข้าแถว
         element: <FlagpoleAttendance />
-      },*/
+      },
       {
         path: "/home-visits", // เยี่ยมบ้านนักเรียน
         element: <HomeVisits />
