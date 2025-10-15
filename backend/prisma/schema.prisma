@@ -85,10 +85,10 @@ model SchoolTimeline {
   sortOrder   Int?     @default(0)
   createdAt   DateTime @default(now()) @db.Timestamp(0)
   updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(0)
-  createdBy   Int
-  updatedBy   Int
-  deletedBy   Int
-  deletedAt   Int
+  createdBy   Int?
+  updatedBy   Int?
+  deletedBy   Int?
+  deletedAt   DateTime?
 
   @@map("school_timeline")
 }
@@ -215,15 +215,15 @@ model Teacher {
 }
 
 model Admin {
-  id            Int      @id @default(autoincrement())
-  teacherId     Int      @unique(map: "teacherId")
-  createdAt     DateTime @default(now()) @db.Timestamp(0)
-  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamp(0)
-  isDeleted     Boolean? @default(false)
-  deletedAt     DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  id            Int       @id @default(autoincrement())
+  teacherId     Int       @unique(map: "teacherId")
+  createdAt     DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  isDeleted     Boolean?  @default(false)
+  deletedAt     DateTime? @db.Timestamp(0)  // เปลี่ยนเป็น nullable และไม่ต้องมี default
   updatedBy     Int?
-  teacher       Teacher  @relation(fields: [teacherId], references: [id], onUpdate: Restrict, map: "admins_ibfk_1")
-  updatedByUser User?    @relation("AdminUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "admins_ibfk_2")
+  teacher       Teacher   @relation(fields: [teacherId], references: [id], onUpdate: Restrict, map: "admins_ibfk_1")
+  updatedByUser User?     @relation("AdminUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "admins_ibfk_2")
 
   @@index([updatedBy], map: "updatedBy")
   @@map("admins")
