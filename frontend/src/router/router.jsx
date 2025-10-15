@@ -7,12 +7,13 @@ import VisionMission from "../pages/miniPage/VisionMission";
 import SchoolBoard from "../pages/miniPage/SchoolBoard";
 import StudentCouncil from "../pages/miniPage/StudentCouncil";
 import StudentSchedule from "../pages/miniPage/StudentSchedule";
-import Admissions from "../pages/miniPage/Admissions"; 
-import Ita from "../pages/miniPage/Ita";  
+import Admissions from "../pages/miniPage/Admissions";
+import Ita from "../pages/miniPage/Ita";
 import AcademicClubs from "../pages/miniPage/AcademicClubs";
-import FacultyStaff from "../pages/miniPage/FacultyStaff"; 
+import FacultyStaff from "../pages/miniPage/FacultyStaff";
 import HomeVisits from "../pages/miniPage/HomeVisits";
 import AllStudents from "../pages/miniPage/AllStudents";
+//import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
 import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
 import ContactUs from "../pages/miniPage/ContactUs";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
@@ -37,77 +38,81 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       {
-        path: "/",
-        element: <Home/>
+        path: "/", // home page
+        element: <Home />
       },
       {
-        path: "/blogs",
-        element: <Blogs/>
+        path: "/blogs", // blog page
+        element: <Blogs />
       },
       {
-        path: "/blogs/:id",
-        element:<SingleBlog /> ,
+        path: "/blogs/:id", // blog details
+        element: <SingleBlog />,
       },
       {
-        path: "/about-us",
-        element: <About/>
+        path: "/about-us", // เกี่ยวกับเรา
+        element: <About />
       },
       {
-        path: "/vision-mission",
-        element: <VisionMission/>
+        path: "/vision-mission", // วิสัยทัศน์และพันธกิจ
+        element: <VisionMission />
       },
       {
         path: "/school-board", // โครงสร้างสายงานโรงเรียน
-        element: <SchoolBoard/>
+        element: <SchoolBoard />
       },
       {
         path: "/student-council", // สภานักเรียน
-        element: <StudentCouncil/>
+        element: <StudentCouncil />
       },
       {
         path: "/student-schedule", // ตารางนักเรียน
-        element: <StudentSchedule/>
+        element: <StudentSchedule />
       },
       {
         path: "/admissions", // การรับสมัครนักเรียน
-        element: <Admissions/>
+        element: <Admissions />
       },
       {
         path: "/ita", // ประเมินคุณธรรมโปร่งใส
-        element: <Ita/>
+        element: <Ita />
       },
       {
-        path: "/clubs", // ประเมินคุณธรรมโปร่งใส
-        element: <AcademicClubs/>
+        path: "/clubs", // ชุมนุมวิชาการ
+        element: <AcademicClubs />
       },
       {
-        path: "/faculty-staff",
-        element: <FacultyStaff/>
+        path: "/faculty-staff", // คณะครูและบุคลากร
+        element: <FacultyStaff />
       },
       {
-        path: "/all-students",
-        element: <AllStudents/>
+        path: "/all-students", // นักเรียนทั้งหมด
+        element: <AllStudents />
       },
+     /* {
+        path: "/flagpoleattendance", // เช็คชื่อเข้าแถว
+        element: <FlagpoleAttendance />
+      },*/
       {
-        path: "/home-visits",
-        element: <HomeVisits/>
+        path: "/home-visits", // เยี่ยมบ้านนักเรียน
+        element: <HomeVisits />
       },
       {
         path: "/privacy-policy",
-        element: <PrivacyPolicy/>
+        element: <PrivacyPolicy />
       },
       {
-        path: "/contact-us",
-        element: <ContactUs/>
+        path: "/contact-us", // ติดต่อเรา
+        element: <ContactUs />
       },
       // login & registration
       {
         path: "/login",
-        element: <Login/>
+        element: <Login />
       },
       {
         path: "/register",
-        element: <Register/>
+        element: <Register />
       },
       {
         path: 'dashboard',
@@ -116,33 +121,33 @@ const router = createBrowserRouter([
           // Define admin routes here
           {
             path: '',
-            element: <Dashboard/>,
+            element: <Dashboard />,
           },
           {
             path: 'add-new-post',
-            element: <AddPost/>,
+            element: <AddPost />,
           },
           {
             path: 'manage-items',
-            element: <ManagePost/>,
+            element: <ManagePost />,
           },
           {
             path: "update-items/:id",
-            element: <UpdatePosts/>
+            element: <UpdatePosts />
           },
           {
             path: 'users',
-            element: <ManageUser/>,
+            element: <ManageUser />,
           },
           {
             path: 'manage-school-history',
-            element: <EditSchoolHistory/>,
+            element: <EditSchoolHistory />,
           },
           {
             path: 'manage-clubs',
-            element: <ManageClubsPosts/>,
+            element: <ManageClubsPosts />,
           }
-          
+
         ],
       },
 

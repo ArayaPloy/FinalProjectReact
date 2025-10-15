@@ -15,7 +15,7 @@ import {
   ExternalLinkIcon
 } from '@heroicons/react/outline';
 
-// Move LinkItem component definition outside of Home component
+// Move LinkItem เว็บลิงค์ที่น่าสนใจ component definition outside of Home component
 const LinkItem = ({ href, title, icon }) => (
   <a
     href={href}

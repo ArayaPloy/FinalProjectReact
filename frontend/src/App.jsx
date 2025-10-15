@@ -3,11 +3,11 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import 'antd/dist/reset.css';
 import { Outlet } from "react-router-dom";
-// นำเข้าน้ำหนักปกติ (400) และตัวหนา (700)
+// น้ำหนักปกติ (400) และตัวหนา (700)
 import '@fontsource/kanit/400.css';
 import '@fontsource/kanit/700.css';
 
-// หรือถ้าต้องการหลายน้ำหนัก
+// หลายขนาดน้ำหนัก
 import '@fontsource/kanit/300.css';  // Light
 import '@fontsource/kanit/400.css';  // Regular
 import '@fontsource/kanit/500.css';  // Medium
