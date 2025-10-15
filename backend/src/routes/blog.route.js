@@ -17,7 +17,7 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
             data: {
                 title,
                 description,
-                content: JSON.stringify(content), // ✅ convert object -> string
+                content: JSON.stringify(content), // convert object เป็น string
                 category,
                 coverImg,
                 author: req.userId, // จาก middleware verifyToken
@@ -34,12 +34,12 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
         });
 
         res.status(201).json({
-            message: 'Post created successfully',
+            message: 'ส้รางโพสต์สำเร็จ',
             post: newPost
         });
     } catch (error) {
         console.error('Error creating post:', error);
-        res.status(500).json({ message: 'Failed to create post' });
+        res.status(500).json({ message: 'สร้างโพสต์ไม่สำเร็จ' });
     }
 });
 
