@@ -22,10 +22,10 @@ const CommentCard = ({ comments }) => {
                     <img src={CommentorIcon} alt="" className="h-14" />
                     <div className="space-y-1">
                       <p className="text-lg font-medium underline capitalize underline-offset-4 text-blue-400">
-                        {comment.user.username}
+                        {comment?.users?.username}
                       </p>
                       <p className="text-[12px] italic">
-                        {formatDate(comment.createdAt)}
+                        {formatDate(comment?.createdAt)}
                       </p>
                     </div>
                   </div>

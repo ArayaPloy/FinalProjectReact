@@ -23,7 +23,7 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
                 author: req.userId, // จาก middleware verifyToken
             },
             include: {
-                authorUser: {
+                users_blogs_authorTousers: {
                     select: {
                         id: true,
                         username: true,
@@ -117,7 +117,7 @@ router.get('/:id', async (req, res) => {
                         deletedAt: null
                     },
                     include: {
-                        user: {
+                        users: {
                             select: {
                                 id: true,
                                 username: true,

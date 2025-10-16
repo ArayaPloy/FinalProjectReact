@@ -1,6 +1,7 @@
 const isAdmin = (req, res, next) => {
-    console.log(req.role)
-    if (req.role !== 'admin' && req.role !== 'superadmin') {
+    const role = req.user.role
+    console.log(role)
+    if (role !== 'admin' && role !== 'super_admin') {
         return res.status(403).json({ success: false, message: 'You are not authorized to perform this action.' });
     }
     next();

@@ -1,19 +1,11 @@
 
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { Navigate } from 'react-router-dom';
 import AdminNavigation from './AdminNavigation';
 
 const AdminLayout = () => {
-  const { user } = useSelector((state) => state.auth);
-
-  if (!user || user.role !== 'admin' && user.role !== 'super_admin') {
-    alert("You must be a admin!")
-    // Redirect to home or login if the user is not an admin
-    return <Navigate to="/login" />;
-  }
-
+  // ไม่ต้องตรวจสอบสิทธิ์ที่นี่ เพราะ ProtectedRoute ทำหน้าที่นี้แล้ว
+  
   return (
     <div className='container py-6 mx-auto flex flex-col md:flex-row gap-4 items-start justify-start shadow-md'>
       

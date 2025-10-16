@@ -14,16 +14,28 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// CORS Configuration - รองรับทั้ง Development และ Production
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      // Production domains (แก้ไขตาม domain จริง)
+      'https://your-frontend-domain.com',
+      'https://www.your-frontend-domain.com',
+      // เพิ่ม production domains อื่นๆ ตามต้องการ
+    ]
+  : [
+      // Development origins
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      'http://192.168.60.230:5173',
+      'http://10.52.203.24:5173',
+      /^http:\/\/192\.168\.\d+\.\d+:5173$/,
+      /^http:\/\/10\.\d+\.\d+\.\d+:5173$/
+    ];
+
 app.use(cors({ 
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:3000',
-    'http://192.168.60.230:5173',
-    'http://10.52.203.24:5173',      // Add your current network IP
-    /^http:\/\/192\.168\.\d+\.\d+:5173$/, // Allow any 192.168.x.x:5173
-    /^http:\/\/10\.\d+\.\d+\.\d+:5173$/   // Allow any 10.x.x.x:5173 (your network range)
-  ],
+  origin: allowedOrigins,
   credentials: true
 }));
 
@@ -37,6 +49,7 @@ const blogRoutesOld = require('./src/routes/blog.route.old');
 const clubsRoutes = require('./src/routes/clubs.route');
 const homeVisitRoutes = require('./src/routes/homevisits.route');
 const flagpoleAttendanceRoutes = require('./src/routes/flagpole-attendance.route');
+const uploadRoutes = require('./src/routes/upload.route');
 // Routes setup
 
 // app.get('/api/test', isAdmin); // Apply isAdmin middleware to all routes under /api
@@ -50,6 +63,7 @@ app.use('/api/teachers', teachersRoutes);
 app.use('/api/clubs', clubsRoutes);
 app.use('/api/home-visits', homeVisitRoutes);
 app.use('/api', flagpoleAttendanceRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 
