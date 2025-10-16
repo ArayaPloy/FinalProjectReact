@@ -20,7 +20,7 @@ router.post('/post-comment', verifyToken, async (req, res) => {
         }
 
         // ตรวจสอบว่า blog post มีอยู่และไม่ถูกลบ
-        const existingPost = await prisma.blog.findFirst({
+        const existingPost = await prisma.blogs.findFirst({
             where: {
                 id: postIdInt,
                 isDeleted: false
@@ -32,21 +32,21 @@ router.post('/post-comment', verifyToken, async (req, res) => {
         }
 
         // สร้าง comment ใหม่
-        const newComment = await prisma.comment.create({
+        const newComment = await prisma.comments.create({
             data: {
                 comment,
                 userId,
                 postId: postIdInt
             },
             include: {
-                user: {
+                users: {
                     select: {
                         id: true,
                         username: true,
                         email: true
                     }
                 },
-                post: {
+                blogs: {
                     select: {
                         id: true,
                         title: true
@@ -68,7 +68,7 @@ router.post('/post-comment', verifyToken, async (req, res) => {
 // Get total comments count
 router.get('/total-comments', async (req, res) => {
     try {
-        const totalComments = await prisma.comment.count({
+        const totalComments = await prisma.comments.count({
             where: {
                 deletedAt: null // เฉพาะ comment ที่ไม่ถูกลบ
             }
@@ -90,13 +90,13 @@ router.get('/post/:postId', async (req, res) => {
             return res.status(400).json({ message: 'Invalid post ID' });
         }
 
-        const comments = await prisma.comment.findMany({
+        const comments = await prisma.comments.findMany({
             where: {
                 postId: postId,
                 deletedAt: null
             },
             include: {
-                user: {
+                users: {
                     select: {
                         id: true,
                         username: true,
@@ -128,7 +128,7 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
         }
 
         // ตรวจสอบว่า comment มีอยู่และเป็นของ user คนนี้
-        const existingComment = await prisma.comment.findFirst({
+        const existingComment = await prisma.comments.findFirst({
             where: {
                 id: commentId,
                 userId: userId,
@@ -140,7 +140,7 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
             return res.status(404).json({ message: 'Comment not found or you do not have permission to update this comment' });
         }
 
-        const updatedComment = await prisma.comment.update({
+        const updatedComment = await prisma.comments.update({
             where: {
                 id: commentId
             },
@@ -148,7 +148,7 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
                 comment
             },
             include: {
-                user: {
+                users: {
                     select: {
                         id: true,
                         username: true,
@@ -179,7 +179,7 @@ router.delete('/delete/:commentId', verifyToken, async (req, res) => {
         }
 
         // ตรวจสอบว่า comment มีอยู่และเป็นของ user คนนี้
-        const existingComment = await prisma.comment.findFirst({
+        const existingComment = await prisma.comments.findFirst({
             where: {
                 id: commentId,
                 userId: userId,
@@ -192,7 +192,7 @@ router.delete('/delete/:commentId', verifyToken, async (req, res) => {
         }
 
         // Soft delete
-        await prisma.comment.update({
+        await prisma.comments.update({
             where: {
                 id: commentId
             },
@@ -219,13 +219,13 @@ router.get('/user/my-comments', verifyToken, async (req, res) => {
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
         const [comments, totalComments] = await Promise.all([
-            prisma.comment.findMany({
+            prisma.comments.findMany({
                 where: {
                     userId: userId,
                     deletedAt: null
                 },
                 include: {
-                    post: {
+                    blogs: {
                         select: {
                             id: true,
                             title: true,
@@ -239,7 +239,7 @@ router.get('/user/my-comments', verifyToken, async (req, res) => {
                 skip,
                 take: parseInt(limit)
             }),
-            prisma.comment.count({
+            prisma.comments.count({
                 where: {
                     userId: userId,
                     deletedAt: null

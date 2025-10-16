@@ -10,13 +10,13 @@ const prisma = new PrismaClient();
 // Get all teachers grouped by department (public route)
 router.get('/by-department', async (req, res) => {
     try {
-        const teachers = await prisma.teacher.findMany({
+        const teachers = await prisma.teachers.findMany({
             where: {
                 isDeleted: false
             },
             include: {
-                department: true,
-                gender: true
+                departments_teachers_departmentIdTodepartments: true,
+                genders: true
             },
             orderBy: [
                 { departmentId: 'asc' },
@@ -59,8 +59,8 @@ router.get('/by-department', async (req, res) => {
                 specializations: teacher.specializations || '',
                 nationality: teacher.nationality,
                 image: teacher.imagePath || '',
-                department: teacher.department?.name,
-                gender: teacher.gender?.genderName,
+                department: teacher.departments_teachers_departmentIdTodepartments?.name,
+                gender: teacher.genders?.genderName,
                 dob: teacher.dob
             });
             return acc;
@@ -113,12 +113,12 @@ router.get('/', async (req, res) => {
             ];
         }
 
-        const teachers = await prisma.teacher.findMany({
+        const teachers = await prisma.teachers.findMany({
             where: whereClause,
             include: {
-                department: true,
-                gender: true,
-                user: {
+                departments_teachers_departmentIdTodepartments: true,
+                genders: true,
+                users_teachers_teacherIdTousers: {
                     select: {
                         email: true
                     }
@@ -146,8 +146,8 @@ router.get('/', async (req, res) => {
             specializations: teacher.specializations || '',
             nationality: teacher.nationality,
             image: teacher.imagePath || '',
-            department: teacher.department?.name,
-            gender: teacher.gender?.genderName,
+            department: teacher.departments_teachers_departmentIdTodepartments?.name,
+            gender: teacher.genders?.genderName,
             dob: teacher.dob
         }));
 
@@ -178,14 +178,14 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        const teacher = await prisma.teacher.findFirst({
+        const teacher = await prisma.teachers.findFirst({
             where: {
                 id: teacherId,
                 isDeleted: false
             },
             include: {
-                department: true,
-                gender: true
+                departments_teachers_departmentIdTodepartments: true,
+                genders: true
             }
         });
 
@@ -246,7 +246,7 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             phoneNumber
         } = req.body;
 
-        const teacher = await prisma.teacher.create({
+        const teacher = await prisma.teachers.create({
             data: {
                 userId,
                 departmentId,
@@ -261,8 +261,8 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
                 updatedBy: req.userId
             },
             include: {
-                department: true,
-                gender: true
+                departments_teachers_departmentIdTodepartments: true,
+                genders: true
             }
         });
 
@@ -295,7 +295,7 @@ router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // Check if teacher exists
-        const existingTeacher = await prisma.teacher.findFirst({
+        const existingTeacher = await prisma.teachers.findFirst({
             where: {
                 id: teacherId,
                 isDeleted: false
@@ -314,7 +314,7 @@ router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
             updates.dob = new Date(updates.dob);
         }
 
-        const updatedTeacher = await prisma.teacher.update({
+        const updatedTeacher = await prisma.teachers.update({
             where: {
                 id: teacherId
             },
@@ -324,8 +324,8 @@ router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
                 updatedAt: new Date()
             },
             include: {
-                department: true,
-                gender: true
+                departments_teachers_departmentIdTodepartments: true,
+                genders: true
             }
         });
 
@@ -357,7 +357,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // Check if teacher exists
-        const existingTeacher = await prisma.teacher.findFirst({
+        const existingTeacher = await prisma.teachers.findFirst({
             where: {
                 id: teacherId,
                 isDeleted: false
@@ -372,7 +372,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // Soft delete
-        await prisma.teacher.update({
+        await prisma.teachers.update({
             where: {
                 id: teacherId
             },
@@ -400,7 +400,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
 // Get departments (public route)
 router.get('/departments/list', async (req, res) => {
     try {
-        const departments = await prisma.department.findMany({
+        const departments = await prisma.departments.findMany({
             orderBy: {
                 name: 'asc'
             }

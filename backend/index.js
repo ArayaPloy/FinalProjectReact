@@ -28,6 +28,7 @@ app.use(cors({
 }));
 
 const authRoutes = require('./src/routes/auth.user');
+const authMeRoutes = require('./src/routes/auth.me');
 const blogRoutes = require('./src/routes/blog.route');
 const aboutRoutes = require('./src/routes/about.route');
 const commentRoutes = require('./src/routes/comment.route');
@@ -35,10 +36,12 @@ const teachersRoutes = require('./src/routes/teachers.route');
 const blogRoutesOld = require('./src/routes/blog.route.old');
 const clubsRoutes = require('./src/routes/clubs.route');
 const homeVisitRoutes = require('./src/routes/homevisits.route');
+const flagpoleAttendanceRoutes = require('./src/routes/flagpole-attendance.route');
 // Routes setup
 
 // app.get('/api/test', isAdmin); // Apply isAdmin middleware to all routes under /api
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', authMeRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/about', aboutRoutes);
 app.use('/api/blogsOld', blogRoutesOld);
@@ -46,6 +49,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/clubs', clubsRoutes);
 app.use('/api/home-visits', homeVisitRoutes);
+app.use('/api', flagpoleAttendanceRoutes);
 
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 

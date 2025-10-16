@@ -25,6 +25,7 @@
     "@reduxjs/toolkit": "^2.2.6",
     "antd": "^5.27.0",
     "axios": "^1.12.2",
+    "bootstrap-icons": "^1.13.1",
     "dayjs": "^1.11.13",
     "editorjs-html": "^3.4.3",
     "framer-motion": "^12.5.0",

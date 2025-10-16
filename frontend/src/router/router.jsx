@@ -19,7 +19,8 @@ import ContactUs from "../pages/miniPage/ContactUs";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
 import Login from "../pages/user/Login";
 import Register from "../pages/user/Register";
-import PrivateRoute from "./PrivateRoute";
+import ProtectedRoute from "../components/ProtectedRoute";
+import PublicRoute from "../components/PublicRoute";
 import AdminLayout from "../pages/admin/AdminLayout";
 import AddPost from "../pages/admin/post/AddPost";
 import ManagePost from "../pages/admin/post/ManagePosts";
@@ -29,6 +30,7 @@ import UpdatePosts from "../pages/admin/post/UpdatePosts";
 import ErrorPage from "../components/ErrorPage";
 import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
+import PrivateRoute from "./PrivateRoute";
 
 
 const router = createBrowserRouter([
@@ -91,7 +93,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/flagpoleattendance", // เช็คชื่อเข้าแถว
-        element: <FlagpoleAttendance />
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+            <FlagpoleAttendance />
+          </ProtectedRoute>
+        )
       },
       {
         path: "/home-visits", // เยี่ยมบ้านนักเรียน
@@ -108,17 +114,28 @@ const router = createBrowserRouter([
       // login & registration
       {
         path: "/login",
-        element: <Login />
+        element: (
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        )
       },
       {
         path: "/register",
-        element: <Register />
+        element: (
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        )
       },
       {
         path: 'dashboard',
-        element: <PrivateRoute><AdminLayout /></PrivateRoute>, // Use AdminLayout for admin routes
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        ),
         children: [
-          // Define admin routes here
           {
             path: '',
             element: <Dashboard />,

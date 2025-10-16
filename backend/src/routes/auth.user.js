@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
         const { email, password, username, roleId = 5 } = req.body; // default to 'user' role (id: 5)
         
         // Check if user already exists
-        const existingUser = await prisma.user.findFirst({
+        const existingUser = await prisma.users.findFirst({
             where: {
                 OR: [
                     { email: email },
@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Create user
-        const user = await prisma.user.create({
+        const user = await prisma.users.create({
             data: {
                 email,
                 password: hashedPassword,
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
                 roleId: parseInt(roleId)
             },
             include: {
-                role: true
+                userroles: true
             }
         });
 
@@ -59,13 +59,13 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { email },
             include: {
-                role: true,
-                student: true,
-                // teacher: true,
-                superAdmin: false
+                userroles: true,
+                students_students_updatedByTousers: true,
+                teachers_teachers_teacherIdTousers: true,
+                superadmin: true
             }
         });
 
@@ -102,11 +102,11 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 email: user.email,
                 username: user.username,
-                role: user.role.roleName,
+                role: user.userroles.roleName,
                 roleId: user.roleId,
-                student: user.student,
-                teacher: user.teacher,
-                superAdmin: user.superAdmin
+                student: user.students_students_updatedByTousers,
+                teacher: user.teachers_teachers_teacherIdTousers,
+                superAdmin: user.superadmin
             }
         });
     } catch (error) {
@@ -124,7 +124,7 @@ router.post('/logout', (req, res) => {
 // Get all users
 router.get('/users', async (req, res) => {
     try {
-        const users = await prisma.user.findMany({
+        const users = await prisma.users.findMany({
             where: {
                 isDeleted: false
             },
@@ -133,7 +133,7 @@ router.get('/users', async (req, res) => {
                 email: true,
                 username: true,
                 roleId: true,
-                role: {
+                userroles: {
                     select: {
                         roleName: true
                     }
@@ -156,7 +156,7 @@ router.delete('/users/:id', async (req, res) => {
         const { id } = req.params;
         const userId = parseInt(id);
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { id: userId }
         });
 
@@ -169,7 +169,7 @@ router.delete('/users/:id', async (req, res) => {
         }
 
         // Soft delete the user
-        await prisma.user.update({
+        await prisma.users.update({
             where: { id: userId },
             data: {
                 isDeleted: true,
@@ -197,7 +197,7 @@ router.put('/users/:id', async (req, res) => {
         }
 
         // Check if role exists
-        const role = await prisma.userRole.findUnique({
+        const role = await prisma.userroles.findUnique({
             where: { id: parseInt(roleId) }
         });
 
@@ -206,7 +206,7 @@ router.put('/users/:id', async (req, res) => {
         }
 
         // Check if user exists
-        const existingUser = await prisma.user.findUnique({
+        const existingUser = await prisma.users.findUnique({
             where: { id: userId }
         });
 
@@ -219,14 +219,14 @@ router.put('/users/:id', async (req, res) => {
         }
 
         // Update user role
-        const user = await prisma.user.update({
+        const user = await prisma.users.update({
             where: { id: userId },
             data: { 
                 roleId: parseInt(roleId),
                 updatedAt: new Date()
             },
             include: {
-                role: true
+                userroles: true
             }
         });
 
@@ -237,7 +237,7 @@ router.put('/users/:id', async (req, res) => {
                 email: user.email,
                 username: user.username,
                 roleId: user.roleId,
-                role: user.role.roleName
+                role: user.userroles.roleName
             }
         });
     } catch (error) {
@@ -252,20 +252,20 @@ router.get('/users/:id', async (req, res) => {
         const { id } = req.params;
         const userId = parseInt(id);
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { id: userId },
             include: {
-                role: true,
-                student: true,
-                teacher: {
+                userroles: true,
+                students_students_updatedByTousers: true,
+                teachers_teachers_teacherIdTousers: {
                     include: {
-                        department: true,
-                        gender: true
+                        departments_teachers_departmentIdTodepartments: true,
+                        genders: true
                     }
                 },
-                superAdmin: {
+                superadmin: {
                     include: {
-                        gender: true
+                        genders: true
                     }
                 }
             }
@@ -295,7 +295,7 @@ router.patch('/users/:id/restore', async (req, res) => {
         const { id } = req.params;
         const userId = parseInt(id);
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { id: userId }
         });
 
@@ -308,7 +308,7 @@ router.patch('/users/:id/restore', async (req, res) => {
         }
 
         // Restore the user
-        await prisma.user.update({
+        await prisma.users.update({
             where: { id: userId },
             data: {
                 isDeleted: false,

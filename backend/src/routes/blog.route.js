@@ -13,7 +13,7 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
     try {
         const { title, description, content, category, coverImg } = req.body;
 
-        const newPost = await prisma.blog.create({
+        const newPost = await prisma.blogs.create({
             data: {
                 title,
                 description,
@@ -68,10 +68,10 @@ router.get("/", async (req, res) => {
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const posts = await prisma.blog.findMany({
+        const posts = await prisma.blogs.findMany({
             where: whereClause,
             include: {
-                authorUser: {
+                users_blogs_authorTousers: {
                     select: { id: true, username: true, email: true }
                 },
                 _count: {
@@ -99,13 +99,13 @@ router.get('/:id', async (req, res) => {
             return res.status(400).json({ message: 'Invalid post ID' });
         }
 
-        const post = await prisma.blog.findFirst({
+        const post = await prisma.blogs.findFirst({
             where: {
                 id: postId,
                 isDeleted: false
             },
             include: {
-                authorUser: {
+                users_blogs_authorTousers: {
                     select: {
                         id: true,
                         username: true,
@@ -157,7 +157,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // ตรวจสอบว่าโพสต์มีอยู่และไม่ถูกลบ
-        const existingPost = await prisma.blog.findFirst({
+        const existingPost = await prisma.blogs.findFirst({
             where: {
                 id: postId,
                 isDeleted: false
@@ -168,7 +168,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ message: 'Post not found' });
         }
 
-        const updatedPost = await prisma.blog.update({
+        const updatedPost = await prisma.blogs.update({
             where: {
                 id: postId
             },
@@ -181,7 +181,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
                 updatedBy: req.userId
             },
             include: {
-                authorUser: {
+                users_blogs_authorTousers: {
                     select: {
                         id: true,
                         username: true,
@@ -211,7 +211,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // ตรวจสอบว่าโพสต์มีอยู่
-        const existingPost = await prisma.blog.findFirst({
+        const existingPost = await prisma.blogs.findFirst({
             where: {
                 id: postId,
                 isDeleted: false
@@ -225,7 +225,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         // ใช้ transaction เพื่อลบโพสต์และคอมเมนต์พร้อมกัน
         await prisma.$transaction(async (tx) => {
             // Soft delete comments
-            await tx.comment.updateMany({
+            await tx.comments.updateMany({
                 where: {
                     postId: postId
                 },
@@ -235,7 +235,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
             });
 
             // Soft delete blog post
-            await tx.blog.update({
+            await tx.blogs.update({
                 where: {
                     id: postId
                 },
@@ -265,7 +265,7 @@ router.get('/related/:id', async (req, res) => {
         }
 
         // ดึงข้อมูลบล็อกปัจจุบัน
-        const blog = await prisma.blog.findFirst({
+        const blog = await prisma.blogs.findFirst({
             where: {
                 id: postId,
                 isDeleted: false
@@ -277,7 +277,7 @@ router.get('/related/:id', async (req, res) => {
         }
 
         // ดึงบล็อกที่มี category เหมือนกัน (ยกเว้นบล็อกปัจจุบัน)
-        const relatedPosts = await prisma.blog.findMany({
+        const relatedPosts = await prisma.blogs.findMany({
             where: {
                 id: {
                     not: postId // ไม่รวมบล็อกปัจจุบัน
@@ -286,7 +286,7 @@ router.get('/related/:id', async (req, res) => {
                 isDeleted: false // เฉพาะโพสต์ที่ไม่ถูกลบ
             },
             include: {
-                authorUser: {
+                users_blogs_authorTousers: {
                     select: {
                         id: true,
                         username: true,
@@ -315,7 +315,7 @@ router.get('/related/:id', async (req, res) => {
 // Get all categories (public route)
 router.get('/categories/all', async (req, res) => {
     try {
-        const categories = await prisma.blog.groupBy({
+        const categories = await prisma.blogs.groupBy({
             by: ['category'],
             where: {
                 isDeleted: false,

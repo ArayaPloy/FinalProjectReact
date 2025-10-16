@@ -28,7 +28,7 @@ const navLists = [
     path: '#',
     dropdown: [
       { name: 'จำนวนนักเรียน', path: '/all-students' },
-      { name: 'เช็คชื่อเข้าแถว', path: 'https://kku-creative.my.canva.site/checkinstudents' },
+      { name: 'เช็คชื่อเข้าแถว', path: '/flagpoleattendance' },
       { name: 'คะแนนความประพฤติ', path: 'https://docs.google.com/spreadsheets/d/1oAISG4M-Qq4XialIfivbE07ehZHGdf05ppNO-996ouw/edit?gid=0#gid=0' },
       { name: 'สภานักเรียน', path: '/student-council' },
       { name: 'ตารางเรียน', path: '/student-schedule' },
@@ -68,7 +68,7 @@ const Navbar = () => {
 
   return (
     <motion.header
-      className='bg-white py-6 border-b sticky top-0 z-50'
+      className='bg-white py-4 border-b sticky top-0 z-50'
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -78,13 +78,13 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="logo" className='h-12' />
           <div>
-            <h1 className="text-lg font-bold text-primary">โรงเรียนท่าบ่อพิทยาคม</h1>
-            <p className="text-xs text-gray-600">Thabopitthayakhom School</p>
+            <h1 className="text-lg font-bold text-primary p-0 m-0">โรงเรียนท่าบ่อพิทยาคม</h1>
+            <p className="text-xs text-gray-600 p-0 m-0">Thabopitthayakhom School</p>
           </div>
         </Link>
 
         {/* เมนูสำหรับ Desktop Navigation */}
-        <ul className='hidden lg:flex items-center gap-2'>
+        <ul className='hidden lg:flex items-center gap-2 p-0 m-0'>
           {navLists.map((list, index) => (
             <li key={index} className="relative">
               {list.dropdown ? (

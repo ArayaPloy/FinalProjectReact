@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLoginUserMutation } from "../../redux/features/auth/authApi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/features/auth/authSlice";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -14,6 +14,7 @@ const Login = () => {
   const [loginUser, { isLoading }] = useLoginUserMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,12 +26,22 @@ const Login = () => {
     try {
       const response = await loginUser(data).unwrap();
       const { token, user } = response;
+      
+      // Set the cookie first
+      document.cookie = `token=${token}; path=/; ${
+        rememberMe ? "max-age=2592000" : ""
+      }`; // 30 days if remember me
+      
+      // Then update the Redux store
       dispatch(setUser({ user, token }));
-      alert("เข้าสู่ระบบสำเร็จ");
-      navigate("/");
-      document.cookie = `token=${token}; path=/; ${rememberMe ? "max-age=2592000" : ""}`; // 30 days if remember me
+      
+      // Use location state for redirect if available
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
+      
     } catch (err) {
-      setMessage("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง");
+      console.error('Login error:', err);
+      setMessage(err.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง");
     }
   };
 
