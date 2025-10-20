@@ -43,10 +43,9 @@ const AdminNavigation = () => {
               to="/dashboard"
               end
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -58,10 +57,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/add-new-post"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -73,10 +71,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/manage-school-history"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -88,10 +85,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/manage-items"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -103,10 +99,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/manage-clubs"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -118,10 +113,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/manage-teachers"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -133,10 +127,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/manage-schedule"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -146,27 +139,53 @@ const AdminNavigation = () => {
           </li>
           <li>
             <NavLink
-              to="/dashboard/homeroom-activities"
+              to="/dashboard/flagpole-attendance-report"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
               <span>📋</span>
-              <span>รายงานกิจกรรมโฮมรูม</span>
+              <span>รายงานเช็คชื่อเข้าแถว</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/behavior-score-report"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>⭐</span>
+              <span>รายงานคะแนนความประพฤติ</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/dashboard/club-attendance-report"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>🎯</span>
+              <span>รายงานเช็คชื่อเข้าชุมนุม</span>
             </NavLink>
           </li>
           <li>
             <NavLink
               to="/dashboard/home-visit-reports"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >
@@ -178,10 +197,9 @@ const AdminNavigation = () => {
             <NavLink
               to="/dashboard/users"
               className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
                 }`
               }
             >

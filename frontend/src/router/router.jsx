@@ -31,8 +31,15 @@ import UpdatePosts from "../pages/admin/post/UpdatePosts";
 import ErrorPage from "../components/ErrorPage";
 import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
+import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
+import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
+/*
+import ManageTeachers from "../pages/admin/teachers/ManageTeachers";
+import ManageSchedule from "../pages/admin/schedule/ManageSchedule";
+import ClubAttendanceReport from "../pages/admin/reports/ClubAttendanceReport";
+import HomeVisitReports from "../pages/admin/reports/HomeVisitReports";
 import PrivateRoute from "./PrivateRoute";
-
+*/
 
 const router = createBrowserRouter([
   {
@@ -141,6 +148,7 @@ const router = createBrowserRouter([
           </PublicRoute>
         )
       },
+      // Admin Dashboard
       {
         path: '/dashboard',
         element: (
@@ -154,30 +162,54 @@ const router = createBrowserRouter([
             element: <Dashboard />,
           },
           {
-            path: 'add-new-post',
+            path: 'add-new-post', // เพิ่มบทความ 
             element: <AddPost />,
           },
           {
-            path: 'manage-items',
+            path: 'manage-items', // จัดการบทความ 
             element: <ManagePost />,
           },
           {
-            path: "update-items/:id",
+            path: "update-items/:id", // แก้ไขบทความ
             element: <UpdatePosts />
           },
           {
-            path: 'users',
+            path: 'users', // จัดการผู้ใช้
             element: <ManageUser />,
           },
           {
-            path: 'manage-school-history',
+            path: 'manage-school-history', // จัดการประวัติโรงเรียน
             element: <EditSchoolHistory />,
           },
           {
-            path: 'manage-clubs',
+            path: 'manage-clubs', // จัดการชุมนุม
             element: <ManageClubsPosts />,
-          }
-
+          },/*
+          {
+            path: 'manage-teachers', // จัดการครูและบุคลากร -ยังไม่ได้ทำหน้านี้
+            element: <ManageTeachers />,
+          },
+          {
+            path: 'manage-schedule', // จัดการตารางเรียน -ยังไม่ได้ทำหน้านี้
+            element: <ManageSchedule />,
+          },*/
+          // รายงานต่างๆ
+          {
+            path: 'flagpole-attendance-report', // รายงานการเข้าแถว
+            element: <FlagpoleAttendanceReport />,
+          },
+          {
+            path: "/behavior-score-report", // รายงานคะแนนความประพฤติ 
+            element: <BehaviorScoreReport />
+          }/*,
+          {
+            path: 'club-attendance-report', // รายงานการเข้าร่วมชุมนุม -ยังไม่ได้ทำหน้านี้
+            element: <ClubAttendanceReport />,
+          },
+          {
+            path: 'home-visit-reports', // รายงานการเยี่ยมบ้าน -ยังไม่ได้ทำหน้านี้
+            element: <HomeVisitReports />,
+          }*/
         ],
       },
 
