@@ -28,12 +28,12 @@ const navLists = [
     path: '#',
     dropdown: [
       { name: 'จำนวนนักเรียน', path: '/all-students' },
-      { name: 'เช็คชื่อเข้าแถว', path: '/flagpoleattendance' },
-      { name: 'คะแนนความประพฤติ', path: 'https://docs.google.com/spreadsheets/d/1oAISG4M-Qq4XialIfivbE07ehZHGdf05ppNO-996ouw/edit?gid=0#gid=0' },
+      { name: 'เช็คชื่อนักเรียนเข้าแถว', path: '/flagpoleattendance' },
+      { name: 'บันทึกคะแนนความประพฤติ', path: 'https://docs.google.com/spreadsheets/d/1oAISG4M-Qq4XialIfivbE07ehZHGdf05ppNO-996ouw/edit?gid=0#gid=0' },
       { name: 'สภานักเรียน', path: '/student-council' },
       { name: 'ตารางเรียน', path: '/student-schedule' },
       { name: 'ชุมนุมวิชาการ', path: '/clubs' },
-      { name: 'กิจกรรมโฮมรูม', path: '/homeroom' },
+      { name: 'เช็คชื่อนักเรียนเข้าชุมนุม', path: '/clubattendance' },
       { name: 'ฟอร์มเยี่ยมบ้านนักเรียน', path: '/home-visits' },
     ],
   },
@@ -169,7 +169,7 @@ const Navbar = () => {
                         to="/dashboard"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
                       >
-                        <Settings className="mr-2 h-4 w-4" /> Dashboard
+                        <Settings className="mr-2 h-4 w-4" /> แดชบอร์ด
                       </Link>
                     )}
                     {/* ปุ่ม Profile */}
@@ -178,7 +178,7 @@ const Navbar = () => {
                         to="/profile"
                         className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
                       >
-                        <User className="mr-2 h-4 w-4" /> Profile
+                        <User className="mr-2 h-4 w-4" /> โปรไฟล์
                       </Link>)}
 
                     {/* ปุ่ม Logout */}
@@ -186,7 +186,7 @@ const Navbar = () => {
                       onClick={handleLogout}
                       className="w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700"
                     >
-                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                      <LogOut className="mr-2 h-4 w-4" /> ออกจากระบบ
                     </button>
                   </motion.div>
                 )}
@@ -292,7 +292,7 @@ const Navbar = () => {
                         className="flex items-center py-2 text-gray-700 hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        <Settings className="mr-2 h-4 w-4" /> Dashboard
+                        <Settings className="mr-2 h-4 w-4" /> แดชบอร์ด
                       </Link>
                     )}
                     {/* ปุ่ม Profile บน Mobile */}
@@ -302,14 +302,14 @@ const Navbar = () => {
                         className="flex items-center py-2 text-gray-700 hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        <User className="mr-2 h-4 w-4" /> Profile
+                        <User className="mr-2 h-4 w-4" /> โปรไฟล์
                       </Link>)}
                     {/* ปุ่ม Logout บน Mobile */}
                     <button
                       onClick={handleLogout}
                       className="flex items-center py-2 text-red-600 hover:text-red-700"
                     >
-                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                      <LogOut className="mr-2 h-4 w-4" /> ออกจากระบบ
                     </button>
                   </div>
                 )}

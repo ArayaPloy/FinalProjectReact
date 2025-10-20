@@ -17,7 +17,7 @@ const ErrorPage = () => {
         ></span>
 
         <span className="relative block px-8 py-3 bg-[#1A2238] border border-current">
-          <Link to="/">Back Home</Link>
+          <Link to="/">กลับหน้าหลัก</Link>
         </span>
       </a>
     </button>

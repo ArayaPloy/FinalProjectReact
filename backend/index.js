@@ -21,7 +21,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       // Production domains (แก้ไขตาม domain จริง)
       'https://your-frontend-domain.com',
       'https://www.your-frontend-domain.com',
-      // เพิ่ม production domains อื่นๆ ตามต้องการ
+      // เพิ่ม production domains อื่นๆ 
     ]
   : [
       // Development origins
@@ -71,7 +71,7 @@ app.use('/uploads', express.static('uploads')); // Serve static files from the u
 async function main() {
   await mongoose.connect(process.env.MONGODB_URL);
   app.get('/', (req, res) => {
-    res.send('EduWeb-Prototype School Website Server is Running...!');
+    res.send('School Website Server is Running...!');
   });
 
   // generateToken = require('./src/middleware/generateToken');
@@ -79,8 +79,7 @@ async function main() {
 }
 
 
-
-main().then(() => console.log('Mongodb connected successfully!')).catch(err => console.log(err));
+// main().then(() => console.log('Mongodb connected successfully!')).catch(err => console.log(err));
 
 
 

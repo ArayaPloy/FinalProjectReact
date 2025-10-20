@@ -12,7 +12,6 @@ import {
     showLoading,
     closeAlert,
 } from '../utils/sweetAlertHelper';
-import Swal from 'sweetalert2';
 
 const StudentsManage = () => {
     const [students, setStudents] = useState([]);

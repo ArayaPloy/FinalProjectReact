@@ -175,7 +175,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
             data: {
                 title,
                 description,
-                content: JSON.stringify(content), // ✅ convert object -> string (FIXED!)
+                content: JSON.stringify(content), //  convert object -> string 
                 category,
                 coverImg,
                 updatedBy: req.userId

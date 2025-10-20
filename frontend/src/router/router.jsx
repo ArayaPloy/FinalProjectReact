@@ -94,14 +94,18 @@ const router = createBrowserRouter([
       {
         path: "/flagpoleattendance", // เช็คชื่อเข้าแถว
         element: (
-          <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'teacher']}>
             <FlagpoleAttendance />
           </ProtectedRoute>
         )
       },
       {
         path: "/home-visits", // เยี่ยมบ้านนักเรียน
-        element: <HomeVisits />
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'teacher']}>
+            <HomeVisits />
+          </ProtectedRoute>
+        )
       },
       {
         path: "/privacy-policy",
@@ -131,7 +135,7 @@ const router = createBrowserRouter([
       {
         path: '/dashboard',
         element: (
-          <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'teacher']}>
             <AdminLayout />
           </ProtectedRoute>
         ),

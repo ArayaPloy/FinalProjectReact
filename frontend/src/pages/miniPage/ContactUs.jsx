@@ -32,7 +32,7 @@ const ContactUs = () => {
 
   return (
     <section className="bg-gray-50 text-gray-800" style={{ minWidth: '320px' }}>
-      {/* ส่วนหัวข้อหลัก - คงรูปภาพเดิม */}
+      {/* ส่วนหัวข้อหลัก */}
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
