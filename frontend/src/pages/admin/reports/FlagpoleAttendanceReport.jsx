@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Calendar, TrendingUp, Users, FileText, Download } from 'lucide-react';
-import DatePicker from '../components/common/DatePicker';
-import ClassSelect from '../components/common/ClassSelect';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import { attendanceService } from '../services/attendanceService';
-import { showError, showSuccess } from '../utils/sweetAlertHelper';
+import DatePicker from '../../../components/common/DatePicker';
+import ClassSelect from '../../../components/common/ClassSelect';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
+// import { attendanceService } from '../services/attendanceService';
+import { showError, showSuccess } from '../../../utilis/sweetAlertHelper';
 
 const AttendanceReports = () => {
     const [startDate, setStartDate] = useState(

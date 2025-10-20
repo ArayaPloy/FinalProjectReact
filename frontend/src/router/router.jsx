@@ -199,7 +199,7 @@ const router = createBrowserRouter([
             element: <FlagpoleAttendanceReport />,
           },
           {
-            path: "/behavior-score-report", // รายงานคะแนนความประพฤติ 
+            path: "behavior-score-report", // รายงานคะแนนความประพฤติ 
             element: <BehaviorScoreReport />
           }/*,
           {

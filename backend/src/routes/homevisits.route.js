@@ -119,10 +119,10 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
         }
 
         const [homeVisits, total] = await Promise.all([
-            prisma.homeVisit.findMany({
+            prisma.homevisits.findMany({
                 where: whereClause,
                 include: {
-                    teacher: {
+                    teachers: {
                         select: {
                             id: true,
                             fullName: true,
@@ -130,7 +130,7 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
                             position: true
                         }
                     },
-                    student: {
+                    students: {
                         select: {
                             id: true,
                             fullName: true,
@@ -145,7 +145,7 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
                 skip: offset,
                 take: parseInt(limit)
             }),
-            prisma.homeVisit.count({ where: whereClause })
+            prisma.homevisits.count({ where: whereClause })
         ]);
 
         res.status(200).json({
@@ -181,13 +181,13 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
             });
         }
 
-        const homeVisit = await prisma.homeVisit.findFirst({
+        const homeVisit = await prisma.homevisits.findFirst({
             where: {
                 id: homeVisitId,
                 isDeleted: false
             },
             include: {
-                teacher: {
+                teachers: {
                     select: {
                         id: true,
                         fullName: true,
@@ -198,7 +198,7 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
                         phoneNumber: true
                     }
                 },
-                student: {
+                students: {
                     select: {
                         id: true,
                         fullName: true,
@@ -386,10 +386,10 @@ router.post('/', verifyToken, upload.array('images', 5), handleMulterError, asyn
         console.log('Data to be created:', createData);
 
         // Create home visit record
-        const homeVisit = await prisma.homeVisit.create({
+        const homeVisit = await prisma.homevisits.create({
             data: createData,
             include: {
-                teacher: {
+                teachers: {
                     select: {
                         id: true,
                         fullName: true,
@@ -397,7 +397,7 @@ router.post('/', verifyToken, upload.array('images', 5), handleMulterError, asyn
                         position: true
                     }
                 },
-                student: {
+                students: {
                     select: {
                         id: true,
                         fullName: true,
@@ -449,7 +449,7 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
         }
 
         // Check if home visit exists
-        const existingVisit = await prisma.homeVisit.findFirst({
+        const existingVisit = await prisma.homevisits.findFirst({
             where: {
                 id: homeVisitId,
                 isDeleted: false
@@ -539,11 +539,11 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
         delete updateData.replaceImages;
 
         // Update home visit
-        const updatedVisit = await prisma.homeVisit.update({
+        const updatedVisit = await prisma.homevisits.update({
             where: { id: homeVisitId },
             data: updateData,
             include: {
-                teacher: {
+                teachers: {
                     select: {
                         id: true,
                         fullName: true,
@@ -551,7 +551,7 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
                         position: true
                     }
                 },
-                student: {
+                students: {
                     select: {
                         id: true,
                         fullName: true,
@@ -601,7 +601,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // Check if home visit exists
-        const existingVisit = await prisma.homeVisit.findFirst({
+        const existingVisit = await prisma.homevisits.findFirst({
             where: {
                 id: homeVisitId,
                 isDeleted: false
@@ -616,7 +616,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
         }
 
         // Soft delete
-        await prisma.homeVisit.update({
+        await prisma.homevisits.update({
             where: { id: homeVisitId },
             data: {
                 isDeleted: true,
@@ -683,19 +683,19 @@ router.get('/stats/overview', verifyToken, isAdmin, async (req, res) => {
             uniqueTeachers,
             monthlyStats
         ] = await Promise.all([
-            prisma.homeVisit.count({ where: whereClause }),
-            prisma.homeVisit.count({
+            prisma.homevisits.count({ where: whereClause }),
+            prisma.homevisits.count({
                 where: {
                     ...whereClause,
                     problems: { not: null }
                 }
             }),
-            prisma.homeVisit.findMany({
+            prisma.homevisits.findMany({
                 where: whereClause,
                 select: { studentId: true },
                 distinct: ['studentId']
             }),
-            prisma.homeVisit.findMany({
+            prisma.homevisits.findMany({
                 where: whereClause,
                 select: { teacherId: true },
                 distinct: ['teacherId']
