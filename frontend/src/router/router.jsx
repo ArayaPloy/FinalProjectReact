@@ -14,6 +14,7 @@ import FacultyStaff from "../pages/miniPage/FacultyStaff";
 import HomeVisits from "../pages/miniPage/HomeVisits";
 import AllStudents from "../pages/miniPage/AllStudents";
 import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
+import BehaviorScore from "../pages/miniPage/BehaviorScore";
 import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
 import ContactUs from "../pages/miniPage/ContactUs";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
@@ -96,6 +97,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['admin', 'super_admin', 'teacher']}>
             <FlagpoleAttendance />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: "/behaviorscore", // บันทึกคะแนนความประพฤติ
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'super_admin', 'teacher']}>
+            <BehaviorScore />
           </ProtectedRoute>
         )
       },
