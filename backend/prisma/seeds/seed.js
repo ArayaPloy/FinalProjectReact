@@ -140,7 +140,7 @@ async function main() {
 
   `);
 
-  const csvFilePath = path.join(__dirname, 'student_list.csv')
+  const csvFilePath = path.join(__dirname, 'student_list_2.csv')
   const fileContent = fs.readFileSync(csvFilePath, 'utf-8')
 
   // Parse CSV file
@@ -167,6 +167,7 @@ async function main() {
           fullName: record.fullName,
           classRoom: record.classroom,
           genderId: parseInt(record.genderId),
+          studentNumber: parseInt(record.studentId),
           createdAt: new Date(),
           updatedAt: new Date()
         }
