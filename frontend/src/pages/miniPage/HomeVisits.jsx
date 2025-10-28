@@ -260,25 +260,35 @@ const HomeVisits = () => {
 
             // Process and clean the data before sending
             for (const [key, value] of Object.entries(allValues)) {
-                if (value !== undefined && value !== null && value !== '') {
-                    if (dayjs.isDayjs(value)) {
-                        uploadFormData.append(key, value.format('YYYY-MM-DD'));
-                    } else if (Array.isArray(value)) {
-                        // Convert arrays to JSON strings, but handle visitPurpose specially
-                        if (key === 'visitPurpose') {
-                            // Join array items with comma for visitPurpose
-                            uploadFormData.append(key, value.join(', '));
-                        } else {
-                            uploadFormData.append(key, JSON.stringify(value));
-                        }
-                    } else if (typeof value === 'object' && value.fileList) {
-                        // Skip the images object, handle files separately
-                        continue;
-                    } else {
-                        uploadFormData.append(key, value.toString());
-                    }
+                if (value === undefined || value === null) continue;
+
+                // Convert Day.js date
+                if (dayjs.isDayjs(value)) {
+                    uploadFormData.append(key, value.format('YYYY-MM-DD'));
+                    continue;
                 }
-                // Don't send null/undefined values - let backend handle defaults
+
+                // Convert arrays (Checkbox.Group, Multi-select, etc.)
+                if (Array.isArray(value)) {
+                    uploadFormData.append(key, value.join(', '));
+                    continue;
+                }
+
+                // Convert objects (RadioGroup sometimes returns object)
+                if (typeof value === 'object' && value !== null) {
+                    // Skip Upload fields
+                    if (value.fileList) continue;
+                    uploadFormData.append(key, JSON.stringify(value));
+                    continue;
+                }
+
+                // Default case: string/number/boolean
+                uploadFormData.append(key, value.toString());
+            }
+
+            console.log('=== DEBUG: Final FormData ===');
+            for (let [k, v] of uploadFormData.entries()) {
+                console.log(k, ':', v);
             }
 
             // Add uploaded files
@@ -303,20 +313,26 @@ const HomeVisits = () => {
                 });
             }, 200);
 
-            // Send to backend API
-            const response = await fetch('http://localhost:5000/api/home-visits', {
+            // Debug: print everything sent
+            console.log('=== DEBUG: Upload FormData Entries ===');
+            for (let pair of uploadFormData.entries()) {
+                console.log(`${pair[0]}:`, pair[1]);
+            }
+
+            const response = await fetch('http://localhost:5000/api/homevisits', {
                 method: 'POST',
                 body: uploadFormData,
                 credentials: 'include',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                }
+                    Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+                },
             });
 
             clearInterval(progressInterval);
             setUploadProgress(100);
 
             const result = await response.json();
+            console.log('API Response:', result);
 
             if (response.ok && result.success) {
                 setIsSubmitting(false);

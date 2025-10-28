@@ -12,7 +12,7 @@ import { DatePicker, Form, Input, ConfigProvider } from 'antd';
 import moment from 'moment';
 import 'antd/dist/reset.css'; // Make sure to import Ant Design styles
 
-// Custom theme configuration for DatePicker
+// Custom theme for DatePicker
 const customTheme = {
     token: {
         colorPrimary: '#f59e0b', // amber-500

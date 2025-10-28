@@ -61,7 +61,7 @@ app.use('/api/blogsOld', blogRoutesOld);
 app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/clubs', clubsRoutes);
-app.use('/api/home-visits', homeVisitRoutes);
+app.use('/api/homevisits', homeVisitRoutes);
 app.use('/api', flagpoleAttendanceRoutes);
 app.use('/api/upload', uploadRoutes);
 

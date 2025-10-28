@@ -341,18 +341,18 @@ model school_info {
 
 model school_timeline {
   id          Int       @id @default(autoincrement())
-  year        String    @db.VarChar(20)
-  date        String    @db.VarChar(100)
+  year        Int
+  date        String?   @db.VarChar(50)
   title       String    @db.VarChar(255)
-  description String    @db.Text
-  sortOrder   Int?      @default(0)
+  description String?   @db.Text
+  sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now()) @db.Timestamp(0)
   updatedAt   DateTime  @default(now()) @db.Timestamp(0)
   createdBy   Int
   updatedBy   Int
-  deletedBy   Int?
   isDeleted   Boolean?  @default(false)
   deletedAt   DateTime? @db.Timestamp(0)
+  deletedBy   Int?
 }
 
 model studentbehaviorscores {
