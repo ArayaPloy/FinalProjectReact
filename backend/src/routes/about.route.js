@@ -32,21 +32,18 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
             department,
             description,
             heroImage,
-            director_image: director_image,
-            director_quote: director_quote,
-            foundedDate: foundedDate,
+            director_image,
+            director_quote,
+            foundedDate,
             updatedBy: req.userId,
         };
 
-
-        // ตรวจสอบว่ามีข้อมูลโรงเรียนอยู่แล้วหรือไม่
-        const existingSchoolInfo = await prisma.schoolInfo.findFirst();
+        const existingSchoolInfo = await prisma.school_info.findFirst();
 
         let schoolInfo;
 
         if (existingSchoolInfo) {
-            // อัพเดตข้อมูลที่มีอยู่
-            schoolInfo = await prisma.schoolInfo.update({
+            schoolInfo = await prisma.school_info.update({
                 where: {
                     id: existingSchoolInfo.id
                 },
@@ -56,8 +53,7 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
                 }
             });
         } else {
-            // สร้างข้อมูลใหม่
-            schoolInfo = await prisma.schoolInfo.create({
+            schoolInfo = await prisma.school_info.create({
                 data: {
                     ...schoolInfoData,
                     createdBy: req.userId
@@ -75,10 +71,13 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get school information (public route)
+// Get school information
 router.get('/school-info', async (req, res) => {
     try {
-        const schoolInfo = await prisma.schoolInfo.findFirst({
+        const schoolInfo = await prisma.school_info.findFirst({
+            where: {
+                isDeleted: false
+            },
             orderBy: {
                 updatedAt: 'desc'
             }
@@ -95,22 +94,23 @@ router.get('/school-info', async (req, res) => {
     }
 });
 
-// Create timeline event (protected route - admin only)
+// Create timeline event
 router.post('/timeline', verifyToken, isAdmin, async (req, res) => {
     try {
         const { year, date, title, description, sortOrder } = req.body;
 
-        const timelineEvent = await prisma.schoolTimeline.create({
+        const timelineEvent = await prisma.school_timeline.create({
             data: {
-                year,
+                year: parseInt(year),  
                 date,
                 title,
                 description,
-                sortOrder: sortOrder || 0,
+                sortOrder: sortOrder ? parseInt(sortOrder) : 0,  
                 createdBy: req.userId,
                 updatedBy: req.userId,
-                deletedBy: 0,
-                deletedAt: 0,
+                isDeleted: false,  
+                deletedAt: null,   
+                deletedBy: null
             }
         });
 
@@ -120,16 +120,19 @@ router.post('/timeline', verifyToken, isAdmin, async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating timeline event:', error);
-        res.status(500).json({ message: 'Failed to create timeline event' });
+        res.status(500).json({
+            message: 'Failed to create timeline event',
+            error: error.message  
+        });
     }
 });
 
-// Get all timeline events (public route)
+// Get all timeline events
 router.get('/timeline', async (req, res) => {
     try {
-        const timelineEvents = await prisma.schoolTimeline.findMany({
+        const timelineEvents = await prisma.school_timeline.findMany({
             where: {
-                deleted: 0
+                isDeleted: false
             },
             orderBy: {
                 sortOrder: 'asc'
@@ -143,33 +146,7 @@ router.get('/timeline', async (req, res) => {
     }
 });
 
-// Get single timeline event (public route)
-router.get('/timeline/:id', async (req, res) => {
-    try {
-        const timelineId = parseInt(req.params.id);
-
-        if (isNaN(timelineId)) {
-            return res.status(400).json({ message: 'Invalid timeline ID' });
-        }
-
-        const timelineEvent = await prisma.schoolTimeline.findFirst({
-            where: {
-                id: timelineId,
-            }
-        });
-
-        if (!timelineEvent) {
-            return res.status(404).json({ message: 'Timeline event not found' });
-        }
-
-        res.status(200).json(timelineEvent);
-    } catch (error) {
-        console.error('Error fetching timeline event:', error);
-        res.status(500).json({ message: 'Failed to fetch timeline event' });
-    }
-});
-
-// Update timeline event (protected route - admin only)
+// Update timeline
 router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const timelineId = parseInt(req.params.id);
@@ -179,10 +156,10 @@ router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(400).json({ message: 'Invalid timeline ID' });
         }
 
-        // ตรวจสอบว่า timeline event มีอยู่และไม่ถูกลบ
-        const existingEvent = await prisma.schoolTimeline.findFirst({
+        const existingEvent = await prisma.school_timeline.findFirst({
             where: {
                 id: timelineId,
+                isDeleted: false
             }
         });
 
@@ -190,16 +167,16 @@ router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ message: 'Timeline event not found' });
         }
 
-        const updatedEvent = await prisma.schoolTimeline.update({
+        const updatedEvent = await prisma.school_timeline.update({
             where: {
                 id: timelineId
             },
             data: {
-                year,
+                year: year ? parseInt(year) : existingEvent.year,  
                 date,
                 title,
                 description,
-                sortOrder: sortOrder || existingEvent.sortOrder,
+                sortOrder: sortOrder !== undefined ? parseInt(sortOrder) : existingEvent.sortOrder, 
                 updatedBy: req.userId
             }
         });
@@ -210,11 +187,14 @@ router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
         });
     } catch (error) {
         console.error('Error updating timeline event:', error);
-        res.status(500).json({ message: 'Failed to update timeline event' });
+        res.status(500).json({
+            message: 'Failed to update timeline event',
+            error: error.message  
+        });
     }
 });
 
-// Delete timeline event (soft delete - protected route)
+// Soft delete timeline
 router.delete('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const timelineId = parseInt(req.params.id);
@@ -223,10 +203,10 @@ router.delete('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(400).json({ message: 'Invalid timeline ID' });
         }
 
-        // ตรวจสอบว่า timeline event มีอยู่
-        const existingEvent = await prisma.schoolTimeline.findFirst({
+        const existingEvent = await prisma.school_timeline.findFirst({
             where: {
                 id: timelineId,
+                isDeleted: false
             }
         });
 
@@ -234,13 +214,13 @@ router.delete('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ message: 'Timeline event not found' });
         }
 
-        // Soft delete
-        await prisma.schoolTimeline.update({
+        await prisma.school_timeline.update({
             where: {
                 id: timelineId
             },
             data: {
-                deletedAt: 1,
+                isDeleted: true,
+                deletedAt: new Date(),
                 deletedBy: req.userId
             }
         });
@@ -254,91 +234,27 @@ router.delete('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get complete school history (school info + timeline) - public route with fallback
+// Get complete history
 router.get('/complete-history', async (req, res) => {
     try {
-        console.log('📍 Fetching complete school history...');
-
-        // ตรวจสอบการเชื่อมต่อฐานข้อมูลก่อน
-        await prisma.$queryRaw`SELECT 1`;
-        console.log('✅ Database connection successful');
-
-        let schoolInfo = null;
-        let timelineEvents = [];
-
-        // ลองใช้ Prisma models ก่อน
-        try {
-            if (prisma.schoolInfo && typeof prisma.schoolInfo.findFirst === 'function') {
-                console.log('📋 Using Prisma SchoolInfo model...');
-                schoolInfo = await prisma.schoolInfo.findFirst({
-                    orderBy: {
-                        updatedAt: 'desc'
-                    }
-                });
-            } else {
-                console.log('⚠️ SchoolInfo model not available, using raw SQL...');
-                const result = await prisma.$queryRaw`
-                    SELECT * FROM school_info 
-                    ORDER BY updatedAt DESC 
-                    LIMIT 1
-                `;
-                schoolInfo = result.length > 0 ? result[0] : null;
+        const schoolInfo = await prisma.school_info.findFirst({
+            where: {
+                isDeleted: false
+            },
+            orderBy: {
+                updatedAt: 'desc'
             }
-        } catch (error) {
-            console.error('❌ Error with SchoolInfo:', error.message);
-            // ลอง raw SQL เป็น fallback
-            try {
-                const result = await prisma.$queryRaw`
-                    SELECT * FROM school_info 
-                    ORDER BY updatedAt DESC 
-                    LIMIT 1
-                `;
-                schoolInfo = result.length > 0 ? result[0] : null;
-            } catch (rawError) {
-                console.error('❌ Raw SQL for school_info failed:', rawError.message);
-                schoolInfo = null;
-            }
-        }
+        });
 
-        // ลองใช้ Prisma Timeline model
-        try {
-            if (prisma.schoolTimeline && typeof prisma.schoolTimeline.findMany === 'function') {
-                console.log('📋 Using Prisma SchoolTimeline model...');
-                timelineEvents = await prisma.schoolTimeline.findMany({
-                    where: {
-                        deletedAt: null | 0// หรือ 0 ถ้าใช้ soft delete
-                    },
-                    orderBy: {
-                        sortOrder: 'asc'
-                    }
-                });
-            } else {
-                console.log('⚠️ SchoolTimeline model not available, using raw SQL...');
-                timelineEvents = await prisma.$queryRaw`
-                    SELECT * FROM school_timeline 
-                    WHERE deletedAt IS NULL OR deletedAt = 0
-                    ORDER BY sortOrder ASC
-                `;
+        const timelineEvents = await prisma.school_timeline.findMany({
+            where: {
+                isDeleted: false
+            },
+            orderBy: {
+                sortOrder: 'asc'
             }
-        } catch (error) {
-            console.error('❌ Error with SchoolTimeline:', error.message);
-            // ลอง raw SQL เป็น fallback
-            try {
-                timelineEvents = await prisma.$queryRaw`
-                    SELECT * FROM school_timeline 
-                    WHERE deletedAt IS NULL OR deletedAt = 0
-                    ORDER BY sortOrder ASC
-                `;
-            } catch (rawError) {
-                console.error('❌ Raw SQL for school_timeline failed:', rawError.message);
-                timelineEvents = [];
-            }
-        }
+        });
 
-        console.log('📊 School Info found:', schoolInfo ? 'Yes' : 'No');
-        console.log('📊 Timeline events found:', timelineEvents.length);
-
-        // ส่ง response ในรูปแบบที่ตรงกับ API design
         res.status(200).json({
             success: true,
             data: {
@@ -348,13 +264,7 @@ router.get('/complete-history', async (req, res) => {
             message: 'ดึงข้อมูลประวัติโรงเรียนสำเร็จ'
         });
     } catch (error) {
-        console.error('❌ Error fetching complete school history:', error);
-        console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-        });
-
+        console.error('Error fetching complete school history:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch complete school history',

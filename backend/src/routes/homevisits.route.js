@@ -75,40 +75,46 @@ const handleMulterError = (err, req, res, next) => {
     next(err);
 };
 
+const safeConvert = (value, defaultValue = null) => {
+    if (value === undefined || value === null || value === 'undefined' || value === 'null' || value === '') {
+        return defaultValue;
+    }
+    return value;
+};
+
+const parseJsonField = (field) => {
+    if (!field || field === 'null' || field === 'undefined' || field === '') return null;
+    if (typeof field === 'object') return JSON.stringify(field);
+    if (typeof field === 'string') {
+        if (field.startsWith('[') || field.startsWith('{')) {
+            try {
+                JSON.parse(field);
+                return field;
+            } catch {
+                return JSON.stringify(field);
+            }
+        }
+        return JSON.stringify(field);
+    }
+    return JSON.stringify(field);
+};
+
 // Get all home visits (admin only)
 router.get('/', verifyToken, isAdmin, async (req, res) => {
     try {
-        const {
-            page = 1,
-            limit = 10,
-            teacherId,
-            studentId,
-            startDate,
-            endDate,
-            search
-        } = req.query;
-
+        const { page = 1, limit = 10, teacherId, studentId, startDate, endDate, search } = req.query;
         const offset = (page - 1) * limit;
 
-        const whereClause = {
-            isDeleted: false
-        };
+        const whereClause = { isDeleted: false };
 
-        if (teacherId) {
-            whereClause.teacherId = parseInt(teacherId);
-        }
-
-        if (studentId) {
-            whereClause.studentId = parseInt(studentId);
-        }
-
+        if (teacherId) whereClause.teacherId = parseInt(teacherId);
+        if (studentId) whereClause.studentId = parseInt(studentId);
         if (startDate && endDate) {
             whereClause.visitDate = {
                 gte: new Date(startDate),
                 lte: new Date(endDate)
             };
         }
-
         if (search) {
             whereClause.OR = [
                 { studentName: { contains: search } },
@@ -122,26 +128,10 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
             prisma.homevisits.findMany({
                 where: whereClause,
                 include: {
-                    teachers: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            namePrefix: true,
-                            position: true
-                        }
-                    },
-                    students: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            namePrefix: true,
-                            classRoom: true
-                        }
-                    }
+                    teachers: { select: { id: true, fullName: true, namePrefix: true, position: true } },
+                    students: { select: { id: true, fullName: true, namePrefix: true, classRoom: true } }
                 },
-                orderBy: {
-                    visitDate: 'desc'
-                },
+                orderBy: { visitDate: 'desc' },
                 skip: offset,
                 take: parseInt(limit)
             }),
@@ -158,14 +148,9 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
                 totalPages: Math.ceil(total / limit)
             }
         });
-
     } catch (error) {
         console.error('Error fetching home visits:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch home visits',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Failed to fetch home visits', error: error.message });
     }
 });
 
@@ -232,214 +217,73 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Create new home visit with file upload
-
-// Create new home visit with file upload
-router.post('/', verifyToken, upload.array('images', 5), handleMulterError, async (req, res) => {
+router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
     try {
-        const {
-            studentId,
-            teacherId,
-            studentIdNumber,
-            studentName,
-            className,
-            teacherName,
-            visitDate,
-            parentName,
-            relationship,
-            occupation,
-            studentBirthDate,
-            monthlyIncome,
-            familyStatus,
-            mainAddress,
-            phoneNumber,
-            emergencyContact,
-            houseType,
-            houseMaterial,
-            utilities,
-            environmentCondition,
-            studyArea,
-            visitPurpose,
-            studentBehaviorAtHome,
-            parentCooperation,
-            problems,
-            recommendations,
-            followUpPlan,
-            summary,
-            notes
-        } = req.body;
+        const body = req.body;
 
-        console.log('Raw form data:', req.body); // Debug log
-        console.log('visitPurpose raw:', visitPurpose);
-        console.log('visitPurpose type:', typeof visitPurpose);
-
-        // Validation
-        const requiredFields = ['studentIdNumber', 'studentName', 'className', 'teacherName', 'visitDate', 'parentName', 'relationship', 'occupation', 'mainAddress', 'visitPurpose', 'summary'];
-        const missingFields = requiredFields.filter(field => !req.body[field] || req.body[field] === 'null' || req.body[field] === 'undefined');
-
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: `Required fields: ${missingFields.join(', ')}`
-            });
-        }
-
-        // Process uploaded images
-        let imagePaths = [];
-        let mainImagePath = null;
-
-        if (req.files && req.files.length > 0) {
-            imagePaths = req.files.map(file => `/uploads/homevisits/${file.filename}`);
-            mainImagePath = imagePaths[0]; // First image as main image
-        }
-
-        // Helper function to safely convert values
-        const safeConvert = (value, defaultValue = null) => {
-            if (value === undefined || value === null || value === 'undefined' || value === 'null' || value === '') {
-                return defaultValue;
-            }
-            return value;
-        };
-
-        // Helper function for JSON fields
-        // Update parseJsonField to ensure it returns valid JSON or null
-        const parseJsonField = (field) => {
-            if (!field || field === 'null' || field === 'undefined' || field === '') return null;
-
-            if (typeof field === 'string') {
-                // Check if it's already valid JSON
+        // Convert any checkbox/multiselect fields to JSON
+        const jsonField = (val) => {
+            if (!val) return null;
+            if (typeof val === 'string') {
                 try {
-                    JSON.parse(field);
-                    return field; // It's already valid JSON
-                } catch (e) {
-                    // Not valid JSON, so stringify it
-                    return JSON.stringify(field);
+                    return JSON.stringify(JSON.parse(val));
+                } catch {
+                    return JSON.stringify(val);
                 }
             }
-
-            // If it's an object or array, stringify it
-            if (typeof field === 'object') {
-                return JSON.stringify(field);
-            }
-
-            // For any other type, stringify it
-            return JSON.stringify(field);
+            return JSON.stringify(val);
         };
 
-        // Replace the processedVisitPurpose logic with this:
-        let processedVisitPurpose = null;
-        if (visitPurpose && visitPurpose !== 'null' && visitPurpose !== 'undefined') {
-            // If it's a string that looks like an array
-            if (typeof visitPurpose === 'string' && visitPurpose.startsWith('[')) {
-                // It's already JSON, just use it
-                processedVisitPurpose = visitPurpose;
-            } else if (typeof visitPurpose === 'string' && visitPurpose.startsWith('"') && visitPurpose.endsWith('"')) {
-                // It's already a JSON string
-                processedVisitPurpose = visitPurpose;
-            } else {
-                // Convert to JSON string
-                processedVisitPurpose = JSON.stringify(visitPurpose);
-            }
-        } else {
-            processedVisitPurpose = null;
-        }
+        // Handle uploaded images
+        const imagePaths = req.files ? req.files.map(f => `/uploads/homevisits/${f.filename}`) : [];
 
-        console.log('processedVisitPurpose:', processedVisitPurpose);
-        console.log('processedVisitPurpose length:', processedVisitPurpose?.length);
-
-        // Create the data object
-        const createData = {
-            studentId: studentId && studentId !== 'null' ? parseInt(studentId) : null,
-            teacherId: teacherId && teacherId !== 'null' ? parseInt(teacherId) : null,
-            studentIdNumber: safeConvert(studentIdNumber),
-            studentName: safeConvert(studentName),
-            className: safeConvert(className),
-            teacherName: safeConvert(teacherName),
-            visitDate: new Date(visitDate),
-            parentName: safeConvert(parentName),
-            relationship: safeConvert(relationship),
-            occupation: safeConvert(occupation),
-            monthlyIncome: safeConvert(monthlyIncome),
-            studentBirthDate: studentBirthDate && studentBirthDate !== 'null' ? new Date(studentBirthDate) : null,
-            familyStatus: parseJsonField(familyStatus),
-            mainAddress: safeConvert(mainAddress),
-            phoneNumber: safeConvert(phoneNumber),
-            emergencyContact: safeConvert(emergencyContact),
-            houseType: parseJsonField(houseType),
-            houseMaterial: parseJsonField(houseMaterial),
-            utilities: parseJsonField(utilities),
-            environmentCondition: safeConvert(environmentCondition),
-            studyArea: safeConvert(studyArea),
-            visitPurpose: visitPurpose ? JSON.stringify(visitPurpose) : null,
-            studentBehaviorAtHome: safeConvert(studentBehaviorAtHome),
-            parentCooperation: safeConvert(parentCooperation),
-            problems: safeConvert(problems),
-            recommendations: safeConvert(recommendations),
-            followUpPlan: safeConvert(followUpPlan),
-            summary: safeConvert(summary),
-            notes: safeConvert(notes),
-            imagePath: mainImagePath,
-            imageGallery: imagePaths.length > 0 ? JSON.stringify(imagePaths) : null,
-            updatedBy: req.userId
+        const data = {
+            teacherId: body.teacherId ? parseInt(body.teacherId) : null,
+            studentId: body.studentId ? parseInt(body.studentId) : null,
+            updatedBy: req.userId,
+            visitDate: body.visitDate ? new Date(body.visitDate) : null,
+            teacherName: body.teacherName || null,
+            studentIdNumber: body.studentIdNumber || null,
+            studentName: body.studentName || null,
+            studentBirthDate: body.studentBirthDate ? new Date(body.studentBirthDate) : null,
+            className: body.className || null,
+            parentName: body.parentName || null,
+            relationship: body.relationship || null,
+            occupation: body.occupation || null,
+            monthlyIncome: body.monthlyIncome || null,
+            familyStatus: jsonField(body.familyStatus),
+            mainAddress: body.mainAddress || null,
+            phoneNumber: body.phoneNumber || null,
+            emergencyContact: body.emergencyContact || null,
+            houseType: jsonField(body.houseType),
+            houseMaterial: jsonField(body.houseMaterial),
+            utilities: jsonField(body.utilities),
+            environmentCondition: body.environmentCondition || null,
+            studyArea: body.studyArea || null,
+            visitPurpose: jsonField(body.visitPurpose),
+            studentBehaviorAtHome: body.studentBehaviorAtHome || null,
+            parentCooperation: body.parentCooperation || null,
+            problems: body.problems || null,
+            recommendations: body.recommendations || null,
+            followUpPlan: body.followUpPlan || null,
+            summary: body.summary || null,
+            notes: body.notes || null,
+            imagePath: imagePaths.length ? imagePaths[0] : null,
+            imageGallery: imagePaths.length ? JSON.stringify(imagePaths) : null,
         };
 
-        console.log('Data to be created:', createData);
-
-        // Create home visit record
-        const homeVisit = await prisma.homevisits.create({
-            data: createData,
-            include: {
-                teachers: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        namePrefix: true,
-                        position: true
-                    }
-                },
-                students: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        namePrefix: true,
-                        classRoom: true
-                    }
-                }
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Home visit record created successfully',
-            data: homeVisit
-        });
-
+        const newVisit = await prisma.homevisits.create({ data });
+        res.status(201).json({ success: true, data: newVisit });
     } catch (error) {
-        console.error('Error creating home visit:', error);
-        console.error('Error details:', error.stack);
-
-        // Clean up uploaded files if database operation failed
-        if (req.files && req.files.length > 0) {
-            req.files.forEach(file => {
-                fs.unlink(file.path, (err) => {
-                    if (err) console.error('Error deleting file:', err);
-                });
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Failed to create home visit record',
-            error: error.message
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to create home visit', error: error.message });
     }
 });
 
-// Update home visit with optional new images
-router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, async (req, res) => {
+// Update home visit
+router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, async (req, res) => {
     try {
         const homeVisitId = parseInt(req.params.id);
-        const updates = req.body;
 
         if (isNaN(homeVisitId)) {
             return res.status(400).json({
@@ -463,26 +307,19 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
             });
         }
 
-        // Process new uploaded images
+        const updates = { ...req.body };
+
+        // Process uploaded images
         let newImagePaths = [];
         if (req.files && req.files.length > 0) {
             newImagePaths = req.files.map(file => `/uploads/homevisits/${file.filename}`);
 
-            // Delete old images if replacing
+            // Delete old images if replace flag is set
             if (updates.replaceImages === 'true') {
-                const deleteFile = (filePath) => {
-                    const fullPath = path.join(__dirname, '../', filePath);
-                    if (fs.existsSync(fullPath)) {
-                        fs.unlinkSync(fullPath);
-                    }
-                };
-
-                // Delete old main image
+                // Delete old files from filesystem
                 if (existingVisit.imagePath) {
                     deleteFile(existingVisit.imagePath);
                 }
-
-                // Delete old gallery images
                 if (existingVisit.imageGallery && Array.isArray(existingVisit.imageGallery)) {
                     existingVisit.imageGallery.forEach(imagePath => {
                         deleteFile(imagePath);
@@ -491,14 +328,36 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
             }
         }
 
+        // Helper function
+        const deleteFile = (filePath) => {
+            const fullPath = path.join(__dirname, '..', filePath);
+            if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath);
+            }
+        };
+
         // Parse JSON fields
         const parseJsonField = (field) => {
-            if (!field) return undefined;
-            try {
-                return JSON.parse(field);
-            } catch (e) {
-                return field;
+            if (!field || field === 'null' || field === 'undefined' || field === '') return null;
+
+            if (typeof field === 'string') {
+                if (field.startsWith('[') || field.startsWith('{')) {
+                    try {
+                        JSON.parse(field);
+                        return field;
+                    } catch (e) {
+                        return JSON.stringify(field);
+                    }
+                } else {
+                    return JSON.stringify(field);
+                }
             }
+
+            if (typeof field === 'object') {
+                return JSON.stringify(field);
+            }
+
+            return JSON.stringify(field);
         };
 
         // Prepare update data
@@ -508,12 +367,20 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
             updatedAt: new Date()
         };
 
-        // Handle JSON fields
+        // Handle JSON fields - ✅ แก้ไข: เพิ่มฟิลด์ที่หายไป
         if (updates.familyStatus) updateData.familyStatus = parseJsonField(updates.familyStatus);
         if (updates.houseType) updateData.houseType = parseJsonField(updates.houseType);
         if (updates.houseMaterial) updateData.houseMaterial = parseJsonField(updates.houseMaterial);
         if (updates.utilities) updateData.utilities = parseJsonField(updates.utilities);
         if (updates.visitPurpose) updateData.visitPurpose = parseJsonField(updates.visitPurpose);
+
+        // Handle simple text fields that were missing
+        if (updates.monthlyIncome) updateData.monthlyIncome = updates.monthlyIncome;
+        if (updates.phoneNumber) updateData.phoneNumber = updates.phoneNumber;
+        if (updates.emergencyContact) updateData.emergencyContact = updates.emergencyContact;
+        if (updates.environmentCondition) updateData.environmentCondition = updates.environmentCondition;
+        if (updates.studyArea) updateData.studyArea = updates.studyArea;
+        if (updates.notes) updateData.notes = updates.notes;
 
         // Handle image updates
         if (newImagePaths.length > 0) {
@@ -533,6 +400,9 @@ router.patch('/:id', verifyToken, upload.array('images', 5), handleMulterError, 
         // Handle date fields
         if (updates.visitDate) {
             updateData.visitDate = new Date(updates.visitDate);
+        }
+        if (updates.studentBirthDate) {
+            updateData.studentBirthDate = new Date(updates.studentBirthDate);
         }
 
         // Remove non-database fields
