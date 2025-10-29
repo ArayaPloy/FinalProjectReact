@@ -270,7 +270,7 @@ const StudentsManage = () => {
 
                 {/* Students Table */}
                 <div className="bg-white rounded-lg shadow-md p-6">
-                    {loading ? (
+                    {(studentsLoading || classesLoading) ? (
                         <LoadingSpinner />
                     ) : filteredStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">

@@ -4,7 +4,7 @@ import { Calendar, TrendingUp, Users, FileText, Download } from 'lucide-react';
 import DatePicker from '../../../components/common/DatePicker';
 import ClassSelect from '../../../components/common/ClassSelect';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-// import { attendanceService } from '../services/attendanceService';
+import { useGetClassesQuery, useGetFlagpoleStatisticsQuery } from '../../../redux/features/attendance/flagpoleAttendanceApi';
 import { showError, showSuccess } from '../../../utilis/sweetAlertHelper';
 
 const AttendanceReports = () => {
@@ -13,9 +13,13 @@ const AttendanceReports = () => {
     );
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClass, setSelectedClass] = useState('');
-    const [classList, setClassList] = useState([]);
-    const [statistics, setStatistics] = useState([]);
-    const [loading, setLoading] = useState(false);
+
+    // RTK Query hooks
+    const { data: classListData = [], isLoading: classesLoading } = useGetClassesQuery();
+    const { data: statisticsData = [], isLoading: statisticsLoading, refetch } = useGetFlagpoleStatisticsQuery(
+        { startDate, endDate, classRoom: selectedClass },
+        { skip: !startDate || !endDate }
+    );
 
     const COLORS = {
         'มา': '#10B981',
@@ -25,39 +29,16 @@ const AttendanceReports = () => {
     };
 
     useEffect(() => {
-        fetchClasses();
-    }, []);
-
-    useEffect(() => {
-        fetchStatistics();
-    }, [startDate, endDate, selectedClass]);
-
-    const fetchClasses = async () => {
-        try {
-            const data = await attendanceService.getClasses();
-            setClassList(data);
-        } catch (error) {
-            console.error('Error fetching classes:', error);
+        if (startDate && endDate) {
+            refetch();
         }
-    };
-
-    const fetchStatistics = async () => {
-        setLoading(true);
-        try {
-            const data = await attendanceService.getStatistics(startDate, endDate, selectedClass);
-            setStatistics(data);
-        } catch (error) {
-            showError('ข้อผิดพลาด', error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [startDate, endDate, selectedClass, refetch]);
 
     // Prepare data for charts
     const prepareChartData = () => {
         const grouped = {};
 
-        statistics.forEach((stat) => {
+        statisticsData.forEach((stat) => {
             if (!grouped[stat.date]) {
                 grouped[stat.date] = { date: stat.date };
             }
@@ -70,7 +51,7 @@ const AttendanceReports = () => {
     const preparePieData = () => {
         const totals = {};
 
-        statistics.forEach((stat) => {
+        statisticsData.forEach((stat) => {
             if (!totals[stat.status]) {
                 totals[stat.status] = 0;
             }
@@ -87,18 +68,18 @@ const AttendanceReports = () => {
     const pieData = preparePieData();
 
     // Calculate summary
-    const totalRecords = statistics.reduce((sum, stat) => sum + stat.count, 0);
-    const presentCount = statistics.filter((s) => s.status === 'มา').reduce((sum, s) => sum + s.count, 0);
-    const lateCount = statistics.filter((s) => s.status === 'สาย').reduce((sum, s) => sum + s.count, 0);
-    const absentCount = statistics.filter((s) => s.status === 'ขาด').reduce((sum, s) => sum + s.count, 0);
-    const leaveCount = statistics.filter((s) => s.status === 'ลา').reduce((sum, s) => sum + s.count, 0);
+    const totalRecords = statisticsData.reduce((sum, stat) => sum + stat.count, 0);
+    const presentCount = statisticsData.filter((s) => s.status === 'มา').reduce((sum, s) => sum + s.count, 0);
+    const lateCount = statisticsData.filter((s) => s.status === 'สาย').reduce((sum, s) => sum + s.count, 0);
+    const absentCount = statisticsData.filter((s) => s.status === 'ขาด').reduce((sum, s) => sum + s.count, 0);
+    const leaveCount = statisticsData.filter((s) => s.status === 'ลา').reduce((sum, s) => sum + s.count, 0);
 
     const attendanceRate = totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : 0;
 
     const handleExport = () => {
         // Simple CSV export
         const headers = ['วันที่', 'สถานะ', 'จำนวน'];
-        const rows = statistics.map((stat) => [stat.date, stat.status, stat.count]);
+        const rows = statisticsData.map((stat) => [stat.date, stat.status, stat.count]);
 
         const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -140,13 +121,13 @@ const AttendanceReports = () => {
                             label="ห้องเรียน (ทั้งหมด)"
                             value={selectedClass}
                             onChange={setSelectedClass}
-                            options={classList}
+                            options={classListData}
                             placeholder="-- ทุกห้อง --"
                         />
                     </div>
                 </div>
 
-                {loading ? (
+                {(statisticsLoading || classesLoading) ? (
                     <LoadingSpinner message="กำลังโหลดรายงาน..." />
                 ) : (
                     <>
