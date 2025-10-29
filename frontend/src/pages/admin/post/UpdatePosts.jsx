@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useFetchBlogByIdQuery, useUpdateBlogMutation } from "../../../redux/features/blogs/blogsApi";
+import { useFetchBlogByIdQuery, useUpdateBlogMutation, useFetchBlogCategoriesQuery } from "../../../redux/features/blogs/blogsApi";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import EditorJS from '@editorjs/editorjs';
@@ -12,7 +12,7 @@ const UpdatePosts = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverImg, setCoverImg] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [message, setMessage] = useState("");
   const [isEditorReady, setIsEditorReady] = useState(false);
   
@@ -26,6 +26,7 @@ const UpdatePosts = () => {
   const [PostBlog, { isLoading: isUpdating }] = useUpdateBlogMutation();
   const { id } = useParams();
   const { data: blog = {}, error, isLoading, refetch } = useFetchBlogByIdQuery(id);
+  const { data: categories = [], isLoading: isCategoriesLoading } = useFetchBlogCategoriesQuery();
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
@@ -35,7 +36,7 @@ const UpdatePosts = () => {
       setTitle(blog.post.title || "");
       setDescription(blog.post.description || "");
       setCoverImg(blog.post.coverImg || "");
-      setCategory(blog.post.category || "");
+      setCategoryId(blog.post.categoryId ? String(blog.post.categoryId) : "");
     }
   }, [blog]);
 
@@ -212,7 +213,7 @@ const UpdatePosts = () => {
         title: title || blog.post.title,
         content, // ส่ง object ไป backend จะ stringify เอง
         coverImg: coverImg || blog.post.coverImg,
-        category: category || blog.post.category,
+        categoryId: categoryId ? parseInt(categoryId) : blog.post.categoryId,
         description: description || blog.post.description,
         author: user.id,
       };
@@ -370,14 +371,30 @@ const UpdatePosts = () => {
               {/* หมวดหมู่ */}
               <div className="space-y-3">
                 <label className="font-semibold">หมวดหมู่: </label>
-                <input
-                  type="text"
-                  value={category}
-                  className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="เช่น: กิจกรรม/สิ่งแวดล้อม"
-                  required
-                />
+                {isCategoriesLoading ? (
+                  <div className="w-full bg-gray-100 px-5 py-3 rounded-lg text-gray-500">
+                    กำลังโหลดหมวดหมู่...
+                  </div>
+                ) : (
+                  <select
+                    value={categoryId}
+                    className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg cursor-pointer"
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    required
+                  >
+                    <option value="">-- เลือกหมวดหมู่ --</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.icon && `${cat.icon} `}{cat.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {categories.length === 0 && !isCategoriesLoading && (
+                  <p className="text-sm text-orange-600">
+                    <i className="bi bi-exclamation-triangle"></i> ไม่พบหมวดหมู่ในระบบ
+                  </p>
+                )}
               </div>
 
               {/* คำอธิบายเมตา */}
@@ -412,10 +429,10 @@ const UpdatePosts = () => {
           {message && <p className="text-red-500 text-center font-medium">{message}</p>}
           <button
             type="submit"
-            disabled={isUpdating || !isEditorReady}
+            disabled={isUpdating || !isEditorReady || !categoryId}
             className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isUpdating ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : "อัปเดตบทความ"}
+            {isUpdating ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !categoryId ? "กรุณาเลือกหมวดหมู่" : "อัปเดตบทความ"}
           </button>
         </form>
       )}

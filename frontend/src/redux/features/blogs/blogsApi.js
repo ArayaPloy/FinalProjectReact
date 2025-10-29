@@ -14,6 +14,10 @@ export const blogsApi = createApi({
   tagTypes: ['Blogs'],
   endpoints: (builder) => ({
 
+    fetchBlogCategories: builder.query({
+      query: () => 'blogs/categories',
+    }),
+
     fetchBlogs: builder.query({
       query: ({ search = '', category = '', location='' }) => `blogs?search=${search}&category=${category}&location=${location}`,
       providesTags: ['Blogs'],
@@ -60,6 +64,7 @@ export const blogsApi = createApi({
 });
 
 export const { 
+  useFetchBlogCategoriesQuery,
   useFetchBlogsQuery, 
   useFetchBlogByIdQuery, 
   usePostBlogMutation, 

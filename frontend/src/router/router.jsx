@@ -33,13 +33,6 @@ import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
 import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
-/*
-import ManageTeachers from "../pages/admin/teachers/ManageTeachers";
-import ManageSchedule from "../pages/admin/schedule/ManageSchedule";
-import ClubAttendanceReport from "../pages/admin/reports/ClubAttendanceReport";
-import HomeVisitReports from "../pages/admin/reports/HomeVisitReports";
-import PrivateRoute from "./PrivateRoute";
-*/
 
 const router = createBrowserRouter([
   {
@@ -191,7 +184,7 @@ const router = createBrowserRouter([
           },
           {
             path: 'manage-schedule', // จัดการตารางเรียน -ยังไม่ได้ทำหน้านี้
-            element: <ManageSchedule />,
+              element: <ManageSchedule />,
           },*/
           // รายงานต่างๆ
           {

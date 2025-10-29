@@ -1,0 +1,505 @@
+// School Database Schema - Fixed 3NF with M:N Tables
+// ฐานข้อมูลโรงเรียนท่าบ่อพิทยาคม
+
+// ========================================
+// 1. REFERENCE TABLES
+// ========================================
+
+Table genders {
+  id int [pk, increment]
+  genderName varchar(20) [unique, not null]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+}
+
+Table userroles {
+  id int [pk, increment]
+  roleName varchar(50) [unique, not null]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  
+  note: '4 roles: super_admin, admin, teacher, user'
+}
+
+Table attendancestatuses {
+  id int [pk, increment]
+  name varchar(50) [unique, not null]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+}
+
+Table daysofweek {
+  id int [pk, increment]
+  name varchar(20) [unique, not null]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+}
+
+Table blog_categories {
+  id int [pk, increment]
+  name varchar(100) [unique, not null, note: 'เช่น: กิจกรรมเข้าค่ายลูกเสือ, ข่าวประชาสัมพันธ์']
+  slug varchar(100) [unique, not null]
+  description text
+  icon varchar(50)
+  sortOrder int [default: 0]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  
+  note: 'หมวดหมู่ข่าวสาร - 1 Category → Many Blogs'
+}
+
+Table club_categories {
+  id int [pk, increment]
+  name varchar(100) [unique, not null, note: 'เช่น: ศิลปะ, วิทยาศาสตร์, กีฬา, รด., ลูกเสือ']
+  slug varchar(100) [unique, not null]
+  description text
+  icon varchar(50)
+  sortOrder int [default: 0]
+  relatedDepartmentId int [ref: > departments.id, note: 'อ้างอิงกลุ่มสาระที่เกี่ยวข้อง (ถ้ามี) - NULL ได้']
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  
+  note: 'หมวดหมู่ชุมนุม - แยกจาก departments เพื่อความยืดหยุ่น (รด., ลูกเสือ, กิจกรรมพิเศษ)'
+}
+
+// ========================================
+// 2. USER MANAGEMENT
+// ========================================
+
+Table users {
+  id int [pk, increment]
+  username varchar(255) [unique, not null]
+  email varchar(255) [unique, not null]
+  password varchar(255) [not null]
+  roleId int [not null, ref: > userroles.id, note: 'super_admin, admin, teacher, หรือ user']
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  deletedAt timestamp [null]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (roleId, isDeleted) [name: 'idx_users_role_active']
+  }
+  
+  note: 'ผู้ใช้ที่สามารถ login ได้เท่านั้น - นักเรียนไม่มี account'
+}
+
+Table superadmin {
+  id int [pk, increment]
+  userId int [unique, not null, ref: - users.id]
+  namePrefix varchar(10)
+  fullName varchar(255) [not null]
+  genderId int [not null, ref: > genders.id]
+  phoneNumber varchar(10)
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  deletedAt timestamp [null]
+}
+
+// ========================================
+// 3. ACADEMIC STRUCTURE
+// ========================================
+
+Table departments {
+  id int [pk, increment]
+  name varchar(100) [unique, not null]
+  headTeacherId int [ref: > teachers.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  
+  note: 'กลุ่มสาระการเรียนรู้และฝ่ายบริหาร - ใช้สำหรับ Teachers และ Subjects เท่านั้น'
+}
+
+Table subjects {
+  id int [pk, increment]
+  codeSubject varchar(10) [unique, not null]
+  name varchar(100) [not null]
+  description text
+  departmentId int [ref: > departments.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    departmentId [name: 'idx_subjects_dept']
+  }
+}
+
+Table teachers {
+  id int [pk, increment]
+  teacherId int [unique, not null]
+  userId int [unique, not null, ref: - users.id]
+  departmentId int [ref: > departments.id]
+  namePrefix varchar(10)
+  fullName varchar(255) [not null]
+  genderId int [not null, ref: > genders.id]
+  dob date
+  nationality varchar(50)
+  position varchar(50)
+  level varchar(50)
+  phoneNumber varchar(10)
+  imagePath varchar(100)
+  email varchar(100)
+  address text
+  education varchar(100)
+  major varchar(100)
+  biography text
+  specializations text
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  deletedAt timestamp [null]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (departmentId, isDeleted) [name: 'idx_teachers_dept_active']
+  }
+}
+
+// ========================================
+// 4. M:N - TEACHER-SUBJECT RELATIONSHIP
+// ========================================
+
+Table teachersubjects {
+  id int [pk, increment]
+  teacherId int [not null, ref: > teachers.id]
+  subjectId int [not null, ref: > subjects.id]
+  academicYear varchar(10) [note: 'ปีการศึกษา เช่น 2568']
+  semester varchar(10) [note: 'ภาคเรียน เช่น 1, 2']
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  
+  indexes {
+    (teacherId, subjectId, academicYear, semester) [unique, name: 'teacher_subject_year_sem']
+  }
+  
+  note: 'M:N Relationship between Teachers and Subjects'
+}
+
+Table students {
+  id int [pk, increment]
+  studentId varchar(20) [unique, not null, note: 'รหัสนักเรียน เช่น 66001']
+  namePrefix varchar(10)
+  fullName varchar(255) [not null]
+  genderId int [not null, ref: > genders.id]
+  classRoom varchar(50) [not null]
+  studentNumber int [not null]
+  homeroomTeacherId int [ref: > teachers.id]
+  clubId int [ref: > academicclubs.id, note: '1 นักเรียน → 1 ชุมนุม (สมัครออฟไลน์กับครู)']
+  guardianName varchar(255)
+  guardianRelation varchar(50)
+  guardianPhone varchar(20)
+  dob date
+  nationality varchar(50)
+  weight int
+  height int
+  disease varchar(50)
+  address text
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  deletedAt timestamp [null]
+  updatedBy int [ref: > users.id, note: 'admin/teacher ที่บันทึกข้อมูล']
+  
+  indexes {
+    (classRoom, isDeleted) [name: 'idx_students_class']
+    clubId [name: 'idx_students_club']
+    studentId [name: 'idx_students_studentid']
+  }
+  
+  note: 'นักเรียน - ไม่มี userId (ไม่สามารถ login) เก็บข้อมูลสำหรับแสดงผลเท่านั้น'
+}
+
+Table admins {
+  id int [pk, increment]
+  teacherId int [unique, not null, ref: - teachers.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+}
+
+// ========================================
+// 5. ACADEMIC CLUBS
+// ========================================
+
+Table academicclubs {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  description text
+  maxMembers int
+  teacherId int [ref: > teachers.id]
+  categoryId int [not null, ref: > club_categories.id, note: '1 Club → 1 Category']
+  icon varchar(50) [not null]
+  registrationDeadline date
+  isActive tinyint [not null, default: 1]
+  meetingDay varchar(20)
+  meetingTime varchar(20)
+  location varchar(100)
+  requirements text
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (categoryId, isActive) [name: 'idx_clubs_category_active']
+  }
+  
+  note: 'ชุมนุม - ใช้ club_categories แยกต่างหาก (ยืดหยุ่นกว่า departments)'
+}
+
+// ========================================
+// 6. Academicclub Attendance
+// ========================================
+
+Table academicclubattendance {
+  id int [pk, increment]
+  clubId int [not null, ref: > academicclubs.id]
+  date date [not null]
+  studentId int [not null, ref: > students.id]
+  statusId int [not null, ref: > attendancestatuses.id]
+  summary text [note: 'สรุปกิจกรรมวันนี้']
+  recorderId int [not null, ref: > teachers.id, note: 'ครูผู้เช็คชื่อ']
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (clubId, studentId, date) [unique, name: 'club_student_date']
+    (date, clubId) [name: 'idx_club_attendance_date']
+    recorderId [name: 'idx_attendance_recorder']
+  }
+  
+  note: 'เช็คชื่อชุมนุม - ครูบันทึกการเข้าร่วมกิจกรรมของนักเรียน (มา, สาย, ขาด, ลา) + สรุปกิจกรรม'
+}
+
+// ========================================
+// 7. FLAGPOLE ATTENDANCE
+// ========================================
+
+Table flagpoleattendance {
+  id int [pk, increment]
+  studentId int [not null, ref: > students.id]
+  date date [not null]
+  statusId int [not null, ref: > attendancestatuses.id]
+  recorderId int [ref: > teachers.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (studentId, date) [unique, name: 'student_date']
+    date [name: 'idx_attendance_date']
+    (date, statusId) [name: 'idx_attendance_date_status']
+  }
+}
+
+// ========================================
+// 8. STUDENT BEHAVIOR
+// ========================================
+
+Table studentbehaviorscores {
+  id int [pk, increment]
+  studentId int [not null, ref: > students.id]
+  score int [not null]
+  comments text
+  recorderId int [ref: > teachers.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+}
+
+// ========================================
+// 9. HOME VISITS (3NF Structure)
+// ========================================
+
+Table homevisits {
+  id int [pk, increment]
+  teacherId int [not null, ref: > teachers.id]
+  studentId int [not null, ref: > students.id]
+  visitDate date [not null]
+  visitPurpose text [ note: 'จุดประสงค์ในการเยี่ยม']
+  studentBehaviorAtHome text
+  parentCooperation text
+  problems text
+  recommendations text
+  followUpPlan text
+  summary text
+  notes text
+  imagePath varchar(500)
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    visitDate [name: 'idx_homevisit_date']
+  }
+  
+  note: 'แก้ไขให้เป็น 3NF - ลบ Transitive Dependencies'
+}
+
+Table homevisit_family_info {
+  id int [pk, increment]
+  homeVisitId int [unique, not null, ref: - homevisits.id]
+  parentName varchar(255)
+  relationship varchar(100)
+  occupation varchar(255)
+  monthlyIncome varchar(100)
+  mainAddress text
+  phoneNumber varchar(20)
+  emergencyContact varchar(20)
+  environment text [ note: 'สภาพแวดล้อม']
+  studyArea varchar(255)
+  
+  note: 'ข้อมูลครอบครัว - แยกจาก homevisits ตาม 3NF'
+}
+
+Table homevisit_images {
+  id int [pk, increment]
+  homeVisitId int [not null, ref: > homevisits.id]
+  imagePath varchar(500) [not null]
+  imageOrder tinyint [default: 0]
+  uploadedAt timestamp [default: `current_timestamp`]
+  
+  note: 'รูปภาพการเยี่ยมบ้าน - แยกจาก JSON'
+}
+
+// ========================================
+// 10. CLASS SCHEDULES
+// ========================================
+
+Table classschedules {
+  id int [pk, increment]
+  class varchar(50) [not null]
+  subjectId int [not null, ref: > subjects.id]
+  teacherId int [not null, ref: > teachers.id]
+  dayOfWeekId int [not null, ref: > daysofweek.id]
+  room varchar(50)
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  updatedBy int [ref: > users.id]
+}
+
+// ========================================
+// 11. BLOGS AND COMMENTS (School News System)
+// ========================================
+
+Table blogs {
+  id int [pk, increment]
+  title varchar(255) [not null]
+  description text
+  coverImg varchar(255)
+  content longtext
+  categoryId int [not null, ref: > blog_categories.id, note: '1 Blog → 1 Category']
+  author int [not null, ref: > users.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (categoryId, isDeleted) [name: 'idx_blogs_category']
+  }
+  
+  note: 'ข่าวสารโรงเรียน - เฉพาะ teacher/admin/superadmin'
+}
+
+Table comments {
+  id int [pk, increment]
+  comment text [not null]
+  userId int [not null, ref: > users.id, note: 'เฉพาะ teacher/admin/superadmin']
+  postId int [not null, ref: > blogs.id]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  isDeleted tinyint [default: 0]
+  
+  note: 'ความเห็นจากครูและผู้ดูแลระบบเท่านั้น'
+}
+
+// ========================================
+// 12. SCHOOL INFORMATION
+// ========================================
+
+Table school_info {
+  id int [pk, increment]
+  name varchar(255) [not null, default: 'โรงเรียนท่าบ่อพิทยาคม']
+  location text
+  foundedDate varchar(50)
+  currentDirector varchar(255)
+  education_level varchar(255)
+  department varchar(255)
+  description text
+  heroImage varchar(500)
+  director_image varchar(500)
+  director_quote text
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  createdBy int
+  updatedBy int
+}
+
+Table school_timeline {
+  id int [pk, increment]
+  year varchar(20) [not null]
+  date varchar(100) [not null]
+  title varchar(255) [not null]
+  description text [not null]
+  sortOrder int [default: 0]
+  createdAt timestamp [default: `current_timestamp`]
+  updatedAt timestamp [default: `current_timestamp`]
+  createdBy int
+  updatedBy int
+}
+
+// ========================================
+// 13. AUDIT LOGS
+// ========================================
+
+Table audit_logs {
+  id int [pk, increment]
+  userId int [ref: > users.id, note: 'ผู้ทำการเปลี่ยนแปลง']
+  tableName varchar(100) [not null, note: 'ชื่อตารางที่เปลี่ยนแปลง']
+  recordId int [not null, note: 'ID ของแถวที่เปลี่ยนแปลง']
+  action enum('INSERT','UPDATE','DELETE') [not null, note: 'ประเภทการเปลี่ยนแปลง']
+  oldValues json [note: 'ค่าเดิมก่อนเปลี่ยน']
+  newValues json [note: 'ค่าใหม่หลังเปลี่ยน']
+  ipAddress varchar(45) [note: 'IP Address']
+  userAgent text [note: 'Browser info']
+  createdAt timestamp [default: `current_timestamp`]
+  
+  indexes {
+    (tableName, recordId) [name: 'idx_audit_table_record']
+    action
+    createdAt
+    userId [name: 'idx_audit_user']
+  }
+  
+  note: 'บันทึกการเปลี่ยนแปลงข้อมูลทั้งหมด - Audit Trail'
+}
+
+Table user_login_logs {
+  id int [pk, increment]
+  userId int [not null, ref: > users.id]
+  action enum('login','logout','login_failed') [not null]
+  ipAddress varchar(45)
+  userAgent text
+  loginAt timestamp [default: `current_timestamp`]
+  logoutAt timestamp [null]
+  sessionToken varchar(255) [note: 'Session/JWT token']
+  
+  indexes {
+    userId [name: 'idx_login_user']
+    loginAt [name: 'idx_login_time']
+    (userId, loginAt) [name: 'idx_user_login_time']
+  }
+  
+  note: 'บันทึกประวัติการ Login/Logout ของ Users'
+}
+
+Ref: "comments"."isDeleted" < "comments"."updatedAt"
