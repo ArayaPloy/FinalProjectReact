@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Calendar, TrendingUp, Users, FileText, Download } from 'lucide-react';
 import DatePicker from '../../../components/common/DatePicker';
 import ClassSelect from '../../../components/common/ClassSelect';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import { useGetClassesQuery, useGetFlagpoleStatisticsQuery } from '../../../redux/features/attendance/flagpoleAttendanceApi';
+import { useGetClassRoomsQuery, useGetFlagpoleReportQuery } from '../../../redux/features/attendance/flagpoleAttendanceApi';
 import { showError, showSuccess } from '../../../utilis/sweetAlertHelper';
 
-const AttendanceReports = () => {
+const FlagpoleAttendanceReport = () => {
     const [startDate, setStartDate] = useState(
         new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     );
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedClass, setSelectedClass] = useState('all');
 
     // RTK Query hooks
-    const { data: classListData = [], isLoading: classesLoading } = useGetClassesQuery();
-    const { data: statisticsData = [], isLoading: statisticsLoading, refetch } = useGetFlagpoleStatisticsQuery(
+    const { data: classRooms = [], isLoading: classesLoading } = useGetClassRoomsQuery();
+    const { data: reportData, isLoading: reportLoading, refetch } = useGetFlagpoleReportQuery(
         { startDate, endDate, classRoom: selectedClass },
         { skip: !startDate || !endDate }
     );
@@ -24,7 +23,8 @@ const AttendanceReports = () => {
     const COLORS = {
         'มา': '#10B981',
         'สาย': '#F59E0B',
-        'ลา': '#3B82F6',
+        'ลาป่วย': '#3B82F6',
+        'ลากิจ': '#8B5CF6',
         'ขาด': '#EF4444',
     };
 
@@ -34,52 +34,40 @@ const AttendanceReports = () => {
         }
     }, [startDate, endDate, selectedClass, refetch]);
 
-    // Prepare data for charts
-    const prepareChartData = () => {
-        const grouped = {};
+    // Prepare chart data from API response
+    const chartData = reportData?.chartData || [];
+    const pieData = reportData?.totalStats ? 
+        Object.entries(reportData.totalStats)
+            .filter(([_, value]) => value > 0)
+            .map(([status, count]) => ({ name: status, value: count })) 
+        : [];
 
-        statisticsData.forEach((stat) => {
-            if (!grouped[stat.date]) {
-                grouped[stat.date] = { date: stat.date };
-            }
-            grouped[stat.date][stat.status] = stat.count;
-        });
-
-        return Object.values(grouped).sort((a, b) => new Date(a.date) - new Date(b.date));
-    };
-
-    const preparePieData = () => {
-        const totals = {};
-
-        statisticsData.forEach((stat) => {
-            if (!totals[stat.status]) {
-                totals[stat.status] = 0;
-            }
-            totals[stat.status] += stat.count;
-        });
-
-        return Object.entries(totals).map(([status, count]) => ({
-            name: status,
-            value: count,
-        }));
-    };
-
-    const chartData = prepareChartData();
-    const pieData = preparePieData();
-
-    // Calculate summary
-    const totalRecords = statisticsData.reduce((sum, stat) => sum + stat.count, 0);
-    const presentCount = statisticsData.filter((s) => s.status === 'มา').reduce((sum, s) => sum + s.count, 0);
-    const lateCount = statisticsData.filter((s) => s.status === 'สาย').reduce((sum, s) => sum + s.count, 0);
-    const absentCount = statisticsData.filter((s) => s.status === 'ขาด').reduce((sum, s) => sum + s.count, 0);
-    const leaveCount = statisticsData.filter((s) => s.status === 'ลา').reduce((sum, s) => sum + s.count, 0);
+    // Calculate summary from API response
+    const totalRecords = reportData?.totalStats ? 
+        Object.values(reportData.totalStats).reduce((sum, val) => sum + val, 0) : 0;
+    const presentCount = reportData?.totalStats?.มา || 0;
+    const lateCount = reportData?.totalStats?.สาย || 0;
+    const sickLeaveCount = reportData?.totalStats?.ลาป่วย || 0;
+    const personalLeaveCount = reportData?.totalStats?.ลากิจ || 0;
+    const absentCount = reportData?.totalStats?.ขาด || 0;
 
     const attendanceRate = totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : 0;
 
     const handleExport = () => {
-        // Simple CSV export
-        const headers = ['วันที่', 'สถานะ', 'จำนวน'];
-        const rows = statisticsData.map((stat) => [stat.date, stat.status, stat.count]);
+        if (!reportData?.records || reportData.records.length === 0) {
+            showError('ไม่มีข้อมูล', 'ไม่มีข้อมูลให้ส่งออก');
+            return;
+        }
+
+        // CSV export with detailed records
+        const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ'];
+        const rows = reportData.records.map((record) => [
+            record.date,
+            record.studentNumber,
+            `"${record.studentName}"`,
+            record.classRoom,
+            record.status
+        ]);
 
         const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -87,28 +75,32 @@ const AttendanceReports = () => {
         link.href = URL.createObjectURL(blob);
         link.download = `attendance_report_${startDate}_${endDate}.csv`;
         link.click();
+        URL.revokeObjectURL(link.href);
 
         showSuccess('ส่งออกสำเร็จ', 'ดาวน์โหลดไฟล์รายงานเรียบร้อย', 2000);
     };
 
+    const loading = reportLoading || classesLoading;
+
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-7xl mx-12">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-2">
-                                <TrendingUp className="w-8 h-8" />
+                            <h1 className="text-3xl font-bold text-amber-600 flex items-center gap-2">
+                                <i className="bi bi-graph-up-arrow text-4xl"></i>
                                 รายงานการเช็คชื่อนักเรียนเข้าแถว
                             </h1>
                             <p className="text-gray-600 mt-1">สถิติและข้อมูลการเข้าเรียน</p>
                         </div>
                         <button
                             onClick={handleExport}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold transition-colors"
+                            disabled={!reportData?.records?.length}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Download className="w-5 h-5" />
+                            <i className="bi bi-download text-lg"></i>
                             ส่งออก CSV
                         </button>
                     </div>
@@ -121,33 +113,54 @@ const AttendanceReports = () => {
                             label="ห้องเรียน (ทั้งหมด)"
                             value={selectedClass}
                             onChange={setSelectedClass}
-                            options={classListData}
+                            options={[...classRooms]}
                             placeholder="-- ทุกห้อง --"
                         />
                     </div>
                 </div>
 
-                {(statisticsLoading || classesLoading) ? (
+                {loading ? (
                     <LoadingSpinner message="กำลังโหลดรายงาน..." />
                 ) : (
                     <>
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
                             <SummaryCard
                                 title="ทั้งหมด"
                                 value={totalRecords}
-                                icon={<FileText className="w-6 h-6" />}
+                                icon={<i className="bi bi-clipboard-data text-2xl"></i>}
                                 color="bg-gray-500"
                             />
                             <SummaryCard
                                 title="มา"
                                 value={presentCount}
-                                icon={<Users className="w-6 h-6" />}
+                                icon={<i className="bi bi-check-circle-fill text-2xl"></i>}
                                 color="bg-green-500"
                             />
-                            <SummaryCard title="สาย" value={lateCount} color="bg-yellow-500" />
-                            <SummaryCard title="ลา" value={leaveCount} color="bg-blue-500" />
-                            <SummaryCard title="ขาด" value={absentCount} color="bg-red-500" />
+                            <SummaryCard 
+                                title="สาย" 
+                                value={lateCount} 
+                                icon={<i className="bi bi-clock-fill text-2xl"></i>}
+                                color="bg-yellow-500" 
+                            />
+                            <SummaryCard 
+                                title="ลาป่วย" 
+                                value={sickLeaveCount} 
+                                icon={<i className="bi bi-heart-pulse-fill text-2xl"></i>}
+                                color="bg-blue-500" 
+                            />
+                            <SummaryCard 
+                                title="ลากิจ" 
+                                value={personalLeaveCount} 
+                                icon={<i className="bi bi-person-fill-dash text-2xl"></i>}
+                                color="bg-purple-500" 
+                            />
+                            <SummaryCard 
+                                title="ขาด" 
+                                value={absentCount} 
+                                icon={<i className="bi bi-x-circle-fill text-2xl"></i>}
+                                color="bg-red-500" 
+                            />
                         </div>
 
                         {/* Attendance Rate */}
@@ -167,7 +180,7 @@ const AttendanceReports = () => {
                         </div>
 
                         {/* Charts */}
-                        {statistics.length > 0 ? (
+                        {chartData.length > 0 ? (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 {/* Bar Chart */}
                                 <div className="bg-white rounded-lg shadow-md p-6">
@@ -181,7 +194,8 @@ const AttendanceReports = () => {
                                             <Legend />
                                             <Bar dataKey="มา" fill={COLORS['มา']} />
                                             <Bar dataKey="สาย" fill={COLORS['สาย']} />
-                                            <Bar dataKey="ลา" fill={COLORS['ลา']} />
+                                            <Bar dataKey="ลาป่วย" fill={COLORS['ลาป่วย']} />
+                                            <Bar dataKey="ลากิจ" fill={COLORS['ลากิจ']} />
                                             <Bar dataKey="ขาด" fill={COLORS['ขาด']} />
                                         </BarChart>
                                     </ResponsiveContainer>
@@ -213,13 +227,13 @@ const AttendanceReports = () => {
                             </div>
                         ) : (
                             <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-                                <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                <i className="bi bi-inbox text-6xl mb-4 opacity-50 block"></i>
                                 <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
                             </div>
                         )}
 
                         {/* Data Table */}
-                        {statistics.length > 0 && (
+                        {reportData?.records?.length > 0 && (
                             <div className="bg-white rounded-lg shadow-md p-6">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">ตารางข้อมูลรายละเอียด</h2>
                                 <div className="overflow-x-auto">
@@ -230,27 +244,41 @@ const AttendanceReports = () => {
                                                     วันที่
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    สถานะ
+                                                    เลขประจำตัว
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    จำนวน
+                                                    ชื่อ-นามสกุล
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    ห้องเรียน
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    สถานะ
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {statistics.map((stat, index) => (
+                                            {reportData.records.map((record, index) => (
                                                 <tr key={index} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{stat.date}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {record.date}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {record.studentNumber}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {record.studentName}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {record.classRoom}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span
-                                                            className={`px-3 py-1 rounded-full text-white text-sm font-semibold`}
-                                                            style={{ backgroundColor: COLORS[stat.status] }}
+                                                            className="px-3 py-1 rounded-full text-white text-sm font-semibold"
+                                                            style={{ backgroundColor: COLORS[record.status] }}
                                                         >
-                                                            {stat.status}
+                                                            {record.status}
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                                        {stat.count}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -279,4 +307,4 @@ const SummaryCard = ({ title, value, icon, color }) => {
     );
 };
 
-export default AttendanceReports;
+export default FlagpoleAttendanceReport;
