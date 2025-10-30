@@ -1,2 +1,0 @@
-> git add -A -- .
-fatal: Unable to create 'D:/eduWeb-fullstack-mern/.git/index.lock': Permission denied
