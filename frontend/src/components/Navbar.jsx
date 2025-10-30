@@ -29,7 +29,9 @@ const navLists = [
     dropdown: [
       { name: 'จำนวนนักเรียน', path: '/all-students' },
       { name: 'เช็คชื่อนักเรียนเข้าแถว', path: '/flagpoleattendance' },
-      { name: 'บันทึกคะแนนความประพฤติ', path: 'behaviorscore' }, /* https://docs.google.com/spreadsheets/d/1oAISG4M-Qq4XialIfivbE07ehZHGdf05ppNO-996ouw/edit?gid=0#gid=0 */
+      { name: 'บันทึกคะแนนความประพฤติ', path: 'behaviorscore' },
+      { name: 'เช็คประวัติการเข้าแถว', path: '/student-attendance-history' },
+      { name: 'เช็คคะแนนความประพฤติ', path: '/student-behavior-score' },
       { name: 'สภานักเรียน', path: '/student-council' },
       { name: 'ตารางเรียน', path: '/student-schedule' },
       { name: 'ชุมนุมวิชาการ', path: '/clubs' },

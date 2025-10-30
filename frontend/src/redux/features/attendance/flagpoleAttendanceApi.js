@@ -46,7 +46,7 @@ export const flagpoleAttendanceApi = createApi({
       query: (data) => ({
         url: '/flagpole-attendance',
         method: 'POST',
-        body: data
+        body: data // { date, classRoom, records, semesterId }
       }),
       invalidatesTags: ['FlagpoleAttendance']
     }),

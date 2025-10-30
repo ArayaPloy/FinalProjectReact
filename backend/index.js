@@ -53,6 +53,8 @@ const flagpoleAttendanceRoutes = require('./src/routes/flagpole-attendance.route
 const uploadRoutes = require('./src/routes/upload.route');
 const behaviorScoreRoutes = require('./src/routes/behavior-score.route');
 const studentRoutes = require('./src/routes/student.route');
+const academicRoutes = require('./src/routes/academic.route');
+const studentPublicRoutes = require('./src/routes/student-public.route');
 // Routes setup
 
 // app.get('/api/test', isAdmin); // Apply isAdmin middleware to all routes under /api
@@ -69,6 +71,8 @@ app.use('/api', flagpoleAttendanceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/behavior-scores', behaviorScoreRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api', academicRoutes);
+app.use('/api/students/public', studentPublicRoutes);
 
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 

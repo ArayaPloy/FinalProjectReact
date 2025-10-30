@@ -17,6 +17,8 @@ import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
 import BehaviorScore from "../pages/miniPage/BehaviorScore";
 import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
 import ContactUs from "../pages/miniPage/ContactUs";
+import StudentAttendanceHistory from "../pages/miniPage/StudentAttendanceHistory";
+import StudentBehaviorScore from "../pages/miniPage/StudentBehaviorScore";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
 import Login from "../pages/user/Login";
 import Register from "../pages/user/Register";
@@ -33,6 +35,7 @@ import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
 import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
+import ManageAcademicYears from "../pages/admin/academic/ManageAcademicYears";
 
 const router = createBrowserRouter([
   {
@@ -117,6 +120,14 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: "/student-attendance-history", // เช็คประวัติเข้าแถว (Public)
+        element: <StudentAttendanceHistory />
+      },
+      {
+        path: "/student-behavior-score", // เช็คคะแนนความประพฤติ (Public)
+        element: <StudentBehaviorScore />
+      },
+      {
         path: "/privacy-policy",
         element: <PrivacyPolicy />
       },
@@ -177,6 +188,10 @@ const router = createBrowserRouter([
           {
             path: 'manage-clubs', // จัดการชุมนุม
             element: <ManageClubsPosts />,
+          },
+          {
+            path: 'manage-academic-years', // จัดการปีการศึกษา
+            element: <ManageAcademicYears />,
           },/*
           {
             path: 'manage-teachers', // จัดการครูและบุคลากร -ยังไม่ได้ทำหน้านี้

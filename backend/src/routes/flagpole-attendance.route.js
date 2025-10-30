@@ -118,7 +118,12 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
             classRoom: true
           }
         },
-        attendancestatuses: true
+        attendancestatuses: true,
+        semesters: {
+          include: {
+            academic_years: true
+          }
+        }
       }
     });
 
@@ -131,10 +136,32 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
 
 // Create bulk attendance records
 router.post('/flagpole-attendance', verifyToken, async (req, res) => {
-  const { date, classRoom, records } = req.body;
+  const { date, classRoom, records, semesterId } = req.body;
 
   if (!date || !classRoom || !records || !Array.isArray(records)) {
     return res.status(400).json({ success: false, message: 'ข้อมูลไม่ถูกต้อง' });
+  }
+
+  // ถ้าไม่ได้ส่ง semesterId มา ให้ auto-detect จากวันที่
+  let finalSemesterId = semesterId;
+  
+  if (!finalSemesterId) {
+    try {
+      const targetDate = new Date(date);
+      const semester = await prisma.semesters.findFirst({
+        where: {
+          startDate: { lte: targetDate },
+          endDate: { gte: targetDate },
+          isActive: true
+        }
+      });
+
+      if (semester) {
+        finalSemesterId = semester.id;
+      }
+    } catch (error) {
+      console.error('Error detecting semester:', error);
+    }
   }
 
   try {
@@ -158,11 +185,17 @@ router.post('/flagpole-attendance', verifyToken, async (req, res) => {
               date: new Date(date),
               studentId: record.studentId,
               statusId: record.statusId,
-              recorderId: req.userId
+              recorderId: req.userId,
+              semesterId: finalSemesterId || null
             },
             include: {
               students: true,
-              attendancestatuses: true
+              attendancestatuses: true,
+              semesters: {
+                include: {
+                  academic_years: true
+                }
+              }
             }
           })
         )
