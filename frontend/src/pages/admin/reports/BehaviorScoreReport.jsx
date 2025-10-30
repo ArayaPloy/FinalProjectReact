@@ -1,169 +1,103 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, History, TrendingUp, TrendingDown, Edit2, Save, X, Calendar, Filter, Download, Eye, Clock, User } from 'lucide-react';
-
-// Mock data
-const mockClassList = ['ทั้งหมด', 'ม.1/1', 'ม.1/2', 'ม.2/1', 'ม.2/2', 'ม.3/1', 'ม.3/2'];
-
-const mockBehaviorRecords = [
-    {
-        id: 1,
-        studentId: 1,
-        studentCode: '66001',
-        studentName: 'ด.ช.สมชาย ใจดี',
-        classRoom: 'ม.1/1',
-        score: 10,
-        currentTotal: 110,
-        comments: '7 เม.ย.66 (คาบ PBL) นักเรียนช่วยเหลืองานกิจกรรมโรงเรียน',
-        category: 'เพิ่มคะแนน',
-        recorderId: 1,
-        recorderName: 'ครูสมศรี ใจดี',
-        createdAt: '2025-10-15T10:30:00',
-        updatedAt: '2025-10-15T10:30:00',
-        updateLogs: []
-    },
-    {
-        id: 2,
-        studentId: 1,
-        studentCode: '66001',
-        studentName: 'ด.ช.สมชาย ใจดี',
-        classRoom: 'ม.1/1',
-        score: -5,
-        currentTotal: 100,
-        comments: '8 เม.ย.66 (คาบคณิต) นักเรียนมาสาย 15 นาที',
-        category: 'หักคะแนน',
-        recorderId: 2,
-        recorderName: 'ครูวิชัย สอนดี',
-        createdAt: '2025-10-16T08:15:00',
-        updatedAt: '2025-10-16T08:15:00',
-        updateLogs: []
-    },
-    {
-        id: 3,
-        studentId: 2,
-        studentCode: '66002',
-        studentName: 'ด.ญ.สมหญิง รักเรียน',
-        classRoom: 'ม.1/1',
-        score: 20,
-        currentTotal: 115,
-        comments: '9 เม.ย.66 (กิจกรรม) นักเรียนเป็นตัวแทนแข่งขันระดับจังหวัด',
-        category: 'เพิ่มคะแนน',
-        recorderId: 1,
-        recorderName: 'ครูสมศรี ใจดี',
-        createdAt: '2025-10-17T14:20:00',
-        updatedAt: '2025-10-17T14:20:00',
-        updateLogs: []
-    },
-    {
-        id: 4,
-        studentId: 3,
-        studentCode: '66003',
-        studentName: 'ด.ช.วิชัย มานะดี',
-        classRoom: 'ม.1/1',
-        score: -10,
-        currentTotal: 70,
-        comments: '10 เม.ย.66 (คาบภาษาไทย) นักเรียนทรงผมไม่เหมาะสม',
-        category: 'หักคะแนน',
-        recorderId: 3,
-        recorderName: 'ครูสุดา รักษ์ดี',
-        createdAt: '2025-10-18T09:00:00',
-        updatedAt: '2025-10-18T09:00:00',
-        updateLogs: []
-    },
-    {
-        id: 5,
-        studentId: 4,
-        studentCode: '66004',
-        studentName: 'ด.ญ.วิภา ขยัน',
-        classRoom: 'ม.1/1',
-        score: 5,
-        currentTotal: 95,
-        comments: '11 เม.ย.66 (คาบวิทย์) นักเรียนรักษาความสะอาดห้องเรียน',
-        category: 'เพิ่มคะแนน',
-        recorderId: 1,
-        recorderName: 'ครูสมศรี ใจดี',
-        createdAt: '2025-10-19T11:30:00',
-        updatedAt: '2025-10-19T11:30:00',
-        updateLogs: []
-    },
-    {
-        id: 6,
-        studentId: 2,
-        studentCode: '66002',
-        studentName: 'ด.ญ.สมหญิง รักเรียน',
-        classRoom: 'ม.1/1',
-        score: 30,
-        currentTotal: 145,
-        comments: '12 เม.ย.66 (กิจกรรม) นักเรียนเข้าร่วมบริจาคเลือด',
-        category: 'เพิ่มคะแนน',
-        recorderId: 1,
-        recorderName: 'ครูสมศรี ใจดี',
-        createdAt: '2025-10-20T10:00:00',
-        updatedAt: '2025-10-20T10:00:00',
-        updateLogs: [
-            {
-                updatedBy: 'ครูวิชัย สอนดี',
-                updatedAt: '2025-10-20T14:30:00',
-                changes: {
-                    oldScore: 20,
-                    newScore: 30,
-                    oldComments: 'นักเรียนเข้าร่วมกิจกรรม',
-                    newComments: '12 เม.ย.66 (กิจกรรม) นักเรียนเข้าร่วมบริจาคเลือด'
-                }
-            }
-        ]
-    }
-];
+import { FileText, History, TrendingUp, TrendingDown, Edit2, Save, X, Calendar, Filter, Download, Eye, Clock, User, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { 
+    useGetBehaviorReportsHistoryQuery,
+    useGetBehaviorReportsSummaryQuery,
+    useUpdateBehaviorScoreMutation,
+    useDeleteBehaviorScoreMutation
+} from '../../../services/behaviorScoreApi';
+import { useGetClassroomsQuery } from '../../../services/studentsApi';
 
 const ReportBehaviorScore = () => {
     const [activeTab, setActiveTab] = useState('history');
     const [selectedClass, setSelectedClass] = useState('ทั้งหมด');
-    const [selectedStudent, setSelectedStudent] = useState('');
+    const [searchStudent, setSearchStudent] = useState(''); // สำหรับ History tab
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [reportPeriod, setReportPeriod] = useState('week');
     const [editingRecord, setEditingRecord] = useState(null);
     const [editForm, setEditForm] = useState({ score: 0, comments: '' });
     const [showLogModal, setShowLogModal] = useState(false);
     const [selectedRecordLogs, setSelectedRecordLogs] = useState([]);
+    
+    // Sorting state for summary table
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // Filter records
+    // RTK Query hooks
+    const { data: classroomsData, isLoading: isLoadingClassrooms } = useGetClassroomsQuery();
+    const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory } = useGetBehaviorReportsHistoryQuery({
+        classRoom: selectedClass === 'ทั้งหมด' ? undefined : selectedClass,
+        search: searchStudent || undefined, // ใช้สำหรับค้นหาชื่อ/รหัสนักเรียน
+        startDate: dateRange.start || undefined,
+        endDate: dateRange.end || undefined
+    });
+    const { data: summaryData, isLoading: isLoadingSummary, refetch: refetchSummary } = useGetBehaviorReportsSummaryQuery({
+        classRoom: selectedClass === 'ทั้งหมด' ? undefined : selectedClass,
+        search: searchStudent || undefined, // เพิ่มการค้นหาในหน้า Summary
+        period: reportPeriod
+    });
+    const [updateBehaviorScore, { isLoading: isUpdating }] = useUpdateBehaviorScoreMutation();
+    const [deleteBehaviorScore, { isLoading: isDeleting }] = useDeleteBehaviorScoreMutation();
+
+    // Prepare classroom list
+    const classRoomList = useMemo(() => {
+        const classrooms = classroomsData || [];
+        return ['ทั้งหมด', ...classrooms];
+    }, [classroomsData]);
+
+    // Get filtered records
     const filteredRecords = useMemo(() => {
-        return mockBehaviorRecords.filter(record => {
-            if (selectedClass !== 'ทั้งหมด' && record.classRoom !== selectedClass) return false;
-            if (selectedStudent && !record.studentName.includes(selectedStudent)) return false;
-            if (dateRange.start && new Date(record.createdAt) < new Date(dateRange.start)) return false;
-            if (dateRange.end && new Date(record.createdAt) > new Date(dateRange.end)) return false;
-            return true;
-        });
-    }, [selectedClass, selectedStudent, dateRange]);
+        return historyData?.data || [];
+    }, [historyData]);
 
-    // Summary statistics
+    // Summary statistics with sorting
     const summaryStats = useMemo(() => {
-        const grouped = {};
+        const data = summaryData?.data?.summary || [];
+        
+        // Apply sorting
+        if (sortConfig.key) {
+            const sorted = [...data].sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+                
+                // Handle string comparison
+                if (typeof aValue === 'string') {
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue.toLowerCase();
+                }
+                
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+            return sorted;
+        }
+        
+        return data;
+    }, [summaryData, sortConfig]);
 
-        filteredRecords.forEach(record => {
-            const key = record.studentId;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    studentCode: record.studentCode,
-                    studentName: record.studentName,
-                    classRoom: record.classRoom,
-                    totalAdded: 0,
-                    totalDeducted: 0,
-                    recordCount: 0,
-                    currentScore: record.currentTotal
-                };
-            }
+    // Handle sort
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
-            if (record.score > 0) {
-                grouped[key].totalAdded += record.score;
-            } else {
-                grouped[key].totalDeducted += Math.abs(record.score);
-            }
-            grouped[key].recordCount++;
-        });
-
-        return Object.values(grouped).sort((a, b) => b.currentScore - a.currentScore);
-    }, [filteredRecords]);
+    // Get sort icon
+    const getSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return <ArrowUpDown className="w-4 h-4 inline ml-1 opacity-50" />;
+        }
+        return sortConfig.direction === 'asc' 
+            ? <ArrowUp className="w-4 h-4 inline ml-1" />
+            : <ArrowDown className="w-4 h-4 inline ml-1" />;
+    };
 
     const handleEdit = (record) => {
         setEditingRecord(record.id);
@@ -173,29 +107,102 @@ const ReportBehaviorScore = () => {
         });
     };
 
-    const handleSaveEdit = (recordId) => {
-        alert(`บันทึกการแก้ไขสำเร็จ!\nรายการที่: ${recordId}\nคะแนนใหม่: ${editForm.score}\nหมายเหตุ: ${editForm.comments}`);
+    const handleSaveEdit = async (recordId) => {
+        try {
+            const result = await Swal.fire({
+                title: 'ยืนยันการแก้ไข?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2"><strong>รายการที่:</strong> ${recordId}</p>
+                        <p class="mb-2"><strong>คะแนนใหม่:</strong> ${editForm.score}</p>
+                        <p class="mb-2"><strong>หมายเหตุ:</strong> ${editForm.comments}</p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            });
 
-        const updatedRecord = mockBehaviorRecords.find(r => r.id === recordId);
-        if (updatedRecord) {
-            updatedRecord.updateLogs.push({
-                updatedBy: 'ครูสมศรี ใจดี',
-                updatedAt: new Date().toISOString(),
-                changes: {
-                    oldScore: updatedRecord.score,
-                    newScore: editForm.score,
-                    oldComments: updatedRecord.comments,
-                    newComments: editForm.comments
-                }
+            if (result.isConfirmed) {
+                await updateBehaviorScore({
+                    id: recordId,
+                    score: editForm.score,
+                    comments: editForm.comments,
+                    updatedBy: 1 // TODO: Get from auth context
+                }).unwrap();
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'แก้ไขสำเร็จ!',
+                    text: 'บันทึกการแก้ไขเรียบร้อยแล้ว',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                setEditingRecord(null);
+                refetchHistory();
+                refetchSummary();
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด!',
+                text: error.data?.message || 'ไม่สามารถแก้ไขข้อมูลได้',
             });
         }
-
-        setEditingRecord(null);
     };
 
     const handleCancelEdit = () => {
         setEditingRecord(null);
         setEditForm({ score: 0, comments: '' });
+    };
+
+    const handleDelete = async (record) => {
+        try {
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบ?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2"><strong>นักเรียน:</strong> ${record.studentName}</p>
+                        <p class="mb-2"><strong>คะแนน:</strong> ${record.score > 0 ? '+' : ''}${record.score}</p>
+                        <p class="mb-2"><strong>หมายเหตุ:</strong> ${record.comments}</p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ลบ',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (result.isConfirmed) {
+                await deleteBehaviorScore({
+                    id: record.id,
+                    deletedBy: 1 // TODO: Get from auth context
+                }).unwrap();
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'ลบสำเร็จ!',
+                    text: 'ลบข้อมูลเรียบร้อยแล้ว',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                refetchHistory();
+                refetchSummary();
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด!',
+                text: error.data?.message || 'ไม่สามารถลบข้อมูลได้',
+            });
+        }
     };
 
     const handleViewLogs = (record) => {
@@ -215,11 +222,21 @@ const ReportBehaviorScore = () => {
     };
 
     const exportToExcel = () => {
-        alert('กำลังส่งออกข้อมูลเป็น Excel...');
+        Swal.fire({
+            icon: 'info',
+            title: 'กำลังพัฒนา',
+            text: 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา',
+            confirmButtonText: 'ตกลง'
+        });
     };
 
     const exportToPDF = () => {
-        alert('กำลังส่งออกข้อมูลเป็น PDF...');
+        Swal.fire({
+            icon: 'info',
+            title: 'กำลังพัฒนา',
+            text: 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา',
+            confirmButtonText: 'ตกลง'
+        });
     };
 
     return (
@@ -278,43 +295,53 @@ const ReportBehaviorScore = () => {
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                disabled={isLoadingClassrooms}
                             >
-                                {mockClassList.map((cls) => (
-                                    <option key={cls} value={cls}>{cls}</option>
-                                ))}
+                                {isLoadingClassrooms ? (
+                                    <option>กำลังโหลด...</option>
+                                ) : (
+                                    classRoomList.map((cls) => (
+                                        <option key={cls} value={cls}>{cls}</option>
+                                    ))
+                                )}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">ชื่อนักเรียน</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">ค้นหานักเรียน</label>
                             <input
                                 type="text"
-                                value={selectedStudent}
-                                onChange={(e) => setSelectedStudent(e.target.value)}
-                                placeholder="ค้นหาชื่อ..."
+                                value={searchStudent}
+                                onChange={(e) => setSearchStudent(e.target.value)}
+                                placeholder="ชื่อ หรือ รหัสนักเรียน..."
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">วันที่เริ่มต้น</label>
-                            <input
-                                type="date"
-                                value={dateRange.start}
-                                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                        </div>
+                        {/* แสดง filter วันที่เฉพาะ History tab */}
+                        {activeTab === 'history' && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">วันที่เริ่มต้น</label>
+                                    <input
+                                        type="date"
+                                        value={dateRange.start}
+                                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">วันที่สิ้นสุด</label>
-                            <input
-                                type="date"
-                                value={dateRange.end}
-                                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                        </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">วันที่สิ้นสุด</label>
+                                    <input
+                                        type="date"
+                                        value={dateRange.end}
+                                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {activeTab === 'summary' && (
@@ -382,7 +409,12 @@ const ReportBehaviorScore = () => {
                             </h2>
                         </div>
 
-                        {filteredRecords.length === 0 ? (
+                        {isLoadingHistory ? (
+                            <div className="text-center py-12">
+                                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                                <p className="text-gray-600 font-medium mt-4">กำลังโหลดข้อมูล...</p>
+                            </div>
+                        ) : filteredRecords.length === 0 ? (
                             <div className="text-center py-12">
                                 <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <p className="text-gray-600 font-medium">ไม่พบข้อมูล</p>
@@ -492,8 +524,17 @@ const ReportBehaviorScore = () => {
                                                                 onClick={() => handleEdit(record)}
                                                                 className="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors"
                                                                 title="แก้ไข"
+                                                                disabled={isUpdating || isDeleting}
                                                             >
                                                                 <Edit2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(record)}
+                                                                className="p-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
+                                                                title="ลบ"
+                                                                disabled={isUpdating || isDeleting}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
                                                             </button>
                                                             <button
                                                                 onClick={() => handleViewLogs(record)}
@@ -520,7 +561,12 @@ const ReportBehaviorScore = () => {
                             </h2>
                         </div>
 
-                        {summaryStats.length === 0 ? (
+                        {isLoadingSummary ? (
+                            <div className="text-center py-12">
+                                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                                <p className="text-gray-600 font-medium mt-4">กำลังโหลดข้อมูล...</p>
+                            </div>
+                        ) : summaryStats.length === 0 ? (
                             <div className="text-center py-12">
                                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <p className="text-gray-600 font-medium">ไม่พบข้อมูล</p>
@@ -531,19 +577,50 @@ const ReportBehaviorScore = () => {
                                     <thead>
                                         <tr className="bg-indigo-600 text-white">
                                             <th className="px-4 py-3 text-left text-sm font-semibold">ลำดับ</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold">รหัสนักเรียน</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold">ชื่อ-สกุล</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold">ห้อง</th>
-                                            <th className="px-4 py-3 text-center text-sm font-semibold">จำนวนครั้ง</th>
-                                            <th className="px-4 py-3 text-center text-sm font-semibold">
+                                            <th 
+                                                onClick={() => handleSort('studentCode')}
+                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
+                                                รหัสนักเรียน {getSortIcon('studentCode')}
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('fullName')}
+                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
+                                                ชื่อ-สกุล {getSortIcon('fullName')}
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('classRoom')}
+                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
+                                                ห้อง {getSortIcon('classRoom')}
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('recordCount')}
+                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
+                                                จำนวนครั้ง {getSortIcon('recordCount')}
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('positivePoints')}
+                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
                                                 <TrendingUp className="w-4 h-4 inline mr-1" />
-                                                เพิ่ม
+                                                เพิ่ม {getSortIcon('positivePoints')}
                                             </th>
-                                            <th className="px-4 py-3 text-center text-sm font-semibold">
+                                            <th 
+                                                onClick={() => handleSort('negativePoints')}
+                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
                                                 <TrendingDown className="w-4 h-4 inline mr-1" />
-                                                หัก
+                                                หัก {getSortIcon('negativePoints')}
                                             </th>
-                                            <th className="px-4 py-3 text-center text-sm font-semibold">คะแนนรวม</th>
+                                            <th 
+                                                onClick={() => handleSort('currentScore')}
+                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                                            >
+                                                คะแนนรวม {getSortIcon('currentScore')}
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -556,12 +633,12 @@ const ReportBehaviorScore = () => {
                                                 <td className="px-4 py-3 text-sm text-center">{stat.recordCount}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-semibold text-sm">
-                                                        +{stat.totalAdded}
+                                                        +{stat.addedPoints || 0}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className="bg-red-100 text-red-700 px-3 py-1 rounded-lg font-semibold text-sm">
-                                                        -{stat.totalDeducted}
+                                                        -{stat.deductedPoints || 0}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
@@ -578,24 +655,42 @@ const ReportBehaviorScore = () => {
                                 <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                         <div className="text-sm text-gray-600 mb-1">จำนวนนักเรียน</div>
-                                        <div className="text-2xl font-bold text-blue-700">{summaryStats.length}</div>
+                                        <div className="text-2xl font-bold text-blue-700">
+                                            {summaryData?.data?.statistics?.totalStudents || 0}
+                                        </div>
                                     </div>
                                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">จำนวนรายการทั้งหมด</div>
+                                        <div className="text-sm text-gray-600 mb-1">คะแนนเฉลี่ย</div>
                                         <div className="text-2xl font-bold text-purple-700">
-                                            {summaryStats.reduce((sum, s) => sum + s.recordCount, 0)}
+                                            {summaryData?.data?.statistics?.averageScore || '100.00'}
                                         </div>
                                     </div>
                                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <div className="text-sm text-gray-600 mb-1">นักเรียนคะแนน ≥ 90</div>
+                                        <div className="text-2xl font-bold text-green-700">
+                                            {summaryData?.data?.statistics?.studentsAbove90 || 0} คน
+                                        </div>
+                                    </div>
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                        <div className="text-sm text-gray-600 mb-1">นักเรียนคะแนน &lt; 70</div>
+                                        <div className="text-2xl font-bold text-red-700">
+                                            {summaryData?.data?.statistics?.studentsBelow70 || 0} คน
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Additional Stats */}
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                         <div className="text-sm text-gray-600 mb-1">คะแนนที่เพิ่มรวม</div>
                                         <div className="text-2xl font-bold text-green-700">
-                                            +{summaryStats.reduce((sum, s) => sum + s.totalAdded, 0)}
+                                            +{summaryData?.data?.statistics?.totalAdded || 0}
                                         </div>
                                     </div>
                                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                         <div className="text-sm text-gray-600 mb-1">คะแนนที่หักรวม</div>
                                         <div className="text-2xl font-bold text-red-700">
-                                            -{summaryStats.reduce((sum, s) => sum + s.totalDeducted, 0)}
+                                            -{summaryData?.data?.statistics?.totalDeducted || 0}
                                         </div>
                                     </div>
                                 </div>

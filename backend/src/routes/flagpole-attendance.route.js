@@ -182,26 +182,32 @@ router.post('/flagpole-attendance', verifyToken, async (req, res) => {
   }
 });
 
-// Get attendance statistics
+// Get attendance statistics (Summary)
 router.get('/flagpole-attendance/statistics', verifyToken, async (req, res) => {
   try {
     const { startDate, endDate, classRoom } = req.query;
-    if (!startDate || !endDate || !classRoom) {
-      return res.status(400).json({ success: false, message: 'กรุณาระบุข้อมูลให้ครบถ้วน' });
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุด' });
+    }
+
+    const whereCondition = {
+      date: {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      },
+      students: {
+        isDeleted: false
+      }
+    };
+
+    // ถ้าระบุห้องเรียน ให้กรองตามห้อง
+    if (classRoom && classRoom !== 'all') {
+      whereCondition.students.classRoom = classRoom;
     }
 
     const statistics = await prisma.flagpoleattendance.groupBy({
       by: ['statusId'],
-      where: {
-        date: {
-          gte: new Date(startDate),
-          lte: new Date(endDate)
-        },
-        students: {
-          classRoom,
-          isDeleted: false
-        }
-      },
+      where: whereCondition,
       _count: {
         statusId: true
       }
@@ -209,15 +215,141 @@ router.get('/flagpole-attendance/statistics', verifyToken, async (req, res) => {
 
     const statuses = await prisma.attendancestatuses.findMany();
     
-    const result = statistics.map(stat => ({
-      status: statuses.find(s => s.id === stat.statusId),
-      count: stat._count.statusId
-    }));
+    // แปลงชื่อสถานะเป็นภาษาไทย
+    const translationMap = {
+      'present': 'มา',
+      'late': 'สาย',
+      'sick leave': 'ลาป่วย',
+      'personal leave': 'ลากิจ',
+      'absent': 'ขาด'
+    };
+    
+    const result = statistics.map(stat => {
+      const status = statuses.find(s => s.id === stat.statusId);
+      return {
+        status: translationMap[status.name] || status.name,
+        statusId: status.id,
+        count: stat._count.statusId
+      };
+    });
 
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Error fetching statistics:', error);
     res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลสถิติได้' });
+  }
+});
+
+// Get detailed attendance report (for dashboard charts)
+router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
+  try {
+    const { startDate, endDate, classRoom } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุด' });
+    }
+
+    const whereCondition = {
+      date: {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      },
+      students: {
+        isDeleted: false
+      }
+    };
+
+    // ถ้าระบุห้องเรียน ให้กรองตามห้อง
+    if (classRoom && classRoom !== 'all') {
+      whereCondition.students.classRoom = classRoom;
+    }
+
+    // ดึงข้อมูลทั้งหมดพร้อม relation
+    const attendanceRecords = await prisma.flagpoleattendance.findMany({
+      where: whereCondition,
+      include: {
+        students: {
+          select: {
+            id: true,
+            studentNumber: true,
+            fullName: true,
+            classRoom: true
+          }
+        },
+        attendancestatuses: true
+      },
+      orderBy: [
+        { date: 'asc' },
+        { students: { classRoom: 'asc' } },
+        { students: { studentNumber: 'asc' } }
+      ]
+    });
+
+    // แปลงชื่อสถานะเป็นภาษาไทย
+    const translationMap = {
+      'present': 'มา',
+      'late': 'สาย',
+      'sick leave': 'ลาป่วย',
+      'personal leave': 'ลากิจ',
+      'absent': 'ขาด'
+    };
+
+    // จัดกรุ๊ปข้อมูลตามวันที่และสถานะ (สำหรับกราฟ)
+    const dailyStats = {};
+    
+    attendanceRecords.forEach(record => {
+      const dateStr = record.date.toISOString().split('T')[0];
+      const statusName = translationMap[record.attendancestatuses.name] || record.attendancestatuses.name;
+      
+      if (!dailyStats[dateStr]) {
+        dailyStats[dateStr] = {
+          date: dateStr,
+          มา: 0,
+          สาย: 0,
+          ลาป่วย: 0,
+          ลากิจ: 0,
+          ขาด: 0
+        };
+      }
+      
+      dailyStats[dateStr][statusName] = (dailyStats[dateStr][statusName] || 0) + 1;
+    });
+
+    // แปลงเป็น array และเรียงตามวันที่
+    const chartData = Object.values(dailyStats).sort((a, b) => 
+      new Date(a.date) - new Date(b.date)
+    );
+
+    // สรุปรวมทั้งหมด (สำหรับ Pie Chart)
+    const totalStats = {
+      มา: 0,
+      สาย: 0,
+      ลาป่วย: 0,
+      ลากิจ: 0,
+      ขาด: 0
+    };
+
+    attendanceRecords.forEach(record => {
+      const statusName = translationMap[record.attendancestatuses.name] || record.attendancestatuses.name;
+      totalStats[statusName] = (totalStats[statusName] || 0) + 1;
+    });
+
+    res.json({ 
+      success: true, 
+      data: {
+        chartData,       // สำหรับกราฟแท่ง
+        totalStats,      // สำหรับกราฟวงกลม
+        records: attendanceRecords.map(r => ({
+          date: r.date.toISOString().split('T')[0],
+          studentNumber: r.students.studentNumber,
+          studentName: r.students.fullName,
+          classRoom: r.students.classRoom,
+          status: translationMap[r.attendancestatuses.name] || r.attendancestatuses.name
+        }))  // สำหรับตาราง + CSV Export
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching attendance report:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลรายงานได้' });
   }
 });
 

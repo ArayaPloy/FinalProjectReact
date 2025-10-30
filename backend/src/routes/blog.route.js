@@ -8,17 +8,58 @@ const isAdmin = require('../middleware/admin');
 
 const prisma = new PrismaClient();
 
+// Get all blog categories (public route)
+router.get('/categories', async (req, res) => {
+    try {
+        const categories = await prisma.blog_categories.findMany({
+            where: {
+                isDeleted: false
+            },
+            orderBy: {
+                sortOrder: 'asc'
+            },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                description: true,
+                icon: true,
+                sortOrder: true
+            }
+        });
+
+        res.status(200).json(categories);
+    } catch (error) {
+        console.error('Error fetching blog categories:', error);
+        res.status(500).json({ message: 'ไม่สามารถดึงข้อมูลหมวดหมู่ได้' });
+    }
+});
+
 // Create post (protected route)
 router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
     try {
-        const { title, description, content, category, coverImg } = req.body;
+        const { title, description, content, categoryId, coverImg } = req.body;
+
+        // ตรวจสอบว่า categoryId มีอยู่จริง
+        if (categoryId) {
+            const categoryExists = await prisma.blog_categories.findFirst({
+                where: {
+                    id: parseInt(categoryId),
+                    isDeleted: false
+                }
+            });
+
+            if (!categoryExists) {
+                return res.status(400).json({ message: 'ไม่พบหมวดหมู่ที่เลือก' });
+            }
+        }
 
         const newPost = await prisma.blogs.create({
             data: {
                 title,
                 description,
                 content: JSON.stringify(content), // convert object เป็น string
-                category,
+                categoryId: categoryId ? parseInt(categoryId) : null,
                 coverImg,
                 author: req.userId, // จาก middleware verifyToken
             },
@@ -29,12 +70,20 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
                         username: true,
                         email: true
                     }
+                },
+                blog_categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        icon: true
+                    }
                 }
             }
         });
 
         res.status(201).json({
-            message: 'ส้รางโพสต์สำเร็จ',
+            message: 'สร้างโพสต์สำเร็จ',
             post: newPost
         });
     } catch (error) {
@@ -74,6 +123,9 @@ router.get("/", async (req, res) => {
                 users_blogs_authorTousers: {
                     select: { id: true, username: true, email: true }
                 },
+                blog_categories: {
+                    select: { id: true, name: true, slug: true, icon: true }
+                },
                 _count: {
                     select: { comments: true }
                 }
@@ -110,6 +162,14 @@ router.get('/:id', async (req, res) => {
                         id: true,
                         username: true,
                         email: true
+                    }
+                },
+                blog_categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        icon: true
                     }
                 },
                 comments: {
@@ -150,7 +210,7 @@ router.get('/:id', async (req, res) => {
 router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
-        const { title, description, content, category, coverImg } = req.body;
+        const { title, description, content, categoryId, coverImg } = req.body;
 
         if (isNaN(postId)) {
             return res.status(400).json({ message: 'Invalid post ID' });
@@ -168,6 +228,20 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
             return res.status(404).json({ message: 'Post not found' });
         }
 
+        // ตรวจสอบว่า categoryId มีอยู่จริง (ถ้ามีการส่งมา)
+        if (categoryId) {
+            const categoryExists = await prisma.blog_categories.findFirst({
+                where: {
+                    id: parseInt(categoryId),
+                    isDeleted: false
+                }
+            });
+
+            if (!categoryExists) {
+                return res.status(400).json({ message: 'ไม่พบหมวดหมู่ที่เลือก' });
+            }
+        }
+
         const updatedPost = await prisma.blogs.update({
             where: {
                 id: postId
@@ -176,7 +250,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
                 title,
                 description,
                 content: JSON.stringify(content), //  convert object -> string 
-                category,
+                categoryId: categoryId ? parseInt(categoryId) : null,
                 coverImg,
                 updatedBy: req.userId
             },
@@ -186,6 +260,14 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
                         id: true,
                         username: true,
                         email: true
+                    }
+                },
+                blog_categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        icon: true
                     }
                 }
             }
@@ -276,13 +358,13 @@ router.get('/related/:id', async (req, res) => {
             return res.status(404).json({ message: 'Blog post not found' });
         }
 
-        // ดึงบล็อกที่มี category เหมือนกัน (ยกเว้นบล็อกปัจจุบัน)
+        // ดึงบล็อกที่มี categoryId เหมือนกัน (ยกเว้นบล็อกปัจจุบัน)
         const relatedPosts = await prisma.blogs.findMany({
             where: {
                 id: {
                     not: postId // ไม่รวมบล็อกปัจจุบัน
                 },
-                category: blog.category, // ดึงบล็อกที่มี category เหมือนกัน
+                categoryId: blog.categoryId, // ดึงบล็อกที่มี categoryId เหมือนกัน
                 isDeleted: false // เฉพาะโพสต์ที่ไม่ถูกลบ
             },
             include: {
@@ -291,6 +373,14 @@ router.get('/related/:id', async (req, res) => {
                         id: true,
                         username: true,
                         email: true
+                    }
+                },
+                blog_categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        icon: true
                     }
                 },
                 _count: {
@@ -312,33 +402,33 @@ router.get('/related/:id', async (req, res) => {
     }
 });
 
-// Get all categories (public route)
-router.get('/categories/all', async (req, res) => {
-    try {
-        const categories = await prisma.blogs.groupBy({
-            by: ['category'],
-            where: {
-                isDeleted: false,
-                category: {
-                    not: null
-                }
-            },
-            _count: {
-                category: true
-            },
-            orderBy: {
-                _count: {
-                    category: 'desc'
-                }
-            }
-        });
+// Get all categories (public route) - DEPRECATED: Now using /categories endpoint with blog_categories table
+// router.get('/categories/all', async (req, res) => {
+//     try {
+//         const categories = await prisma.blogs.groupBy({
+//             by: ['category'],
+//             where: {
+//                 isDeleted: false,
+//                 category: {
+//                     not: null
+//                 }
+//             },
+//             _count: {
+//                 category: true
+//             },
+//             orderBy: {
+//                 _count: {
+//                     category: 'desc'
+//                 }
+//             }
+//         });
 
-        res.status(200).json(categories);
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        res.status(500).json({ message: 'Failed to fetch categories' });
-    }
-});
+//         res.status(200).json(categories);
+//     } catch (error) {
+//         console.error('Error fetching categories:', error);
+//         res.status(500).json({ message: 'Failed to fetch categories' });
+//     }
+// });
 
 
 module.exports = router;

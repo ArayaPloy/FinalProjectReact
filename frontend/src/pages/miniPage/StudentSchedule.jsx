@@ -110,7 +110,7 @@ const StudentSchedulePage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <div className="max-w-7xl mx-12 justify-center">
+            <div className="max-w-7xl mx-auto justify-center">
                 {/* Header Section */}
                 <div className="bg-white rounded-lg sm:rounded-xl shadow-md p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-blue-100">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">

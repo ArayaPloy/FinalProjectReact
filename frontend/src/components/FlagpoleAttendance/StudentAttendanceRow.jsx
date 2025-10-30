@@ -59,28 +59,33 @@ const StudentAttendanceRow = ({ student, statuses, selectedStatus, onStatusChang
     const genderIcon = getGenderIcon(student.namePrefix);
 
     return (
-        <div className={`grid grid-cols-12 gap-3 px-4 py-3 border rounded-lg transition-all items-center ${isUnchecked
-                ? 'bg-orange-50 border-orange-200 hover:bg-orange-100'
-                : 'bg-white border-gray-200 hover:bg-gray-50'
+        <div className={`grid grid-cols-12 gap-4 px-5 py-4 border-2 rounded-xl transition-all items-center hover:shadow-md ${isUnchecked
+                ? 'bg-orange-50 border-orange-300 hover:border-orange-400'
+                : 'bg-white border-gray-200 hover:border-amber-300'
             }`}>
-            <div className="col-span-1 font-semibold text-gray-700">
-                {studentNumber}
+            <div className="col-span-1">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-300 flex items-center justify-center">
+                    <span className="font-bold text-amber-700">{studentNumber}</span>
+                </div>
             </div>
 
             <div className="col-span-5 md:col-span-4">
-                <div className="flex items-center gap-2">
-                    {/* <div className={`${genderIcon.bgColor} rounded-full px-2.5 py-2 flex items-center justify-center`}>
-                        <i className={`bi ${genderIcon.icon} ${genderIcon.color} text-sm`}></i>
-                    </div> */}
+                <div className="flex items-center gap-3">
+                    <div className={`${genderIcon.bgColor} rounded-lg px-3 py-2 flex items-center justify-center`}>
+                        <i className={`bi ${genderIcon.icon} ${genderIcon.color} text-xl`}></i>
+                    </div>
                     <div className="flex-1">
-                        <p className="font-semibold text-gray-800 p-0 m-0">
-                            <i className={`bi ${genderIcon.icon} ${genderIcon.color} text-lg mr-2`}></i>
+                        <p className="font-bold text-gray-800 text-base">
                             {student.namePrefix} {student.fullName}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            <i className="bi bi-credit-card-2-front mr-1"></i>
+                            รหัส: {student.studentNumber}
                         </p>
                         {isUnchecked && (
                             <div className="flex items-center gap-1 mt-1">
-                                <AlertCircle className="w-3 h-3 text-orange-600" />
-                                <span className="text-xs text-orange-700 font-semibold">ยังไม่ได้เช็คชื่อ</span>
+                                <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
+                                <span className="text-xs text-orange-700 font-bold">ยังไม่ได้เช็คชื่อ</span>
                             </div>
                         )}
                     </div>
@@ -97,12 +102,12 @@ const StudentAttendanceRow = ({ student, statuses, selectedStatus, onStatusChang
                             key={status.id}
                             onClick={() => onStatusChange(student.id, status.id)}
                             title={isSelected ? 'คลิกอีกครั้งเพื่อยกเลิก' : `เลือก ${status.name}`}
-                            className={`px-3 py-2 rounded-lg text-white text-sm font-semibold transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 ${isSelected
-                                    ? style.bg + ' ring-2 ring-offset-1 ring-blue-400 scale-105'
-                                    : 'bg-gray-300 hover:bg-gray-400'
+                            className={`px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${isSelected
+                                    ? style.bg + ' ring-4 ring-offset-2 ring-amber-300 scale-110'
+                                    : 'bg-gray-300 hover:bg-gray-400 hover:scale-105'
                                 }`}
                         >
-                            {isSelected && <i className={`bi ${style.icon}`}></i>}
+                            {isSelected && <i className={`bi ${style.icon} text-base`}></i>}
                             {status.name}
                         </button>
                     );
