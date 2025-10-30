@@ -381,10 +381,6 @@ const FacultyStaff = () => {
                                                 console.log('❌ Modal image failed to load:', e.target.src);
                                                 e.target.src = '/src/assets/images/teachers/admin1.jpg';
                                             }}
-                                            onError={(e) => {
-                                                console.log('❌ Modal image failed to load:', e.target.src);
-                                                e.target.src = '/src/assets/images/teachers/admin1.jpg';
-                                            }}
                                             onLoad={() => {
                                                 console.log('✅ Modal image loaded successfully:', getImageSrc(selectedStaff));
                                             }}
