@@ -2,12 +2,9 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 require('dotenv').config();
-const mongoose = require('mongoose');
 const port = process.env.PORT || 5000;
-
-const isAdmin = require('./src/middleware/admin');
 
 // Middleware setup
 app.use(express.json());
@@ -15,30 +12,66 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
+// Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // CORS Configuration - รองรับทั้ง Development และ Production
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
-      // Production domains (แก้ไขตาม domain จริง)
-      'https://your-frontend-domain.com',
-      'https://www.your-frontend-domain.com',
-      // เพิ่ม production domains อื่นๆ 
-    ]
+      process.env.FRONTEND_URL,
+      // เพิ่ม production domains อื่นๆ ถ้ามี
+    ].filter(Boolean) // กรองค่า undefined/null ออก
   : [
-      // Development origins
-      '*',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:3000',
-      'http://192.168.60.230:5173',
-      'http://10.52.203.24:5173',
+      'http://127.0.0.1:5173',
+      // Local network IPs for testing
       /^http:\/\/192\.168\.\d+\.\d+:5173$/,
       /^http:\/\/10\.\d+\.\d+\.\d+:5173$/
     ];
 
-app.use(cors({ 
-  origin: allowedOrigins,
-  credentials: true
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Production: strict origin checking
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // Development: more permissive
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️  CORS: Origin ${origin} not in whitelist`);
+        callback(null, true); // Still allow in development
+      }
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 const authRoutes = require('./src/routes/auth.user');
 const authMeRoutes = require('./src/routes/auth.me');
@@ -76,22 +109,65 @@ app.use('/api/students/public', studentPublicRoutes);
 
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Global Error:', err.stack);
+  
+  // CORS errors
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'CORS policy: Origin not allowed'
+    });
+  }
+  
+  // Default error
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
+});
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
 
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URL);
+  // MongoDB connection (ถ้าจำเป็น - ปิดไว้ก่อนถ้าไม่ใช้)
+  // await mongoose.connect(process.env.MONGODB_URL);
+  
   app.get('/', (req, res) => {
-    res.send('School Website Server is Running...!');
+    res.json({
+      success: true,
+      message: 'School Website API Server',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
   });
-
-  // generateToken = require('./src/middleware/generateToken');
-  // generateToken(1)
 }
 
-
-// main().then(() => console.log('Mongodb connected successfully!')).catch(err => console.log(err));
-
-
+main()
+  .then(() => {
+    console.log('✅ Server initialized successfully');
+    // console.log('✅ MongoDB connected'); // ถ้าใช้ MongoDB
+  })
+  .catch(err => {
+    console.error('❌ Server initialization failed:', err);
+    process.exit(1);
+  });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log('========================================');
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+  console.log('========================================');
 });

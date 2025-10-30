@@ -1,9 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-export const flagpoleAttendanceApi = createApi({
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+const flagpoleAttendanceApi = createApi({
   reducerPath: 'flagpoleAttendanceApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:5000/api',
+    baseUrl: API_BASE_URL,
     credentials: 'include'
   }),
   tagTypes: ['FlagpoleAttendance', 'Students', 'AttendanceStatuses'],

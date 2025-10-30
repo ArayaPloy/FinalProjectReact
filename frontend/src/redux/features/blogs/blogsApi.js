@@ -1,8 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
 export const blogsApi = createApi({
   reducerPath: 'blogsApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:5000/api/',
+  baseQuery: fetchBaseQuery({ 
+    baseUrl: `${API_BASE_URL}/`,
     prepareHeaders: (headers, { getState }) => {
       const token = getState().auth.token; // Assuming you have an auth slice with a token
       if (token) { 
@@ -10,7 +13,8 @@ export const blogsApi = createApi({
       }
       return headers;
     },
-    credentials: 'include'}),
+    credentials: 'include'
+  }),
   tagTypes: ['Blogs'],
   endpoints: (builder) => ({
 
