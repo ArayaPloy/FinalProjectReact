@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 // ========================================
 
 // Get all academic years
-router.get('/academic-years', verifyToken, async (req, res) => {
+router.get('/academic-years', async (req, res) => {
     try {
         const academicYears = await prisma.academic_years.findMany({
             orderBy: { year: 'desc' },
@@ -34,7 +34,7 @@ router.get('/academic-years', verifyToken, async (req, res) => {
 });
 
 // Get current academic year
-router.get('/academic-years/current', verifyToken, async (req, res) => {
+router.get('/academic-years/current', async (req, res) => {
     try {
         const currentYear = await prisma.academic_years.findFirst({
             where: { isCurrent: true, isActive: true },
@@ -57,7 +57,7 @@ router.get('/academic-years/current', verifyToken, async (req, res) => {
 });
 
 // Get single academic year by ID
-router.get('/academic-years/:id', verifyToken, async (req, res) => {
+router.get('/academic-years/:id', async (req, res) => {
     try {
         const yearId = parseInt(req.params.id);
 
@@ -359,7 +359,7 @@ router.delete('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
 // ========================================
 
 // Get current semester
-router.get('/semesters/current', verifyToken, async (req, res) => {
+router.get('/semesters/current', async (req, res) => {
     try {
         const currentSemester = await prisma.semesters.findFirst({
             where: { isCurrent: true, isActive: true },
