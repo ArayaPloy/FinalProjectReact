@@ -43,6 +43,44 @@ ON DUPLICATE KEY UPDATE name=VALUES(name);
 
   `);
 
+  // Academic Years and Semesters
+  console.log('Seeding Academic Years and Semesters...');
+  
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO academic_years (id, year, startDate, endDate, isCurrent, isActive, createdAt, updatedAt, createdBy, updatedBy) VALUES
+(1, '2566', '2023-05-16', '2024-05-15', 0, 1, NOW(), NOW(), NULL, NULL),
+(2, '2567', '2024-05-16', '2025-05-15', 0, 1, NOW(), NOW(), NULL, NULL),
+(3, '2568', '2025-05-16', '2026-05-15', 1, 1, NOW(), NOW(), NULL, NULL)
+ON DUPLICATE KEY UPDATE 
+  year=VALUES(year),
+  startDate=VALUES(startDate),
+  endDate=VALUES(endDate),
+  isCurrent=VALUES(isCurrent),
+  isActive=VALUES(isActive);
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO semesters (id, academicYearId, semesterNumber, startDate, endDate, isCurrent, isActive, createdAt, updatedAt, createdBy, updatedBy) VALUES
+-- ปีการศึกษา 2566
+(1, 1, 1, '2023-05-16', '2023-10-15', 0, 1, NOW(), NOW(), NULL, NULL),
+(2, 1, 2, '2023-10-16', '2024-05-15', 0, 1, NOW(), NOW(), NULL, NULL),
+
+-- ปีการศึกษา 2567 (ปัจจุบัน)
+(3, 2, 1, '2024-05-16', '2024-10-15', 0, 1, NOW(), NOW(), NULL, NULL),
+(4, 2, 2, '2024-10-16', '2025-05-15', 1, 1, NOW(), NOW(), NULL, NULL),
+
+-- ปีการศึกษา 2568 (อนาคต)
+(5, 3, 1, '2025-05-16', '2025-10-15', 0, 1, NOW(), NOW(), NULL, NULL),
+(6, 3, 2, '2025-10-16', '2026-05-15', 0, 1, NOW(), NOW(), NULL, NULL)
+ON DUPLICATE KEY UPDATE 
+  semesterNumber=VALUES(semesterNumber),
+  startDate=VALUES(startDate),
+  endDate=VALUES(endDate),
+  isCurrent=VALUES(isCurrent),
+  isActive=VALUES(isActive);
+  `);
+
+
   // Blogs
   //   await prisma.$executeRawUnsafe(`
   //     INSERT INTO blogs (id, title, description, coverImg, content, category, author, createdAt, updatedAt, isDeleted, deletedAt, updatedBy) VALUES

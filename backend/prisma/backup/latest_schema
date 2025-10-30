@@ -91,56 +91,6 @@ model user_login_logs {
   @@index([userId, loginAt], map: "idx_user_login_time")
 }
 
-model academic_years {
-  id        Int        @id @default(autoincrement())
-  year      String     @unique @db.VarChar(20) // เช่น "2567", "2568"
-  startDate DateTime   @db.Date
-  endDate   DateTime   @db.Date
-  isCurrent Boolean    @default(false)
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now()) @db.Timestamp(0)
-  updatedAt DateTime   @default(now()) @db.Timestamp(0)
-  createdBy Int?
-  updatedBy Int?
-  
-  semesters                       semesters[]
-  users_academic_years_createdBy  users?   @relation("academic_years_createdBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_1")
-  users_academic_years_updatedBy  users?   @relation("academic_years_updatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_2")
-  
-  @@index([createdBy], map: "createdBy")
-  @@index([updatedBy], map: "updatedBy")
-  @@index([isCurrent], map: "idx_academic_years_current")
-  @@index([isActive], map: "idx_academic_years_active")
-}
-
-model semesters {
-  id             Int       @id @default(autoincrement())
-  academicYearId Int
-  semesterNumber Int       @db.TinyInt // 1 หรือ 2
-  startDate      DateTime  @db.Date
-  endDate        DateTime  @db.Date
-  isCurrent      Boolean   @default(false)
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt      DateTime  @default(now()) @db.Timestamp(0)
-  createdBy      Int?
-  updatedBy      Int?
-  
-  academic_years                 academic_years           @relation(fields: [academicYearId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "semesters_ibfk_1")
-  flagpoleattendance             flagpoleattendance[]
-  homeroomattendance             homeroomattendance[]
-  academicclubattendance         academicclubattendance[]
-  users_semesters_createdBy      users?                   @relation("semesters_createdBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_2")
-  users_semesters_updatedBy      users?                   @relation("semesters_updatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_3")
-  
-  @@unique([academicYearId, semesterNumber], map: "unique_semester_per_year")
-  @@index([academicYearId], map: "academicYearId")
-  @@index([createdBy], map: "createdBy")
-  @@index([updatedBy], map: "updatedBy")
-  @@index([isCurrent], map: "idx_semesters_current")
-  @@index([isActive], map: "idx_semesters_active")
-}
-
 // ========================================
 // EXISTING TABLES
 // ========================================
@@ -154,7 +104,6 @@ model academicclubattendance {
   summary            String?            @db.Text
   imagePath          String?            @db.VarChar(255)
   recorderId         Int?
-  semesterId         Int?
   createdAt          DateTime           @default(now()) @db.Timestamp(0)
   updatedAt          DateTime           @default(now()) @db.Timestamp(0)
   isDeleted          Boolean?           @default(false)
@@ -165,14 +114,12 @@ model academicclubattendance {
   attendancestatuses attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "academicclubattendance_ibfk_3")
   teachers           teachers?          @relation(fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_4")
   users              users?             @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_5")
-  semesters          semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubattendance_ibfk_6")
 
   @@index([clubId], map: "clubId")
   @@index([recorderId], map: "recorderId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
 }
 
 model academicclubs {
@@ -324,7 +271,6 @@ model flagpoleattendance {
   date               DateTime?          @db.Date
   statusId           Int
   recorderId         Int?
-  semesterId         Int?
   createdAt          DateTime           @default(now()) @db.Timestamp(0)
   updatedAt          DateTime           @default(now()) @db.Timestamp(0)
   deletedAt          DateTime?          @db.Timestamp(0)
@@ -333,14 +279,11 @@ model flagpoleattendance {
   attendancestatuses attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "flagpoleattendance_ibfk_2")
   recorder           users?             @relation("flagpoleattendance_recorder", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_3")
   users              users?             @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_4")
-  semesters          semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_5")
 
   @@index([recorderId], map: "recorderId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
-  @@index([date, semesterId], map: "idx_flagpole_date_semester")
 }
 
 model genders {
@@ -363,7 +306,6 @@ model homeroomattendance {
   topic                                                   String?            @db.Text
   summary                                                 String?            @db.Text
   recorderId                                              Int?
-  semesterId                                              Int?
   createdAt                                               DateTime           @default(now()) @db.Timestamp(0)
   updatedAt                                               DateTime           @default(now()) @db.Timestamp(0)
   isDeleted                                               Boolean?           @default(false)
@@ -374,14 +316,12 @@ model homeroomattendance {
   attendancestatuses                                      attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "homeroomattendance_ibfk_3")
   teachers_homeroomattendance_recorderIdToteachers        teachers?          @relation("homeroomattendance_recorderIdToteachers", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_4")
   users                                                   users?             @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_5")
-  semesters                                               semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_6")
 
   @@unique([homeroomTeacherId, studentId, date], map: "HomeroomAttendance_index_0")
   @@index([recorderId], map: "recorderId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
 }
 
 model homeroomteacherstudent {
@@ -709,10 +649,6 @@ model users {
   club_categories                    club_categories[]
   audit_logs                         audit_logs[]
   user_login_logs                    user_login_logs[]
-  academic_years_academic_years_createdByTousers academic_years[] @relation("academic_years_createdBy")
-  academic_years_academic_years_updatedByTousers academic_years[] @relation("academic_years_updatedBy")
-  semesters_semesters_createdByTousers semesters[]            @relation("semesters_createdBy")
-  semesters_semesters_updatedByTousers semesters[]            @relation("semesters_updatedBy")
 
   @@index([roleId], map: "roleId")
   @@index([updatedBy], map: "updatedBy")

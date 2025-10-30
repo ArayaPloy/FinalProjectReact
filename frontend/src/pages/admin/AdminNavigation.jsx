@@ -139,6 +139,20 @@ const AdminNavigation = () => {
           </li>
           <li>
             <NavLink
+              to="/dashboard/manage-academic-years"
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span>📆</span>
+              <span>จัดการปีการศึกษา</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
               to="/dashboard/flagpole-attendance-report"
               className={({ isActive }) =>
                 `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
