@@ -1,0 +1,54 @@
+ใช้ Color Palette แบบนี้:
+
+Primary Color: Amber-600 (#D97706) - ใช้เป็นสีหลักสำหรับ buttons, headers, และ accents
+Secondary Gradients: 
+  - Header: from-amber-600 to-amber-700
+  - Background: from-amber-50 to-amber-100
+  - Badges: from-amber-100 to-amber-200
+
+Status Colors (คงเดิม):
+  - Success/Green: green-500, green-600, green-700
+  - Warning/Yellow: yellow-500, yellow-600, yellow-700  
+  - Info/Blue: blue-500, blue-600, blue-700
+  - Error/Red: red-500, red-600, red-700
+  - Alert/Orange: orange-500, orange-600, orange-700
+  - Special/Purple: purple-500, purple-600, purple-700
+
+Neutral Colors:
+  - Background: gray-50, gray-100
+  - Borders: gray-200, gray-300
+  - Text: gray-700 (main), gray-500 (secondary)
+  - Cards: white with shadow-lg
+
+Design Patterns:
+  - ใช้ rounded-xl (12px) สำหรับ cards และ containers
+  - ใช้ rounded-lg (8px) สำหรับ buttons และ inputs
+  - Border: border-2 เป็น default
+  - Gradients: ใช้ bg-gradient-to-r, bg-gradient-to-br
+  - Shadows: shadow-lg สำหรับ cards, shadow-xl สำหรับ hover
+  - Focus states: focus:ring-2 focus:ring-amber-500
+  - Selected states: ring-4 ring-amber-300 + scale-110
+  - Transitions: transition-all สำหรับ smooth animations
+
+Icons: 
+  - ใช้ Bootstrap Icons (bi bi-*) แทน emoji
+  - Icon sizes: text-lg, text-xl สำหรับ emphasis
+  - Icon colors: ใช้ amber-600 สำหรับ icons หลัก
+
+Typography:
+  - Headers: font-bold text-white (บน amber background)
+  - Subheaders: font-bold text-gray-800
+  - Body text: font-semibold text-gray-700
+  - Secondary text: text-sm text-gray-500
+
+Interactive Elements:
+  - Buttons: px-8 py-3 rounded-xl font-semibold
+  - Hover effects: hover:bg-amber-700 hover:shadow-xl
+  - Scale animations: hover:scale-105
+  - Disabled states: disabled:opacity-50 disabled:cursor-not-allowed
+
+Layout:
+  - Container: max-w-7xl mx-auto px-4
+  - Background: bg-gradient-to-br from-gray-50 to-gray-100
+  - Spacing: gap-4, gap-6 (consistent)
+  - Sticky Action Bar: fixed bottom-0 z-40 with shadow-2xl

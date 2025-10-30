@@ -251,7 +251,7 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 
         // Check if teacher exists
         if (teacherId) {
-            const teacher = await prisma.teacher.findFirst({
+            const teacher = await prisma.teachers.findFirst({
                 where: {
                     id: teacherId,
                     isDeleted: false
@@ -353,7 +353,7 @@ router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
 
         // Check if teacher exists (if teacherId is being updated)
         if (updates.teacherId) {
-            const teacher = await prisma.teacher.findFirst({
+            const teacher = await prisma.teachers.findFirst({
                 where: {
                     id: updates.teacherId,
                     isDeleted: false

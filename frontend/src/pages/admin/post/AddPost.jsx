@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { usePostBlogMutation } from "../../../redux/features/blogs/blogsApi";
+import { usePostBlogMutation, useFetchBlogCategoriesQuery } from "../../../redux/features/blogs/blogsApi";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import EditorJS from '@editorjs/editorjs';
@@ -12,7 +12,7 @@ const AddPost = () => {
   const [title, setTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [coverImg, setCoverImg] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [message, setMessage] = useState("");
   const [isEditorReady, setIsEditorReady] = useState(false);
   
@@ -23,6 +23,7 @@ const AddPost = () => {
   const [uploadError, setUploadError] = useState("");
   
   const [PostBlog, { isLoading }] = usePostBlogMutation();
+  const { data: categories = [], isLoading: isCategoriesLoading } = useFetchBlogCategoriesQuery();
 
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
@@ -163,7 +164,7 @@ const AddPost = () => {
         title, 
         content, // ส่ง object ไป backend จะ stringify เอง
         coverImg, 
-        category, 
+        categoryId: categoryId ? parseInt(categoryId) : null, 
         description: metaDescription,
         author: user.id,
       };
@@ -291,14 +292,30 @@ const AddPost = () => {
             {/* หมวดหมู่ */}
             <div className="space-y-3">
               <label className="font-semibold">หมวดหมู่: </label>
-              <input
-                type="text"
-                value={category}
-                className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="เช่น: กิจกรรม/สิ่งแวดล้อม"
-                required
-              />
+              {isCategoriesLoading ? (
+                <div className="w-full bg-gray-100 px-5 py-3 rounded-lg text-gray-500">
+                  กำลังโหลดหมวดหมู่...
+                </div>
+              ) : (
+                <select
+                  value={categoryId}
+                  className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg cursor-pointer"
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  required
+                >
+                  <option value="">-- เลือกหมวดหมู่ --</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.icon && `${cat.icon} `}{cat.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {categories.length === 0 && !isCategoriesLoading && (
+                <p className="text-sm text-orange-600">
+                  <i className="bi bi-exclamation-triangle"></i> ไม่พบหมวดหมู่ในระบบ
+                </p>
+              )}
             </div>
 
             {/* คำอธิบายเมตา */}
@@ -333,10 +350,10 @@ const AddPost = () => {
         {message && <p className="text-red-500 text-center font-medium">{message}</p>}
         <button
           type="submit"
-          disabled={isLoading || !isEditorReady || !coverImg}
+          disabled={isLoading || !isEditorReady || !coverImg || !categoryId}
           className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !coverImg ? "กรุณาอัพโหลดรูปภาพปก" : "เพิ่มบทความ"}
+          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !coverImg ? "กรุณาอัพโหลดรูปภาพปก" : !categoryId ? "กรุณาเลือกหมวดหมู่" : "เพิ่มบทความ"}
         </button>
       </form>
     </div>

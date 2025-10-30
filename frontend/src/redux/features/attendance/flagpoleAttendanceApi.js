@@ -46,15 +46,24 @@ export const flagpoleAttendanceApi = createApi({
       query: (data) => ({
         url: '/flagpole-attendance',
         method: 'POST',
-        body: data
+        body: data // { date, classRoom, records, semesterId }
       }),
       invalidatesTags: ['FlagpoleAttendance']
     }),
 
-    // ดึงสถิติการเช็คชื่อ
+    // ดึงสถิติการเช็คชื่อ (Summary)
     getFlagpoleStatistics: builder.query({
       query: ({ startDate, endDate, classRoom }) => ({
         url: '/flagpole-attendance/statistics',
+        params: { startDate, endDate, classRoom }
+      }),
+      transformResponse: (response) => response.data
+    }),
+
+    // ดึงรายงานการเช็คชื่อแบบละเอียด (สำหรับ Dashboard + Export CSV)
+    getFlagpoleReport: builder.query({
+      query: ({ startDate, endDate, classRoom }) => ({
+        url: '/flagpole-attendance/report',
         params: { startDate, endDate, classRoom }
       }),
       transformResponse: (response) => response.data
@@ -68,7 +77,8 @@ export const {
   useGetStudentsByClassRoomQuery,
   useGetFlagpoleAttendanceQuery,
   useCreateFlagpoleAttendanceMutation,
-  useGetFlagpoleStatisticsQuery
+  useGetFlagpoleStatisticsQuery,
+  useGetFlagpoleReportQuery
 } = flagpoleAttendanceApi;
 
 export default flagpoleAttendanceApi;

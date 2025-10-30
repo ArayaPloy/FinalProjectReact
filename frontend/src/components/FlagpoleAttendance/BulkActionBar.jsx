@@ -29,26 +29,28 @@ const BulkActionBar = ({ statuses, onBulkChange, disabled }) => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-5 mb-6 border border-gray-200">
-            <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2 text-gray-700 font-semibold border-r border-gray-300 pr-4">
-                    <Zap className="w-5 h-5 text-blue-600" />
-                    <span>ตั้งค่าด่วน</span>
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+            <div className="bg-gradient-to-r from-amber-50 to-amber-100 border-b-2 border-amber-200 p-5">
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-amber-800 font-bold border-r-2 border-amber-300 pr-4">
+                        <i className="bi bi-lightning-charge-fill text-amber-600 text-xl"></i>
+                        <span>ตั้งค่าด่วน (ทั้งหมด)</span>
+                    </div>
+                    {statuses.map((status) => {
+                        const style = getStatusStyle(status.name);
+                        return (
+                            <button
+                                key={status.id}
+                                onClick={() => onBulkChange(status.id)}
+                                disabled={disabled}
+                                className={`px-5 py-2.5 rounded-xl text-white font-bold transition-all shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2 ${style.bg}`}
+                            >
+                                <i className={`bi ${style.icon} text-lg`}></i>
+                                {status.name}
+                            </button>
+                        );
+                    })}
                 </div>
-                {statuses.map((status) => {
-                    const style = getStatusStyle(status.name);
-                    return (
-                        <button
-                            key={status.id}
-                            onClick={() => onBulkChange(status.id)}
-                            disabled={disabled}
-                            className={`px-4 py-2 rounded-lg text-white font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${style.bg}`}
-                        >
-                            <i className={`bi ${style.icon}`}></i>
-                            {status.name}
-                        </button>
-                    );
-                })}
             </div>
         </div>
     );

@@ -10,26 +10,26 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const location = useLocation();
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  // Check if user is authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Check role authorization
+  // Check role authorization (must be before any return statements)
   useEffect(() => {
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    if (isAuthenticated && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
       Swal.fire({
         icon: 'error',
         title: 'ไม่มีสิทธิ์เข้าถึง',
         text: 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#3B82F6',
+        confirmButtonColor: '#D97706',
         allowOutsideClick: false,
       }).then(() => {
         setShouldRedirect(true);
       });
     }
-  }, [allowedRoles, userRole]);
+  }, [isAuthenticated, allowedRoles, userRole]);
+
+  // Check if user is authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
   // Redirect after alert is confirmed
   if (shouldRedirect) {

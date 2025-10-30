@@ -13,6 +13,10 @@ import {
   useGetFlagpoleAttendanceQuery,
   useCreateFlagpoleAttendanceMutation
 } from '../../redux/features/attendance/flagpoleAttendanceApi';
+import {
+  useGetAcademicYearsQuery,
+  useGetCurrentSemesterQuery
+} from '../../services/academicApi';
 
 const FlagpoleAttendancePage = () => {
   const [attendanceRecords, setAttendanceRecords] = useState({});
@@ -20,6 +24,8 @@ const FlagpoleAttendancePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedClass, setSelectedClass] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState('');
 
   // RTK Query hooks
   const { data: statuses = [] } = useGetAttendanceStatusesQuery();
@@ -31,14 +37,39 @@ const FlagpoleAttendancePage = () => {
   );
   const [createAttendance, { isLoading: isSaving }] = useCreateFlagpoleAttendanceMutation();
 
+  // Academic Year & Semester hooks
+  const { data: academicYears = [], isLoading: isLoadingYears } = useGetAcademicYearsQuery();
+  const { data: currentSemester } = useGetCurrentSemesterQuery();
+
+  // Filter active semesters for selected academic year
+  const availableSemesters = useMemo(() => {
+    if (!selectedAcademicYear) return [];
+    const year = academicYears.find(y => y.id === parseInt(selectedAcademicYear));
+    return year?.semesters || [];
+  }, [selectedAcademicYear, academicYears]);
+
+  // Get selected semester object for date range
+  const selectedSemesterObj = useMemo(() => {
+    if (!selectedSemester) return null;
+    return availableSemesters.find(s => s.id === parseInt(selectedSemester));
+  }, [selectedSemester, availableSemesters]);
+
+  // Set default academic year and semester from current semester
+  useEffect(() => {
+    if (currentSemester && !selectedAcademicYear && !selectedSemester) {
+      setSelectedAcademicYear(currentSemester.academicYearId.toString());
+      setSelectedSemester(currentSemester.id.toString());
+    }
+  }, [currentSemester]);
+
   // Filter students using useMemo to prevent unnecessary re-renders
   const filteredStudents = useMemo(() => {
     if (!students || students.length === 0) return [];
-    
+
     if (searchQuery.trim() === '') {
       return students;
     }
-    
+
     const query = searchQuery.toLowerCase();
     return students.filter(
       (student, index) =>
@@ -51,11 +82,11 @@ const FlagpoleAttendancePage = () => {
   // คำนวณสถิติการเช็คชื่อ
   const attendanceStats = useMemo(() => {
     const total = filteredStudents.length;
-    const checked = filteredStudents.filter(student => 
+    const checked = filteredStudents.filter(student =>
       attendanceRecords[student.id] !== null && attendanceRecords[student.id] !== undefined
     ).length;
     const unchecked = total - checked;
-    
+
     // นับจำนวนแต่ละสถานะ
     const statusCounts = {};
     statuses.forEach(status => {
@@ -64,14 +95,14 @@ const FlagpoleAttendancePage = () => {
         count: 0
       };
     });
-    
+
     filteredStudents.forEach(student => {
       const statusId = attendanceRecords[student.id];
       if (statusId !== null && statusId !== undefined && statusCounts[statusId]) {
         statusCounts[statusId].count++;
       }
     });
-    
+
     return { total, checked, unchecked, statusCounts };
   }, [filteredStudents, attendanceRecords, statuses]);
 
@@ -83,7 +114,7 @@ const FlagpoleAttendancePage = () => {
   // Initialize attendance records when students change
   useEffect(() => {
     if (students.length === 0) return;
-    
+
     // Set default records to null (no status selected)
     const defaultRecords = {};
     students.forEach((student) => {
@@ -97,20 +128,20 @@ const FlagpoleAttendancePage = () => {
   // Update attendance records when existing attendance is loaded
   useEffect(() => {
     if (isLoadingAttendance) return;
-    
+
     // Reset to null first
     const resetRecords = {};
     students.forEach((student) => {
       resetRecords[student.id] = null;
     });
-    
+
     // Then update with existing data if any
     if (existingAttendance.length > 0) {
       existingAttendance.forEach((record) => {
         resetRecords[record.studentId] = record.statusId;
       });
     }
-    
+
     setAttendanceRecords(resetRecords);
     setOriginalAttendanceRecords(resetRecords); // เก็บค่าเดิมสำหรับเปรียบเทียบ
   }, [selectedDate, selectedClass, isLoadingAttendance, existingAttendance.length]); // trigger เมื่อเปลี่ยนวันที่หรือห้อง
@@ -131,7 +162,7 @@ const FlagpoleAttendancePage = () => {
           [studentId]: null,
         };
       }
-      
+
       // ถ้ากดปุ่มใหม่ ให้เปลี่ยนสถานะ
       return {
         ...prev,
@@ -187,6 +218,30 @@ const FlagpoleAttendancePage = () => {
       return;
     }
 
+    if (!selectedSemester) {
+      Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกภาคเรียน', 'warning');
+      return;
+    }
+
+    // ตรวจสอบว่าวันที่อยู่ในช่วงของภาคเรียนหรือไม่
+    if (selectedSemesterObj) {
+      const selectedDateObj = new Date(selectedDate);
+      const semesterStart = new Date(selectedSemesterObj.startDate);
+      const semesterEnd = new Date(selectedSemesterObj.endDate);
+
+      if (selectedDateObj < semesterStart || selectedDateObj > semesterEnd) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'วันที่ไม่อยู่ในช่วงภาคเรียน',
+          html: `วันที่ที่เลือกไม่อยู่ในช่วงของภาคเรียนที่ ${selectedSemesterObj.semesterNumber}<br>` +
+            `(${new Date(selectedSemesterObj.startDate).toLocaleDateString('th-TH')} - ` +
+            `${new Date(selectedSemesterObj.endDate).toLocaleDateString('th-TH')})`,
+          confirmButtonColor: '#D97706'
+        });
+        return;
+      }
+    }
+
     // กรองเฉพาะนักเรียนที่มีการเลือกสถานะแล้ว
     const records = Object.entries(attendanceRecords)
       .filter(([_, statusId]) => statusId !== null && statusId !== undefined)
@@ -195,14 +250,9 @@ const FlagpoleAttendancePage = () => {
         statusId: parseInt(statusId),
       }));
 
-    // if (records.length === 0) {
-    //   Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกสถานะอย่างน้อย 1 คน', 'warning');
-    //   return;
-    // }
-
     // แสดงจำนวนที่ยังไม่ได้เช็ค
     const uncheckedCount = filteredStudents.length - records.length;
-    const warningText = uncheckedCount > 0 
+    const warningText = uncheckedCount > 0
       ? `<br><span class="text-orange-600">⚠️ ยังมี ${uncheckedCount} คนที่ยังไม่ได้เช็คชื่อ</span>`
       : '';
 
@@ -214,7 +264,8 @@ const FlagpoleAttendancePage = () => {
       showCancelButton: true,
       confirmButtonText: 'บันทึก',
       cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#3B82F6',
+      confirmButtonColor: '#D97706',
+      cancelButtonColor: '#6B7280',
     });
 
     if (!result.isConfirmed) return;
@@ -234,13 +285,14 @@ const FlagpoleAttendancePage = () => {
         date: selectedDate,
         classRoom: selectedClass,
         records,
+        semesterId: parseInt(selectedSemester)
       }).unwrap();
 
       Swal.fire({
         icon: 'success',
         title: 'บันทึกสำเร็จ!',
         text: 'บันทึกข้อมูลการเช็คชื่อเรียบร้อยแล้ว',
-        confirmButtonColor: '#3B82F6',
+        confirmButtonColor: '#D97706',
       });
 
       // อัพเดท original records หลังบันทึกสำเร็จ
@@ -256,32 +308,48 @@ const FlagpoleAttendancePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 ">
-      <div className="max-w-7xl mx-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6 border-t-4 border-blue-600">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="w-8 h-8" />
-                </div>
-                ระบบเช็คชื่อนักเรียนเข้าแถว
-              </h1>
-              <p className="text-gray-600 mt-2 ml-1">โรงเรียนท่าบ่อพิทยาคม</p>
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-8">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  ระบบเช็คชื่อนักเรียนเข้าแถว
+                </h1>
+                <p className="text-amber-100 mt-1 flex items-center gap-2">
+                  <i className="bi bi-building"></i>
+                  โรงเรียนท่าบ่อพิทยาคม
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Filters */}
-          <AttendanceFilters
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            selectedClass={selectedClass}
-            setSelectedClass={setSelectedClass}
-            classList={classList}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
+          <div className="px-6 py-6">
+            <AttendanceFilters
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              selectedClass={selectedClass}
+              setSelectedClass={setSelectedClass}
+              classList={classList}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              minDate={selectedSemesterObj?.startDate ? new Date(selectedSemesterObj.startDate).toISOString().split('T')[0] : undefined}
+              maxDate={selectedSemesterObj?.endDate ? new Date(selectedSemesterObj.endDate).toISOString().split('T')[0] : undefined}
+              selectedAcademicYear={selectedAcademicYear}
+              setSelectedAcademicYear={setSelectedAcademicYear}
+              selectedSemester={selectedSemester}
+              setSelectedSemester={setSelectedSemester}
+              academicYears={academicYears}
+              availableSemesters={availableSemesters}
+              isLoadingYears={isLoadingYears}
+            />
+          </div>
         </div>
 
         {/* Bulk Actions */}
@@ -292,37 +360,41 @@ const FlagpoleAttendancePage = () => {
         />
 
         {/* Student List */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           {/* สถิติการเช็คชื่อ */}
           {filteredStudents.length > 0 && (
-            <div className="mb-6 space-y-3">
+            <div className="bg-gray-50 px-6 py-6 border-b space-y-4">
               {/* สถิติรวม */}
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-4 flex-wrap">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border-2 border-amber-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="bi bi-bar-chart-fill text-amber-600 text-xl"></i>
+                  <h3 className="text-lg font-bold text-amber-700">สถิติการเช็คชื่อ</h3>
+                </div>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <i className="bi bi-people-fill text-blue-600"></i>
+                      <i className="bi bi-people-fill text-amber-600 text-lg"></i>
                       <span className="text-sm font-semibold text-gray-700">
-                        นักเรียนทั้งหมด: <span className="text-blue-600">{attendanceStats.total}</span> คน
+                        นักเรียนทั้งหมด: <span className="text-amber-700 text-lg">{attendanceStats.total}</span> คน
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <i className="bi bi-check-circle-fill text-green-600"></i>
+                      <i className="bi bi-check-circle-fill text-green-600 text-lg"></i>
                       <span className="text-sm font-semibold text-gray-700">
-                        เช็คแล้ว: <span className="text-green-600">{attendanceStats.checked}</span> คน
+                        เช็คแล้ว: <span className="text-green-600 text-lg">{attendanceStats.checked}</span> คน
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <i className="bi bi-clock-fill text-orange-600"></i>
+                      <i className="bi bi-clock-fill text-orange-600 text-lg"></i>
                       <span className="text-sm font-semibold text-gray-700">
-                        ยังไม่เช็ค: <span className="text-orange-600">{attendanceStats.unchecked}</span> คน
+                        ยังไม่เช็ค: <span className="text-orange-600 text-lg">{attendanceStats.unchecked}</span> คน
                       </span>
                     </div>
                   </div>
                   {attendanceStats.unchecked === 0 && attendanceStats.total > 0 && (
-                    <div className="flex items-center gap-2 bg-green-100 px-3 py-1.5 rounded-lg">
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-semibold text-green-700">เช็คครบทุกคนแล้ว</span>
+                    <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-md">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-sm font-bold">เช็คครบทุกคนแล้ว</span>
                     </div>
                   )}
                 </div>
@@ -330,12 +402,12 @@ const FlagpoleAttendancePage = () => {
 
               {/* สถิติแยกตามสถานะ */}
               {attendanceStats.checked > 0 && (
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="bi bi-bar-chart-fill text-blue-600"></i>
-                    <span className="text-sm font-semibold text-gray-700">สถิติแยกตามสถานะ</span>
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <i className="bi bi-pie-chart-fill text-amber-600 text-lg"></i>
+                    <span className="text-base font-bold text-gray-800">สถิติแยกตามสถานะ</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3">
                     {Object.entries(attendanceStats.statusCounts)
                       .filter(([_, data]) => data.count > 0)
                       .map(([statusId, data]) => {
@@ -344,7 +416,7 @@ const FlagpoleAttendancePage = () => {
                         let textColor = 'text-gray-700';
                         let badgeColor = 'bg-gray-600';
                         let iconClass = 'bi-question-circle-fill';
-                        
+
                         // กำหนดสีและไอคอนตามชื่อสถานะ
                         if (status?.name === 'มา') {
                           bgColor = 'bg-green-50';
@@ -372,17 +444,17 @@ const FlagpoleAttendancePage = () => {
                           badgeColor = 'bg-red-600';
                           iconClass = 'bi-x-circle-fill';
                         }
-                        
+
                         return (
-                          <div 
-                            key={statusId} 
-                            className={`${bgColor} px-3 py-2 rounded-lg border ${textColor.replace('text-', 'border-').replace('-700', '-200')} flex items-center gap-2`}
+                          <div
+                            key={statusId}
+                            className={`${bgColor} px-4 py-3 rounded-xl border-2 ${textColor.replace('text-', 'border-').replace('-700', '-200')} flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow`}
                           >
-                            <i className={`bi ${iconClass} ${textColor}`}></i>
-                            <span className={`text-sm font-semibold ${textColor}`}>
+                            <i className={`bi ${iconClass} ${textColor} text-lg`}></i>
+                            <span className={`text-sm font-bold ${textColor}`}>
                               {data.name}
                             </span>
-                            <span className={`${badgeColor} text-white px-2.5 py-0.5 rounded-full text-xs font-bold min-w-[24px] text-center`}>
+                            <span className={`${badgeColor} text-white px-3 py-1 rounded-full text-sm font-bold min-w-[28px] text-center shadow-sm`}>
                               {data.count}
                             </span>
                           </div>
@@ -397,64 +469,75 @@ const FlagpoleAttendancePage = () => {
           {isLoadingStudents ? (
             <LoadingSpinner message="กำลังโหลดรายชื่อนักเรียน..." />
           ) : filteredStudents.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
-                <Users className="w-10 h-10 text-gray-400" />
+            <div className="text-center py-16 px-6">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 mb-4">
+                <Users className="w-12 h-12 text-gray-400" />
               </div>
-              <p className="text-gray-600 font-medium">ไม่พบรายชื่อนักเรียน</p>
-              <p className="text-gray-400 text-sm mt-1">กรุณาเลือกห้องเรียนหรือตรวจสอบคำค้นหา</p>
+              <p className="text-gray-700 font-semibold text-lg">ไม่พบรายชื่อนักเรียน</p>
+              <p className="text-gray-500 text-sm mt-2">กรุณาเลือกห้องเรียนหรือตรวจสอบคำค้นหา</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-12 gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg font-semibold text-sm">
-                <div className="col-span-1">เลขที่</div>
-                <div className="col-span-5 md:col-span-4">ข้อมูลนักเรียน</div>
-                <div className="col-span-6 md:col-span-7">สถานะการเข้าแถว</div>
+            <div className="p-6">
+              <div className="grid grid-cols-12 gap-4 px-4 py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl font-bold text-sm shadow-md mb-3">
+                <div className="col-span-1 flex items-center gap-1">
+                  <i className="bi bi-hash"></i> ที่
+                </div>
+                <div className="col-span-5 md:col-span-4 flex items-center gap-2">
+                  <i className="bi bi-person-badge"></i> ข้อมูลนักเรียน
+                </div>
+                <div className="col-span-6 md:col-span-7 flex items-center gap-2">
+                  <i className="bi bi-clipboard-check"></i> สถานะการเข้าแถว
+                </div>
               </div>
 
-              {filteredStudents.map((student, index) => (
-                <StudentAttendanceRow
-                  key={student.id}
-                  student={student}
-                  statuses={statuses}
-                  selectedStatus={attendanceRecords[student.id]}
-                  onStatusChange={handleStatusChange}
-                  studentNumber={index+1}
-                />
-              ))}
+              <div className="space-y-2">
+                {filteredStudents.map((student, index) => (
+                  <StudentAttendanceRow
+                    key={student.id}
+                    student={student}
+                    statuses={statuses}
+                    selectedStatus={attendanceRecords[student.id]}
+                    onStatusChange={handleStatusChange}
+                    studentNumber={index + 1}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSaveAttendance}
-                disabled={isSaving || filteredStudents.length === 0 || !hasChanges}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 font-semibold shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <Save className="w-5 h-5" />
-                บันทึกข้อมูล
-              </button>
+        {/* Sticky Action Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-40">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              {hasChanges && (
+                <div className="flex items-center gap-2 bg-orange-100 px-5 py-3 rounded-xl border-2 border-orange-300">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-700">
+                    มีการเปลี่ยนแปลง {attendanceStats.checked} รายการที่ยังไม่ได้บันทึก
+                  </span>
+                </div>
+              )}
+              <div className="flex ms-auto items-center gap-3">
+                <button
+                  onClick={handleSaveAttendance}
+                  disabled={isSaving || filteredStudents.length === 0 || !hasChanges}
+                  className="bg-amber-600 text-white px-8 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+                >
+                  <Save className="w-5 h-5" />
+                  {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
 
-              <button
-                onClick={handleReset}
-                disabled={!hasChanges}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 font-semibold shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <RotateCcw className="w-5 h-5" />
-                ยกเลิก
-              </button>
-            </div>
-
-            {hasChanges && (
-              <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-                <span className="text-sm font-semibold text-orange-700">มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก</span>
+                <button
+                  onClick={handleReset}
+                  disabled={!hasChanges}
+                  className="bg-gray-500 text-white px-8 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  ยกเลิก
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

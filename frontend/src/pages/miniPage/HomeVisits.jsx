@@ -172,9 +172,13 @@ const HomeVisits = () => {
             .then((values) => {
                 console.log('Step', currentStep, 'validated values:', values);
 
-                // Save current step's values to formData state
+                // Get ALL current values from form, not just validated ones
+                const allCurrentValues = form.getFieldsValue();
+                console.log('All current form values:', allCurrentValues);
+
+                // Save ALL current step's values to formData state
                 setFormData(prev => {
-                    const newData = { ...prev, ...values };
+                    const newData = { ...prev, ...allCurrentValues };
                     console.log('Updated formData:', newData);
                     return newData;
                 });
@@ -206,10 +210,15 @@ const HomeVisits = () => {
     // Modified onFinish function with fixed variable names
     const onFinish = async (values) => {
         try {
-            // Combine saved form data with current step values
-            const allValues = { ...formData, ...values };
+            // Get ALL form values including values from all steps
+            const allFormValues = form.getFieldsValue(true); // true = get all fields
+            
+            // Combine saved form data with current values
+            const allValues = { ...formData, ...allFormValues, ...values };
 
-            console.log('All Form Values:', allValues);
+            console.log('FormData state:', formData);
+            console.log('Current form values:', allFormValues);
+            console.log('Combined All Values:', allValues);
 
             // Validate required fields
             const requiredFields = [
@@ -270,6 +279,8 @@ const HomeVisits = () => {
 
                 // Convert arrays (Checkbox.Group, Multi-select, etc.)
                 if (Array.isArray(value)) {
+                    // Skip empty arrays - let backend handle as null
+                    if (value.length === 0) continue;
                     uploadFormData.append(key, value.join(', '));
                     continue;
                 }
@@ -818,6 +829,16 @@ const HomeVisits = () => {
                             />
                         </Form.Item>
 
+                        <Form.Item
+                            name="notes"
+                            label={<Text strong>หมายเหตุเพิ่มเติม</Text>}
+                        >
+                            <TextArea
+                                rows={3}
+                                placeholder="หมายเหตุหรือข้อมูลเพิ่มเติม (ถ้ามี)"
+                            />
+                        </Form.Item>
+
                         <Divider orientation="left" style={{ color: '#1890ff', borderColor: '#1890ff' }}>
                             <FileImageOutlined /> รูปภาพประกอบ
                         </Divider>
@@ -952,6 +973,11 @@ const HomeVisits = () => {
                     layout="vertical"
                     onFinish={onFinish}
                     preserve={false}
+                    onValuesChange={(changedValues, allValues) => {
+                        // Auto-save form values on change
+                        console.log('Form values changed:', changedValues);
+                        setFormData(prev => ({ ...prev, ...allValues }));
+                    }}
                     initialValues={{
                         visitDate: dayjs(),
                         studentIdNumber: '',
