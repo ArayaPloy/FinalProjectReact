@@ -67,11 +67,11 @@ ON DUPLICATE KEY UPDATE
 
 -- ปีการศึกษา 2567 (ปัจจุบัน)
 (3, 2, 1, '2024-05-16', '2024-10-15', 0, 1, NOW(), NOW(), NULL, NULL),
-(4, 2, 2, '2024-10-16', '2025-05-15', 1, 1, NOW(), NOW(), NULL, NULL),
+(4, 2, 2, '2024-10-16', '2025-05-15', 0, 1, NOW(), NOW(), NULL, NULL),
 
 -- ปีการศึกษา 2568 (อนาคต)
 (5, 3, 1, '2025-05-16', '2025-10-15', 0, 1, NOW(), NOW(), NULL, NULL),
-(6, 3, 2, '2025-10-16', '2026-05-15', 0, 1, NOW(), NOW(), NULL, NULL)
+(6, 3, 2, '2025-10-16', '2026-05-15', 1, 1, NOW(), NOW(), NULL, NULL)
 ON DUPLICATE KEY UPDATE 
   semesterNumber=VALUES(semesterNumber),
   startDate=VALUES(startDate),
