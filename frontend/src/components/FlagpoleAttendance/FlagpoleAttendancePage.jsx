@@ -307,29 +307,29 @@ const FlagpoleAttendancePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
-                <Users className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-32 md:pb-24">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6">
+        {/* Header - Mobile Optimized */}
+        <div className="bg-white rounded-xl md:rounded-2xl shadow-lg overflow-hidden mb-4 md:mb-6">
+          <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-4 sm:px-5 md:px-6 py-6 md:py-8">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="p-2.5 md:p-3 bg-white bg-opacity-20 rounded-lg md:rounded-xl backdrop-blur-sm flex-shrink-0">
+                <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
                   ระบบเช็คชื่อนักเรียนเข้าแถว
                 </h1>
-                <p className="text-amber-100 mt-1 flex items-center gap-2">
-                  <i className="bi bi-building"></i>
-                  โรงเรียนท่าบ่อพิทยาคม
+                <p className="text-amber-100 mt-1 md:mt-1.5 flex items-center gap-1.5 md:gap-2 text-sm md:text-base">
+                  <i className="bi bi-building flex-shrink-0"></i>
+                  <span className="truncate">โรงเรียนท่าบ่อพิทยาคม</span>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="px-6 py-6">
+          {/* Filters - Mobile Optimized */}
+          <div className="px-4 sm:px-5 md:px-6 py-4 md:py-6">
             <AttendanceFilters
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
@@ -358,55 +358,66 @@ const FlagpoleAttendancePage = () => {
           disabled={isLoadingStudents || filteredStudents.length === 0}
         />
 
-        {/* Student List */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
-          {/* สถิติการเช็คชื่อ */}
+        {/* Student List - Mobile Optimized */}
+        <div className="bg-white rounded-xl md:rounded-2xl shadow-lg overflow-hidden mb-6">
+          {/* สถิติการเช็คชื่อ - Mobile First */}
           {filteredStudents.length > 0 && (
-            <div className="bg-gray-50 px-6 py-6 border-b space-y-4">
-              {/* สถิติรวม */}
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border-2 border-amber-200 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <i className="bi bi-bar-chart-fill text-amber-600 text-xl"></i>
-                  <h3 className="text-lg font-bold text-amber-700">สถิติการเช็คชื่อ</h3>
+            <div className="bg-gray-50 px-3 sm:px-4 md:px-6 py-4 md:py-6 border-b space-y-3 md:space-y-4">
+              {/* สถิติรวม - Responsive Layout */}
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg md:rounded-xl border-2 border-amber-200 p-4 md:p-5">
+                <div className="flex items-center gap-2 mb-3 md:mb-3">
+                  <i className="bi bi-bar-chart-fill text-amber-600 text-lg md:text-xl"></i>
+                  <h3 className="text-base md:text-lg font-bold text-amber-700">สถิติการเช็คชื่อ</h3>
                 </div>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-6 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <i className="bi bi-people-fill text-amber-600 text-lg"></i>
-                      <span className="text-sm font-semibold text-gray-700">
-                        นักเรียนทั้งหมด: <span className="text-amber-700 text-lg">{attendanceStats.total}</span> คน
+                
+                {/* Mobile: Vertical Stack, Tablet+: Horizontal */}
+                <div className="space-y-3 md:space-y-0 md:flex md:items-center md:justify-between md:flex-wrap md:gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 md:gap-6">
+                    {/* นักเรียนทั้งหมด */}
+                    <div className="flex items-center gap-2.5 md:gap-2">
+                      <i className="bi bi-people-fill text-amber-600 text-lg md:text-lg flex-shrink-0"></i>
+                      <span className="text-sm md:text-sm font-semibold text-gray-700">
+                        นักเรียนทั้งหมด: <span className="text-amber-700 text-base md:text-lg font-bold">{attendanceStats.total}</span> คน
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <i className="bi bi-check-circle-fill text-green-600 text-lg"></i>
-                      <span className="text-sm font-semibold text-gray-700">
-                        เช็คแล้ว: <span className="text-green-600 text-lg">{attendanceStats.checked}</span> คน
+                    
+                    {/* เช็คแล้ว */}
+                    <div className="flex items-center gap-2.5 md:gap-2">
+                      <i className="bi bi-check-circle-fill text-green-600 text-lg md:text-lg flex-shrink-0"></i>
+                      <span className="text-sm md:text-sm font-semibold text-gray-700">
+                        เช็คแล้ว: <span className="text-green-600 text-base md:text-lg font-bold">{attendanceStats.checked}</span> คน
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <i className="bi bi-clock-fill text-orange-600 text-lg"></i>
-                      <span className="text-sm font-semibold text-gray-700">
-                        ยังไม่เช็ค: <span className="text-orange-600 text-lg">{attendanceStats.unchecked}</span> คน
+                    
+                    {/* ยังไม่เช็ค */}
+                    <div className="flex items-center gap-2.5 md:gap-2">
+                      <i className="bi bi-clock-fill text-orange-600 text-lg md:text-lg flex-shrink-0"></i>
+                      <span className="text-sm md:text-sm font-semibold text-gray-700">
+                        ยังไม่เช็ค: <span className="text-orange-600 text-base md:text-lg font-bold">{attendanceStats.unchecked}</span> คน
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Success Badge */}
                   {attendanceStats.unchecked === 0 && attendanceStats.total > 0 && (
-                    <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-md">
-                      <CheckCircle2 className="w-5 h-5" />
+                    <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 md:py-2 rounded-lg shadow-md w-full sm:w-auto justify-center">
+                      <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
                       <span className="text-sm font-bold">เช็คครบทุกคนแล้ว</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* สถิติแยกตามสถานะ */}
+              {/* สถิติแยกตามสถานะ - Mobile Optimized */}
               {attendanceStats.checked > 0 && (
-                <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <i className="bi bi-pie-chart-fill text-amber-600 text-lg"></i>
-                    <span className="text-base font-bold text-gray-800">สถิติแยกตามสถานะ</span>
+                <div className="bg-white rounded-lg md:rounded-xl border-2 border-gray-200 p-4 md:p-5">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                    <i className="bi bi-pie-chart-fill text-amber-600 text-lg md:text-lg"></i>
+                    <span className="text-sm md:text-base font-bold text-gray-800">สถิติแยกตามสถานะ</span>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  
+                  {/* Mobile: Full Width Cards, Tablet+: Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2.5 md:gap-3">
                     {Object.entries(attendanceStats.statusCounts)
                       .filter(([_, data]) => data.count > 0)
                       .map(([statusId, data]) => {
@@ -447,13 +458,13 @@ const FlagpoleAttendancePage = () => {
                         return (
                           <div
                             key={statusId}
-                            className={`${bgColor} px-4 py-3 rounded-xl border-2 ${textColor.replace('text-', 'border-').replace('-700', '-200')} flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow`}
+                            className={`${bgColor} px-4 py-3 md:py-3 rounded-lg md:rounded-xl border-2 ${textColor.replace('text-', 'border-').replace('-700', '-200')} flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow`}
                           >
-                            <i className={`bi ${iconClass} ${textColor} text-lg`}></i>
-                            <span className={`text-sm font-bold ${textColor}`}>
+                            <i className={`bi ${iconClass} ${textColor} text-lg md:text-lg flex-shrink-0`}></i>
+                            <span className={`text-sm md:text-sm font-bold ${textColor} flex-1`}>
                               {data.name}
                             </span>
-                            <span className={`${badgeColor} text-white px-3 py-1 rounded-full text-sm font-bold min-w-[28px] text-center shadow-sm`}>
+                            <span className={`${badgeColor} text-white px-3 py-1.5 md:py-1 rounded-full text-sm font-bold min-w-[32px] md:min-w-[28px] text-center shadow-sm flex-shrink-0`}>
                               {data.count}
                             </span>
                           </div>
@@ -468,28 +479,30 @@ const FlagpoleAttendancePage = () => {
           {isLoadingStudents ? (
             <LoadingSpinner message="กำลังโหลดรายชื่อนักเรียน..." />
           ) : filteredStudents.length === 0 ? (
-            <div className="text-center py-16 px-6">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 mb-4">
-                <Users className="w-12 h-12 text-gray-400" />
+            <div className="text-center py-12 md:py-16 px-4 md:px-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 mb-4">
+                <Users className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
               </div>
-              <p className="text-gray-700 font-semibold text-lg">ไม่พบรายชื่อนักเรียน</p>
-              <p className="text-gray-500 text-sm mt-2">กรุณาเลือกห้องเรียนหรือตรวจสอบคำค้นหา</p>
+              <p className="text-gray-700 font-semibold text-base md:text-lg">ไม่พบรายชื่อนักเรียน</p>
+              <p className="text-gray-500 text-sm md:text-sm mt-2">กรุณาเลือกห้องเรียนหรือตรวจสอบคำค้นหา</p>
             </div>
           ) : (
-            <div className="p-6">
-              <div className="grid grid-cols-12 gap-4 px-4 py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl font-bold text-sm shadow-md mb-3">
+            <div className="p-3 sm:p-4 md:p-6">
+              {/* Table Header - Hidden on Mobile, Show on Tablet+ */}
+              <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl font-bold text-sm shadow-md mb-3">
                 <div className="col-span-1 flex items-center gap-1">
-                  <i className="bi bi-hash"></i> ลำดับที่
+                  <i className="bi bi-hash"></i> ลำดับ
                 </div>
-                <div className="col-span-5 md:col-span-4 flex items-center gap-2">
+                <div className="col-span-4 flex items-center gap-2">
                   <i className="bi bi-person-badge"></i> ข้อมูลนักเรียน
                 </div>
-                <div className="col-span-6 md:col-span-7 flex items-center gap-2">
+                <div className="col-span-7 flex items-center gap-2">
                   <i className="bi bi-clipboard-check"></i> สถานะการเข้าแถว
                 </div>
               </div>
 
-              <div className="space-y-2">
+              {/* Student List - Mobile Optimized Spacing */}
+              <div className="space-y-2.5 md:space-y-2">
                 {filteredStudents.map((student, index) => (
                   <StudentAttendanceRow
                     key={student.id}
@@ -505,35 +518,41 @@ const FlagpoleAttendancePage = () => {
           )}
         </div>
 
-        {/* Sticky Action Bar */}
+        {/* Sticky Action Bar - Mobile First Design */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-2xl z-40">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-4 py-3 md:py-4">
+            {/* Mobile: Vertical Stack, Desktop: Horizontal */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+              {/* Alert Message - Full Width on Mobile */}
               {hasChanges && (
-                <div className="flex items-center gap-2 bg-orange-100 px-5 py-3 rounded-xl border-2 border-orange-300">
-                  <AlertCircle className="w-5 h-5 text-orange-600" />
-                  <span className="text-sm font-semibold text-orange-700">
-                    มีการเปลี่ยนแปลง {attendanceStats.checked} รายการที่ยังไม่ได้บันทึก
+                <div className="flex items-center gap-2 md:gap-2 bg-orange-100 px-4 md:px-5 py-3 md:py-3 rounded-lg md:rounded-xl border-2 border-orange-300 w-full md:w-auto">
+                  <AlertCircle className="w-5 h-5 md:w-5 md:h-5 text-orange-600 flex-shrink-0" />
+                  <span className="text-sm md:text-sm font-semibold text-orange-700">
+                    มีการเปลี่ยนแปลง <span className="font-bold">{attendanceStats.checked}</span> รายการที่ยังไม่ได้บันทึก
                   </span>
                 </div>
               )}
-              <div className="flex ms-auto items-center gap-3">
+              
+              {/* Action Buttons - Mobile: Full Width Grid, Desktop: Flex */}
+              <div className="grid grid-cols-2 md:flex md:ms-auto gap-2 md:gap-3 w-full md:w-auto">
+                {/* Save Button - Touch Optimized */}
                 <button
                   onClick={handleSaveAttendance}
                   disabled={isSaving || filteredStudents.length === 0 || !hasChanges}
-                  className="bg-amber-600 text-white px-8 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+                  className="bg-amber-600 text-white px-4 md:px-8 py-3.5 md:py-3 rounded-lg md:rounded-xl font-semibold text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-700 active:bg-amber-800 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px]"
                 >
-                  <Save className="w-5 h-5" />
-                  {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                  <Save className="w-5 h-5 md:w-5 md:h-5 flex-shrink-0" />
+                  <span className="truncate">{isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</span>
                 </button>
 
+                {/* Reset Button - Touch Optimized */}
                 <button
                   onClick={handleReset}
                   disabled={!hasChanges}
-                  className="bg-gray-500 text-white px-8 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+                  className="bg-gray-500 text-white px-4 md:px-8 py-3.5 md:py-3 rounded-lg md:rounded-xl font-semibold text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600 active:bg-gray-700 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px]"
                 >
-                  <RotateCcw className="w-5 h-5" />
-                  ยกเลิก
+                  <RotateCcw className="w-5 h-5 md:w-5 md:h-5 flex-shrink-0" />
+                  <span className="truncate">ยกเลิก</span>
                 </button>
               </div>
             </div>

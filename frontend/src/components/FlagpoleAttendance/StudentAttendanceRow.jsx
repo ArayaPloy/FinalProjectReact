@@ -59,59 +59,75 @@ const StudentAttendanceRow = ({ student, statuses, selectedStatus, onStatusChang
     const genderIcon = getGenderIcon(student.namePrefix);
 
     return (
-        <div className={`grid grid-cols-12 gap-4 px-5 py-4 border-2 rounded-xl transition-all items-center hover:shadow-md ${isUnchecked
+        /* Mobile First: Vertical Card Layout, Tablet+: Horizontal Grid */
+        <div className={`flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 px-4 md:px-5 py-4 md:py-4 border-2 rounded-lg md:rounded-xl transition-all hover:shadow-md ${isUnchecked
                 ? 'bg-orange-50 border-orange-300 hover:border-orange-400'
                 : 'bg-white border-gray-200 hover:border-amber-300'
             }`}>
-            <div className="col-span-1">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-300 flex items-center justify-center">
-                    <span className="font-bold text-amber-700">{studentNumber}</span>
-                </div>
-            </div>
-
-            <div className="col-span-5 md:col-span-4">
-                <div className="flex items-center gap-3">
-                    <div className={`${genderIcon.bgColor} rounded-lg px-3 py-2 flex items-center justify-center`}>
-                        <i className={`bi ${genderIcon.icon} ${genderIcon.color} text-xl`}></i>
+            
+            {/* Mobile: Horizontal Student Info, Desktop: Grid Layout */}
+            <div className="flex items-start md:contents gap-3 md:gap-0">
+                {/* Student Number - Top Aligned */}
+                <div className="flex-shrink-0 md:col-span-1 md:flex md:items-start md:pt-1">
+                    <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-amber-300 flex items-center justify-center flex-shrink-0">
+                        <span className="font-bold text-amber-700 text-sm md:text-base">{studentNumber}</span>
                     </div>
-                    <div className="flex-1">
-                        <p className="font-bold text-gray-800 text-base">
-                            {student.namePrefix} {student.fullName}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            <i className="bi bi-credit-card-2-front mr-1"></i>
-                            รหัส: {student.studentNumber}
-                        </p>
-                        {isUnchecked && (
-                            <div className="flex items-center gap-1 mt-1">
-                                <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
-                                <span className="text-xs text-orange-700 font-bold">ยังไม่ได้เช็คชื่อ</span>
+                </div>
+
+                {/* Student Info - Flexible Width */}
+                <div className="flex-1 md:col-span-11 md:col-start-2 md:grid md:grid-cols-11 md:gap-4 md:items-start">
+                    {/* Name & ID Section */}
+                    <div className="md:col-span-4">
+                        <div className="flex items-start gap-2.5 md:gap-3">
+                            {/* Gender Icon - Top Aligned */}
+                            <div className={`${genderIcon.bgColor} rounded-lg px-2.5 py-2 md:px-3 md:py-2 flex items-center justify-center flex-shrink-0`}>
+                                <i className={`bi ${genderIcon.icon} ${genderIcon.color} text-lg md:text-xl`}></i>
                             </div>
-                        )}
+                            
+                            {/* Student Details */}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-800 text-base md:text-base leading-tight mb-0.5">
+                                    {student.namePrefix} {student.fullName}
+                                </p>
+                                <p className="text-xs md:text-xs text-gray-500">
+                                    รหัส: {student.studentNumber}
+                                </p>
+                                {isUnchecked && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <AlertCircle className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 text-orange-600 flex-shrink-0" />
+                                        <span className="text-xs md:text-xs text-orange-700 font-bold">ยังไม่ได้เช็คชื่อ</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Status Buttons - Full Width on Mobile */}
+                    <div className="md:col-span-7 mt-3 md:mt-0">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2 md:gap-2">
+                            {statuses.map((status) => {
+                                const style = getStatusStyle(status.name);
+                                const isSelected = selectedStatus === status.id;
+
+                                return (
+                                    <button
+                                        key={status.id}
+                                        onClick={() => onStatusChange(student.id, status.id)}
+                                        title={isSelected ? 'คลิกอีกครั้งเพื่อยกเลิก' : `เลือก ${status.name}`}
+                                        className={`px-3 md:px-4 py-3 md:py-2.5 rounded-lg md:rounded-xl text-white text-sm md:text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 touch-manipulation min-h-[48px] md:min-h-0 ${
+                                            isSelected
+                                                ? style.bg + ' ring-4 ring-offset-2 ring-amber-300 md:scale-110'
+                                                : 'bg-gray-300 hover:bg-gray-400 active:bg-gray-500 md:hover:scale-105'
+                                        }`}
+                                    >
+                                        {isSelected && <i className={`bi ${style.icon} text-base md:text-base flex-shrink-0`}></i>}
+                                        <span className="truncate">{status.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div className="col-span-6 md:col-span-7 flex flex-wrap gap-2">
-                {statuses.map((status) => {
-                    const style = getStatusStyle(status.name);
-                    const isSelected = selectedStatus === status.id;
-
-                    return (
-                        <button
-                            key={status.id}
-                            onClick={() => onStatusChange(student.id, status.id)}
-                            title={isSelected ? 'คลิกอีกครั้งเพื่อยกเลิก' : `เลือก ${status.name}`}
-                            className={`px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${isSelected
-                                    ? style.bg + ' ring-4 ring-offset-2 ring-amber-300 scale-110'
-                                    : 'bg-gray-300 hover:bg-gray-400 hover:scale-105'
-                                }`}
-                        >
-                            {isSelected && <i className={`bi ${style.icon} text-base`}></i>}
-                            {status.name}
-                        </button>
-                    );
-                })}
             </div>
         </div>
     );

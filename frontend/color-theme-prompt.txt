@@ -52,3 +52,30 @@ Layout:
   - Background: bg-gradient-to-br from-gray-50 to-gray-100
   - Spacing: gap-4, gap-6 (consistent)
   - Sticky Action Bar: fixed bottom-0 z-40 with shadow-2xl
+
+
+Respondsive Breakpoints Summary:
+/* Mobile First (Default) */
+- flex flex-col
+- grid-cols-1 or grid-cols-2
+- text-sm or text-base
+- px-3 py-3
+- rounded-lg
+- min-h-[48px] (buttons)
+
+/* Tablet (sm: 640px) */
+- sm:flex-row
+- sm:grid-cols-2
+- sm:px-4
+
+/* Desktop (md: 768px) */
+- md:grid md:grid-cols-12
+- md:text-base or md:text-lg
+- md:px-6 md:py-4
+- md:rounded-xl
+- md:hover:scale-105
+- md:min-h-0 (buttons)
+
+/* Large Desktop (lg: 1024px) */
+- lg:grid-cols-3
+- lg:flex lg:flex-wrap

@@ -35,7 +35,6 @@ const navLists = [
       { name: 'สภานักเรียน', path: '/student-council' },
       { name: 'ตารางเรียน', path: '/student-schedule' },
       { name: 'ชุมนุมวิชาการ', path: '/clubs' },
-      { name: 'เช็คชื่อนักเรียนเข้าชุมนุม', path: '/clubattendance' },
       { name: 'ฟอร์มเยี่ยมบ้านนักเรียน', path: '/home-visits' },
     ],
   },

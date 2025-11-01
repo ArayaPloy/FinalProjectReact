@@ -189,20 +189,6 @@ const AdminNavigation = () => {
                 }`
               }
             >
-              <span>🎯</span>
-              <span>รายงานเช็คชื่อเข้าชุมนุม</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/dashboard/home-visit-reports"
-              className={({ isActive }) =>
-                `flex items-center gap-3 p-3 rounded-lg transition-colors ${isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
               <span>🏠</span>
               <span>รายงานการเยี่ยมบ้านนักเรียน</span>
             </NavLink>
