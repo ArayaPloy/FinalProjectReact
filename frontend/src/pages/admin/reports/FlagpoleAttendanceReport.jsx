@@ -60,17 +60,20 @@ const FlagpoleAttendanceReport = () => {
         }
 
         // CSV export with detailed records
+        // ใช้ ="value" เพื่อบังคับให้ Excel แสดงเป็น Text และไม่แปลงค่า
         const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ'];
         const rows = reportData.records.map((record) => [
             record.date,
             record.studentNumber,
-            `"${record.studentName}"`,
-            record.classRoom,
+            record.studentName,
+            `="${record.classRoom}"`,  // ใช้ ="ม.1/1" บังคับให้แสดงเป็นข้อความ
             record.status
         ]);
 
         const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
+        // สร้าง Blob สำหรับดาวน์โหลด \uFEFF = BOM (Byte Order Mark) สำหรับ UTF-8
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        // ลิงก์ดาวน์โหลดไฟล์
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `attendance_report_${startDate}_${endDate}.csv`;
@@ -93,7 +96,7 @@ const FlagpoleAttendanceReport = () => {
                                 <i className="bi bi-graph-up-arrow text-4xl"></i>
                                 รายงานการเช็คชื่อนักเรียนเข้าแถว
                             </h1>
-                            <p className="text-gray-600 mt-1">สถิติและข้อมูลการเข้าเรียน</p>
+                            <p className="text-gray-600 mt-1">สถิติและข้อมูลการเข้าแถวหน้าเสาธง</p>
                         </div>
                         <button
                             onClick={handleExport}
@@ -165,7 +168,7 @@ const FlagpoleAttendanceReport = () => {
 
                         {/* Attendance Rate */}
                         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4">อัตราการเข้าเรียน</h2>
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">อัตราการเข้าแถวหน้าเสาธง</h2>
                             <div className="flex items-center gap-4">
                                 <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
                                     <div
@@ -184,7 +187,7 @@ const FlagpoleAttendanceReport = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                                 {/* Bar Chart */}
                                 <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟแท่ง - การเข้าเรียนรายวัน</h2>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟแท่ง - การเข้าแถวรายวัน</h2>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart data={chartData}>
                                             <CartesianGrid strokeDasharray="3 3" />
@@ -203,7 +206,7 @@ const FlagpoleAttendanceReport = () => {
 
                                 {/* Pie Chart */}
                                 <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟวงกลม - สัดส่วนสถานะ</h2>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟวงกลม - สัดส่วนสถานะการมาเข้าแถว</h2>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <PieChart>
                                             <Pie

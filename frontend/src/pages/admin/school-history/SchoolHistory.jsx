@@ -10,7 +10,12 @@ import {
 
 import { DatePicker, Form, Input, ConfigProvider } from 'antd';
 import moment from 'moment';
-import 'antd/dist/reset.css'; 
+import 'moment/locale/th'; // Import Thai locale
+import thTH from 'antd/locale/th_TH';
+import 'antd/dist/reset.css';
+
+// Set moment to use Thai locale
+moment.locale('th'); 
 
 // Custom theme for DatePicker
 const customTheme = {
@@ -59,7 +64,6 @@ const SchoolHistoryAdmin = () => {
     };
 
     const defaultEventForm = {
-        year: null,
         date: null,
         title: '',
         description: ''
@@ -68,6 +72,7 @@ const SchoolHistoryAdmin = () => {
     const [schoolInfoForm, setSchoolInfoForm] = useState(defaultSchoolInfo);
     const [eventForm, setEventForm] = useState(defaultEventForm);
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+    const [foundedDateMoment, setFoundedDateMoment] = useState(null);
 
     useEffect(() => {
         if (historyData?.schoolInfo) {
@@ -83,6 +88,10 @@ const SchoolHistoryAdmin = () => {
                 director_image: historyData.schoolInfo.director_image || '',
                 director_quote: historyData.schoolInfo.director_quote || ''
             });
+            // Convert foundedDate to moment object
+            if (historyData.schoolInfo.foundedDate) {
+                setFoundedDateMoment(moment(historyData.schoolInfo.foundedDate));
+            }
         }
     }, [historyData]);
 
@@ -94,6 +103,15 @@ const SchoolHistoryAdmin = () => {
     const handleSchoolInfoChange = (e) => {
         const { name, value } = e.target;
         setSchoolInfoForm(prev => ({ ...prev, [name]: value || '' }));
+    };
+
+    const handleFoundedDateChange = (date) => {
+        setFoundedDateMoment(date);
+        if (date) {
+            setSchoolInfoForm(prev => ({ ...prev, foundedDate: date.format('YYYY-MM-DD') }));
+        } else {
+            setSchoolInfoForm(prev => ({ ...prev, foundedDate: '' }));
+        }
     };
 
     const handleEventFormChange = (e) => {
@@ -121,9 +139,10 @@ const SchoolHistoryAdmin = () => {
         try {
             // Format the payload to match the expected API format
             const payload = {
-                ...eventForm,
-                year: eventForm.year ? eventForm.year.format('YYYY') : null,
-                date: eventForm.date ? eventForm.date.format('YYYY-MM-DD') : null
+                title: eventForm.title,
+                description: eventForm.description,
+                date: eventForm.date ? eventForm.date.format('YYYY-MM-DD') : null,
+                year: eventForm.date ? eventForm.date.format('YYYY') : null // Extract year from date
             };
             await addTimelineEvent(payload).unwrap();
             setShowAddEvent(false);
@@ -140,9 +159,10 @@ const SchoolHistoryAdmin = () => {
         try {
             // Format the payload to match the expected API format
             const payload = {
-                ...eventForm,
-                year: eventForm.year ? eventForm.year.format('YYYY') : null,
-                date: eventForm.date ? eventForm.date.format('YYYY-MM-DD') : null
+                title: eventForm.title,
+                description: eventForm.description,
+                date: eventForm.date ? eventForm.date.format('YYYY-MM-DD') : null,
+                year: eventForm.date ? eventForm.date.format('YYYY') : null // Extract year from date
             };
             await updateTimelineEvent({ id: eventId, ...payload }).unwrap();
             setEditingEventId(null);
@@ -171,7 +191,6 @@ const SchoolHistoryAdmin = () => {
     const startEditingEvent = (event) => {
         setEditingEventId(event.id);
         setEventForm({
-            year: event.year ? moment(event.year.toString(), 'YYYY') : null,
             date: event.date ? moment(event.date) : null, // moment can auto-parse ISO dates
             title: event.title || '',
             description: event.description || ''
@@ -189,7 +208,7 @@ const SchoolHistoryAdmin = () => {
     const timelineEvents = historyData?.timeline || [];
 
     return (
-        <ConfigProvider theme={customTheme}>
+        <ConfigProvider theme={customTheme} locale={thTH}>
             <div className="min-h-screen bg-gray-50 py-8">
                 <AnimatePresence>
                     {notification.show && (
@@ -273,13 +292,22 @@ const SchoolHistoryAdmin = () => {
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-700">วันที่ก่อตั้ง</label>
-                                    <Input
-                                        name="foundedDate"
-                                        value={schoolInfoForm.foundedDate}
-                                        onChange={handleSchoolInfoChange}
-                                        disabled={!isEditing}
-                                        className="w-full"
-                                    />
+                                    {isEditing ? (
+                                        <DatePicker
+                                            value={foundedDateMoment}
+                                            onChange={handleFoundedDateChange}
+                                            className="w-full"
+                                            placeholder="เลือกวันที่ก่อตั้ง"
+                                            style={{ height: '40px' }}
+                                            format="DD/MM/YYYY"
+                                        />
+                                    ) : (
+                                        <Input
+                                            value={schoolInfoForm.foundedDate ? moment(schoolInfoForm.foundedDate).format('DD/MM/YYYY') : ''}
+                                            disabled
+                                            className="w-full"
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-700">ผู้อำนวยการปัจจุบัน</label>
@@ -378,18 +406,7 @@ const SchoolHistoryAdmin = () => {
 
                             {showAddEvent && (
                                 <div className="mt-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block mb-1 text-sm font-medium">ปี</label>
-                                            <DatePicker
-                                                picker="year"
-                                                value={eventForm.year}
-                                                onChange={(date, dateString) => handleEventDateChange(date, dateString, 'year')}
-                                                className="w-full"
-                                                placeholder="เลือกปี"
-                                                style={{ height: '40px' }}
-                                            />
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-4">
                                         <div>
                                             <label className="block mb-1 text-sm font-medium">วันที่</label>
                                             <DatePicker
@@ -398,6 +415,7 @@ const SchoolHistoryAdmin = () => {
                                                 className="w-full"
                                                 placeholder="เลือกวันที่"
                                                 style={{ height: '40px' }}
+                                                format="DD/MM/YYYY"
                                             />
                                         </div>
                                         <div className="md:col-span-2">
@@ -419,7 +437,7 @@ const SchoolHistoryAdmin = () => {
                                                 placeholder="ใส่รายละเอียดเหตุการณ์"
                                             />
                                         </div>
-                                        <div className="md:col-span-2">
+                                        <div>
                                             <button
                                                 onClick={handleAddEvent}
                                                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
@@ -437,18 +455,7 @@ const SchoolHistoryAdmin = () => {
                     {activeTab === 'timeline' && timelineEvents.map(event => (
                         <div key={event.id} className="bg-white rounded-lg shadow-md p-6 mb-4">
                             {editingEventId === event.id ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block mb-1 text-sm font-medium">ปี</label>
-                                        <DatePicker
-                                            picker="year"
-                                            value={eventForm.year}
-                                            onChange={(date) => handleEventDateChange(date, null, 'year')}
-                                            className="w-full"
-                                            placeholder="เลือกปี"
-                                            style={{ height: '40px' }}
-                                        />
-                                    </div>
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <label className="block mb-1 text-sm font-medium">วันที่</label>
                                         <DatePicker
@@ -457,9 +464,10 @@ const SchoolHistoryAdmin = () => {
                                             className="w-full"
                                             placeholder="เลือกวันที่"
                                             style={{ height: '40px' }}
+                                            format="DD/MM/YYYY"
                                         />
                                     </div>
-                                    <div className="md:col-span-2">
+                                    <div>
                                         <label className="block mb-1 text-sm font-medium">หัวข้อ</label>
                                         <Input
                                             name="title"
@@ -468,7 +476,7 @@ const SchoolHistoryAdmin = () => {
                                             placeholder="ใส่หัวข้อเหตุการณ์"
                                         />
                                     </div>
-                                    <div className="md:col-span-2">
+                                    <div>
                                         <label className="block mb-1 text-sm font-medium">รายละเอียด</label>
                                         <Input.TextArea
                                             name="description"
@@ -478,7 +486,7 @@ const SchoolHistoryAdmin = () => {
                                             placeholder="ใส่รายละเอียดเหตุการณ์"
                                         />
                                     </div>
-                                    <div className="md:col-span-2 flex space-x-2">
+                                    <div className="flex space-x-2">
                                         <button
                                             onClick={() => handleUpdateEvent(event.id)}
                                             className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"

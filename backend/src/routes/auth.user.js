@@ -143,7 +143,18 @@ router.get('/users', async (req, res) => {
             }
         });
 
-        res.status(200).send(users);
+        // Map users to include role as string
+        const formattedUsers = users.map(user => ({
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            roleId: user.roleId,
+            role: user.userroles?.roleName || 'user',
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        }));
+
+        res.status(200).send(formattedUsers);
     } catch (error) {
         console.error('Error fetching users:', error);
         res.status(500).send({ message: 'Failed to fetch users' });
@@ -184,25 +195,32 @@ router.delete('/users/:id', async (req, res) => {
     }
 });
 
-// Update user role
+// Update user role and username
 router.put('/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { roleId } = req.body;
+        const { roleId, username } = req.body;
         const userId = parseInt(id);
 
-        // Validate roleId
-        if (!roleId || isNaN(parseInt(roleId))) {
-            return res.status(400).send({ message: 'Invalid role ID' });
+        // Validate at least one field to update
+        if (!roleId && !username) {
+            return res.status(400).send({ message: 'No fields to update' });
         }
 
-        // Check if role exists
-        const role = await prisma.userroles.findUnique({
-            where: { id: parseInt(roleId) }
-        });
+        // Validate roleId if provided
+        if (roleId) {
+            if (isNaN(parseInt(roleId))) {
+                return res.status(400).send({ message: 'Invalid role ID' });
+            }
 
-        if (!role) {
-            return res.status(400).send({ message: 'Role not found' });
+            // Check if role exists
+            const role = await prisma.userroles.findUnique({
+                where: { id: parseInt(roleId) }
+            });
+
+            if (!role) {
+                return res.status(400).send({ message: 'Role not found' });
+            }
         }
 
         // Check if user exists
@@ -218,13 +236,38 @@ router.put('/users/:id', async (req, res) => {
             return res.status(400).send({ message: 'Cannot update deleted user' });
         }
 
-        // Update user role
+        // Check if username is already taken (if username is being updated)
+        if (username && username !== existingUser.username) {
+            const usernameExists = await prisma.users.findFirst({
+                where: {
+                    username: username,
+                    id: { not: userId },
+                    isDeleted: false
+                }
+            });
+
+            if (usernameExists) {
+                return res.status(400).send({ message: 'Username already taken' });
+            }
+        }
+
+        // Prepare update data
+        const updateData = {
+            updatedAt: new Date()
+        };
+
+        if (roleId) {
+            updateData.roleId = parseInt(roleId);
+        }
+
+        if (username) {
+            updateData.username = username.trim();
+        }
+
+        // Update user
         const user = await prisma.users.update({
             where: { id: userId },
-            data: { 
-                roleId: parseInt(roleId),
-                updatedAt: new Date()
-            },
+            data: updateData,
             include: {
                 userroles: true
             }

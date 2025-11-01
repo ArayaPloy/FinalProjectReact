@@ -136,7 +136,7 @@ const AttendanceFilters = ({
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="ชื่อ, รหัส, เลขที่..."
+                        placeholder="ชื่อ, รหัสนักเรียน"
                         className="w-full px-4 py-3.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     />
                 </div>

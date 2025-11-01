@@ -5,7 +5,13 @@ import { setUser, logout } from '../redux/features/auth/authSlice';
 
 export const AuthProvider = ({ children }) => {
   const dispatch = useDispatch();
-  const { data, error, isLoading } = useGetCurrentUserQuery();
+  
+  // Check if we have a token in cookie before making the request
+  const hasToken = document.cookie.includes('token=');
+  
+  const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
+    skip: !hasToken, // Skip query if no token exists
+  });
 
   useEffect(() => {
     // If we have user data, update the Redux store
@@ -15,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     
     // If there's an authentication error, log the user out
     if (error) {
+      console.error('Authentication error:', error);
       dispatch(logout());
     }
   }, [data, error, dispatch]);

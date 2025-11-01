@@ -197,6 +197,41 @@ router.patch('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
             });
         }
 
+        // ถ้ามีการเปลี่ยนวันที่ของปีการศึกษา ให้อัปเดตภาคเรียนด้วย
+        if (startDate || endDate) {
+            const newStartDate = startDate ? new Date(startDate) : existingYear.startDate;
+            const newEndDate = endDate ? new Date(endDate) : existingYear.endDate;
+            const midDate = new Date(newStartDate.getTime() + (newEndDate.getTime() - newStartDate.getTime()) / 2);
+
+            // อัปเดตภาคเรียนที่ 1 และ 2
+            const semesters = await prisma.semesters.findMany({
+                where: { academicYearId: yearId },
+                orderBy: { semesterNumber: 'asc' }
+            });
+
+            if (semesters.length >= 2) {
+                // อัปเดตภาคเรียนที่ 1
+                await prisma.semesters.update({
+                    where: { id: semesters[0].id },
+                    data: {
+                        startDate: newStartDate,
+                        endDate: midDate,
+                        updatedBy: req.userId
+                    }
+                });
+
+                // อัปเดตภาคเรียนที่ 2
+                await prisma.semesters.update({
+                    where: { id: semesters[1].id },
+                    data: {
+                        startDate: midDate,
+                        endDate: newEndDate,
+                        updatedBy: req.userId
+                    }
+                });
+            }
+        }
+
         const updatedYear = await prisma.academic_years.update({
             where: { id: yearId },
             data: {
@@ -215,7 +250,7 @@ router.patch('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
         });
 
         res.status(200).json({
-            message: 'อัปเดตปีการศึกษาสำเร็จ',
+            message: 'อัปเดตปีการศึกษาและภาคเรียนสำเร็จ',
             data: updatedYear
         });
     } catch (error) {
@@ -423,8 +458,30 @@ router.patch('/semesters/:id', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        // อัปเดตวันที่ของปีการศึกษาตามภาคเรียน
+        const academicYearId = existingSemester.academicYearId;
+        const allSemesters = await prisma.semesters.findMany({
+            where: { academicYearId: academicYearId },
+            orderBy: { semesterNumber: 'asc' }
+        });
+
+        if (allSemesters.length > 0) {
+            // หาวันเริ่มต้นจากภาคเรียนที่ 1 และวันสิ้นสุดจากภาคเรียนสุดท้าย
+            const firstSemester = allSemesters[0];
+            const lastSemester = allSemesters[allSemesters.length - 1];
+
+            await prisma.academic_years.update({
+                where: { id: academicYearId },
+                data: {
+                    startDate: firstSemester.startDate,
+                    endDate: lastSemester.endDate,
+                    updatedBy: req.userId
+                }
+            });
+        }
+
         res.status(200).json({
-            message: 'อัปเดตภาคเรียนสำเร็จ',
+            message: 'อัปเดตภาคเรียนและปีการศึกษาสำเร็จ',
             data: updatedSemester
         });
     } catch (error) {

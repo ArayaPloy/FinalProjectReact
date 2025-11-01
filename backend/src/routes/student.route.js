@@ -130,6 +130,73 @@ router.get('/with-scores', async (req, res) => {
 });
 
 /**
+ * GET /api/students/all
+ * ดึงรายชื่อนักเรียนทั้งหมด (ไม่บังคับ filter) - ใช้สำหรับหน้า AllStudents
+ */
+router.get('/all', async (req, res) => {
+  try {
+    const { classRoom, search } = req.query;
+
+    let whereClause = {
+      isDeleted: false
+    };
+
+    // Filter by classroom (optional)
+    if (classRoom) {
+      whereClause.classRoom = classRoom;
+    }
+
+    // Filter by search (optional)
+    if (search) {
+      whereClause.OR = [
+        { fullName: { contains: search } },
+        { studentNumber: parseInt(search) || undefined }
+      ].filter(Boolean);
+    }
+
+    const students = await prisma.students.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        namePrefix: true,
+        fullName: true,
+        classRoom: true,
+        studentNumber: true,
+        genderId: true,
+        guardianName: true,
+        guardianRelation: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true,
+        genders: {
+          select: {
+            genderName: true
+          }
+        }
+      },
+      orderBy: [
+        { classRoom: 'asc' },
+        { studentNumber: 'asc' }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: students,
+      total: students.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักเรียน',
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/students
  * ดึงรายชื่อนักเรียนทั้งหมด (รองรับ filter)
  */

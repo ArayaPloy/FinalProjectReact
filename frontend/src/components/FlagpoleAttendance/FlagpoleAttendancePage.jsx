@@ -72,10 +72,9 @@ const FlagpoleAttendancePage = () => {
 
     const query = searchQuery.toLowerCase();
     return students.filter(
-      (student, index) =>
+      (student) =>
         student.fullName?.toLowerCase().includes(query) ||
-        student.studentId?.toLowerCase().includes(query) ||
-        student.studentNumber?.toString().includes(query)
+        student.studentId?.toLowerCase().includes(query)
     );
   }, [students, searchQuery]);
 
@@ -480,7 +479,7 @@ const FlagpoleAttendancePage = () => {
             <div className="p-6">
               <div className="grid grid-cols-12 gap-4 px-4 py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl font-bold text-sm shadow-md mb-3">
                 <div className="col-span-1 flex items-center gap-1">
-                  <i className="bi bi-hash"></i> ที่
+                  <i className="bi bi-hash"></i> ลำดับที่
                 </div>
                 <div className="col-span-5 md:col-span-4 flex items-center gap-2">
                   <i className="bi bi-person-badge"></i> ข้อมูลนักเรียน

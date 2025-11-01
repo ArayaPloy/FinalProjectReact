@@ -60,12 +60,20 @@ const ReportBehaviorScore = () => {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
                 
-                // Handle string comparison
-                if (typeof aValue === 'string') {
-                    aValue = aValue.toLowerCase();
-                    bValue = bValue.toLowerCase();
+                // Handle null/undefined values
+                if (aValue == null) return 1;
+                if (bValue == null) return -1;
+                
+                // Handle string comparison with Thai language support
+                if (typeof aValue === 'string' && typeof bValue === 'string') {
+                    const comparison = aValue.localeCompare(bValue, 'th', { 
+                        sensitivity: 'base',
+                        numeric: true 
+                    });
+                    return sortConfig.direction === 'asc' ? comparison : -comparison;
                 }
                 
+                // Handle number comparison
                 if (aValue < bValue) {
                     return sortConfig.direction === 'asc' ? -1 : 1;
                 }
@@ -313,7 +321,7 @@ const ReportBehaviorScore = () => {
                                 type="text"
                                 value={searchStudent}
                                 onChange={(e) => setSearchStudent(e.target.value)}
-                                placeholder="ชื่อ หรือ รหัสนักเรียน..."
+                                placeholder="ชื่อ, รหัสนักเรียน"
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
                         </div>
@@ -584,10 +592,10 @@ const ReportBehaviorScore = () => {
                                                 รหัสนักเรียน {getSortIcon('studentCode')}
                                             </th>
                                             <th 
-                                                onClick={() => handleSort('fullName')}
+                                                onClick={() => handleSort('studentName')}
                                                 className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
                                             >
-                                                ชื่อ-สกุล {getSortIcon('fullName')}
+                                                ชื่อ-สกุล {getSortIcon('studentName')}
                                             </th>
                                             <th 
                                                 onClick={() => handleSort('classRoom')}
@@ -602,18 +610,18 @@ const ReportBehaviorScore = () => {
                                                 จำนวนครั้ง {getSortIcon('recordCount')}
                                             </th>
                                             <th 
-                                                onClick={() => handleSort('positivePoints')}
+                                                onClick={() => handleSort('addedPoints')}
                                                 className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
                                             >
                                                 <TrendingUp className="w-4 h-4 inline mr-1" />
-                                                เพิ่ม {getSortIcon('positivePoints')}
+                                                เพิ่ม {getSortIcon('addedPoints')}
                                             </th>
                                             <th 
-                                                onClick={() => handleSort('negativePoints')}
+                                                onClick={() => handleSort('deductedPoints')}
                                                 className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
                                             >
                                                 <TrendingDown className="w-4 h-4 inline mr-1" />
-                                                หัก {getSortIcon('negativePoints')}
+                                                หัก {getSortIcon('deductedPoints')}
                                             </th>
                                             <th 
                                                 onClick={() => handleSort('currentScore')}

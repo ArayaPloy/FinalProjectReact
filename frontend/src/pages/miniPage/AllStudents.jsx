@@ -1,10 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { IoChevronBack } from 'react-icons/io5';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useGetAllStudentsQuery } from '../../services/studentsApi';
+import { useGetAcademicYearsQuery } from '../../services/academicApi';
 
 const AllStudents = () => {
+    // ดึงข้อมูลนักเรียนทั้งหมดจาก API
+    const { data: studentsResponse, isLoading, error } = useGetAllStudentsQuery();
+    const students = studentsResponse?.data || [];
+
+    // ดึงข้อมูลปีการศึกษา
+    const { data: academicYears = [] } = useGetAcademicYearsQuery();
+    const currentYear = academicYears.find(year => year.isCurrent);
+
     // Set viewport meta tag to prevent zooming issues on mobile
     useEffect(() => {
         const metaViewport = document.querySelector('meta[name="viewport"]');
@@ -34,22 +44,65 @@ const AllStudents = () => {
         }, false);
     }, []);
 
-    // ข้อมูลนักเรียนแต่ละชั้น
-    const classData = [
-        { id: 1, name: 'ม.1/1', male: 12, female: 5, total: 17 },
-        { id: 2, name: 'ม.1/2', male: 14, female: 6, total: 20 },
-        { id: 3, name: 'ม.2/1', male: 17, female: 9, total: 26 },
-        { id: 4, name: 'ม.3/1', male: 11, female: 9, total: 20 },
-        { id: 5, name: 'ม.3/2', male: 8, female: 8, total: 16 },
-        { id: 6, name: 'ม.4/1', male: 10, female: 11, total: 21 },
-        { id: 7, name: 'ม.5/1', male: 7, female: 15, total: 22 },
-        { id: 8, name: 'ม.6/1', male: 3, female: 8, total: 11 },
-    ];
+    // คำนวณข้อมูลนักเรียนแต่ละชั้นจาก database
+    const classData = useMemo(() => {
+        if (!students.length) return [];
+
+        // จัดกลุ่มนักเรียนตามห้องเรียน
+        const groupedByClass = students.reduce((acc, student) => {
+            const classroom = student.classRoom || 'ไม่ระบุ';
+            if (!acc[classroom]) {
+                acc[classroom] = { male: 0, female: 0, total: 0 };
+            }
+            
+            // genderId: 1 = ชาย, 2 = หญิง
+            if (student.genderId === 1) {
+                acc[classroom].male++;
+            } else if (student.genderId === 2) {
+                acc[classroom].female++;
+            }
+            acc[classroom].total++;
+            
+            return acc;
+        }, {});
+
+        // แปลงเป็น array และเรียงลำดับ
+        return Object.entries(groupedByClass)
+            .map(([name, data], index) => ({
+                id: index + 1,
+                name: name,
+                male: data.male,
+                female: data.female,
+                total: data.total
+            }))
+            .sort((a, b) => {
+                // เรียงตามระดับชั้น (1/1, 1/2, 2/1, ...)
+                const [gradeA, roomA] = a.name.split('/').map(Number);
+                const [gradeB, roomB] = b.name.split('/').map(Number);
+                return gradeA === gradeB ? roomA - roomB : gradeA - gradeB;
+            });
+    }, [students]);
 
     // คำนวณยอดรวมทั้งหมด
-    const totalMale = classData.reduce((sum, item) => sum + item.male, 0);
-    const totalFemale = classData.reduce((sum, item) => sum + item.female, 0);
-    const totalAll = classData.reduce((sum, item) => sum + item.total, 0);
+    const totalMale = useMemo(() => 
+        classData.reduce((sum, item) => sum + item.male, 0), [classData]);
+    const totalFemale = useMemo(() => 
+        classData.reduce((sum, item) => sum + item.female, 0), [classData]);
+    const totalAll = useMemo(() => 
+        classData.reduce((sum, item) => sum + item.total, 0), [classData]);
+
+    // หาวันที่ที่มีการอัพเดตข้อมูลนักเรียนล่าสุด
+    const lastUpdated = useMemo(() => {
+        if (!students.length) return new Date();
+        
+        // หาวันที่ที่มีการแก้ไขล่าสุดจากข้อมูลนักเรียน
+        const latestUpdate = students.reduce((latest, student) => {
+            const studentDate = new Date(student.updatedAt || student.createdAt);
+            return studentDate > latest ? studentDate : latest;
+        }, new Date(0)); // เริ่มจากวันที่เก่าสุด (1970-01-01)
+        
+        return latestUpdate;
+    }, [students]);
 
     // ข้อมูลสำหรับกราฟแท่ง
     const barChartData = classData.map(item => ({
@@ -66,6 +119,37 @@ const AllStudents = () => {
 
     // สีสำหรับกราฟ
     const COLORS = ['#3b82f6', '#ec4899'];
+
+    // แสดง Loading state
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 text-lg">กำลังโหลดข้อมูลนักเรียน...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // แสดง Error state
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+                <div className="text-center p-8">
+                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">เกิดข้อผิดพลาด</h2>
+                    <p className="text-gray-600 mb-4">ไม่สามารถโหลดข้อมูลนักเรียนได้</p>
+                    <Link 
+                        to="/" 
+                        className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        กลับสู่หน้าหลัก
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -89,7 +173,9 @@ const AllStudents = () => {
                 {/* หัวข้อหลัก */}
                 <div className="text-center mb-6 sm:mb-8">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 mb-2">จำนวนนักเรียน</h1>
-                    <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base px-4">ข้อมูลจำนวนนักเรียนโรงเรียนท่าบ่อพิทยาคม ปีการศึกษา 2567</p>
+                    <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base px-4">
+                        ข้อมูลจำนวนนักเรียนโรงเรียนท่าบ่อพิทยาคม ปีการศึกษา {currentYear?.year || '2567'}
+                    </p>
                     <div className="w-16 sm:w-24 h-1 bg-blue-600 mx-auto"></div>
                 </div>
 
@@ -228,7 +314,11 @@ const AllStudents = () => {
 
                 {/* หมายเหตุ */}
                 <div className="text-center text-xs sm:text-sm text-gray-500">
-                    ข้อมูล ณ วันที่ 1 เมษายน 2568
+                    ข้อมูลอัพเดตล่าสุด ณ วันที่ {lastUpdated.toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                    })}
                 </div>
             </div>
         </motion.div>

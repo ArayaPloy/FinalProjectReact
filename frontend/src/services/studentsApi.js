@@ -5,14 +5,14 @@ export const studentsApi = createApi({
   reducerPath: 'studentsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getApiURL('/students'),
-    credentials: 'include',
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
+    prepareHeaders: (headers, { getState }) => {
+      const token = getState().auth.token;
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
       return headers;
     },
+    credentials: 'include',
   }),
   tagTypes: ['Students', 'Classrooms', 'BehaviorScores'],
   endpoints: (builder) => ({
@@ -37,13 +37,34 @@ export const studentsApi = createApi({
     }),
 
     /**
+     * เพิ่ม endpointดึงรายชื่อนักเรียนทั้งหมด (สำหรับหน้า AllStudents)
+     */
+    getAllStudents: builder.query({
+      query: ({ classRoom, search } = {}) => {
+        const params = {};
+        if (classRoom) params.classRoom = classRoom;
+        if (search) params.search = search;
+        return {
+          url: '/all',
+          params,
+        };
+      },
+      providesTags: ['Students'],
+    }),
+
+    /**
      * ดึงรายชื่อนักเรียน
      */
     getStudents: builder.query({
-      query: ({ classRoom, search } = {}) => ({
-        url: '/',
-        params: { classRoom, search },
-      }),
+      query: ({ classRoom, search } = {}) => {
+        const params = {};
+        if (classRoom) params.classRoom = classRoom;
+        if (search) params.search = search;
+        return {
+          url: '',
+          params,
+        };
+      },
       providesTags: ['Students'],
     }),
 
@@ -60,6 +81,7 @@ export const studentsApi = createApi({
 export const {
   useGetClassroomsQuery,
   useGetStudentsWithScoresQuery,
+  useGetAllStudentsQuery,
   useGetStudentsQuery,
   useGetStudentByIdQuery,
 } = studentsApi;

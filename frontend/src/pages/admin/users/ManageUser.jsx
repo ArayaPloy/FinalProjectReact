@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import {
   useDeleteUserMutation,
   useGetUserQuery,
 } from "../../../redux/features/auth/authApi";
-import { MdModeEdit, MdDelete, MdWarning } from "react-icons/md";
+import { MdModeEdit, MdDelete, MdWarning, MdAdminPanelSettings } from "react-icons/md";
 import { FiUsers, FiUserCheck, FiUserX } from "react-icons/fi";
 import UpdateUserModal from "./UpdateUserModal";
 
@@ -14,6 +15,17 @@ const ManageUser = () => {
   
   const { data: users = [], error, isLoading, refetch } = useGetUserQuery();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+
+  // ดึงข้อมูลผู้ใช้ปัจจุบันจาก Redux store
+  const currentUser = useSelector((state) => state.auth.user);
+  
+  // Extract role string - handle both object and string formats
+  const currentUserRole = typeof currentUser?.role === 'object' 
+    ? currentUser?.role?.roleName || currentUser?.role?.name || 'user'
+    : currentUser?.role || 'user';
+
+  console.log('Current User:', currentUser);
+  console.log('Current User Role:', currentUserRole);
 
   const handleDelete = async (userId) => {
     try {
@@ -61,12 +73,16 @@ const ManageUser = () => {
     }
     
     switch (roleString.toLowerCase()) {
+      case 'super_admin':
+        return "bg-purple-100 text-purple-800 border border-purple-200";
       case 'admin':
         return "bg-red-100 text-red-800 border border-red-200";
       case 'teacher':
         return "bg-blue-100 text-blue-800 border border-blue-200";
       case 'student':
         return "bg-green-100 text-green-800 border border-green-200";
+      case 'user':
+        return "bg-gray-100 text-gray-800 border border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
     }
@@ -81,9 +97,15 @@ const ManageUser = () => {
     }
     
     switch (roleString.toLowerCase()) {
+      case 'super_admin':
+        return <MdAdminPanelSettings className="w-4 h-4" />;
       case 'admin':
         return <FiUserCheck className="w-4 h-4" />;
       case 'teacher':
+        return <FiUsers className="w-4 h-4" />;
+      case 'student':
+        return <FiUserCheck className="w-4 h-4" />;
+      case 'user':
         return <FiUsers className="w-4 h-4" />;
       default:
         return <FiUserX className="w-4 h-4" />;
@@ -247,6 +269,7 @@ const ManageUser = () => {
           user={selectedUser} 
           onClose={handleCloseModal} 
           onSuccess={handleModalSuccess}
+          currentUserRole={currentUserRole}
         />
       )}
     </div>

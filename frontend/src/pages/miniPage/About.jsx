@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useFetchCompleteHistoryQuery } from '../../redux/features/about/aboutApi';
 import { motion } from 'framer-motion';
+import moment from 'moment';
 
 const About = () => {
   // Set viewport meta tag to prevent zooming issues on mobile
@@ -249,9 +250,18 @@ const About = () => {
 
                   {/* กล่องเนื้อหา */}
                   <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border-t-4 border-amber-500 hover:shadow-lg transition-shadow duration-300">
-                    <div className="flex items-center mb-2">
-                      <span className="text-amber-500 mr-2 text-sm sm:text-base">📅</span>
-                      <span className="text-amber-700 font-semibold text-sm sm:text-base">{event.date}</span>
+                    <div className="flex items-center mb-2 flex-wrap gap-2">
+                      {event.year && (
+                        <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs sm:text-sm font-medium">
+                          {event.year}
+                        </span>
+                      )}
+                      {event.date && (
+                        <span className="text-gray-600 text-xs sm:text-sm flex items-center">
+                          <span className="text-amber-500 mr-1">📅</span>
+                          {moment(event.date).format('DD/MM/YYYY')}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-amber-800 mb-2">{event.title}</h3>
                     <p className="text-gray-700 text-sm sm:text-base">{event.description}</p>

@@ -36,6 +36,8 @@ export const authApi = createApi({
         method: "GET",
       }),
       providesTags: ['User'],
+      // Don't retry on 401 errors
+      extraOptions: { maxRetries: 0 },
     }),
     getUser: builder.query({
       query: () => ({
@@ -52,10 +54,10 @@ export const authApi = createApi({
       invalidatesTags: ["User"],
     }),
     updateUserRole: builder.mutation({
-      query: ({ userId, role }) => ({
+      query: ({ userId, roleId, username }) => ({
         url: `/users/${userId}`,
         method: "PUT",
-        body: { role },
+        body: { roleId, username },
       }),
       refetchOnMount: true,
       invalidatesTags: ["User"],
