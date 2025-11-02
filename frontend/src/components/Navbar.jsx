@@ -69,23 +69,31 @@ const Navbar = () => {
 
   return (
     <motion.header
-      className='bg-white py-4 border-b sticky top-0 z-50'
+      className='bg-white py-3 sm:py-4 border-b-2 border-gray-100 sticky top-0 z-50 shadow-sm'
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <nav className='container mx-auto flex justify-between px-5 items-center'>
-        {/* ส่วนโลโก้และชื่อโรงเรียน */}
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="logo" className='h-12' />
-          <div>
-            <h1 className="text-lg font-bold text-primary p-0 m-0">โรงเรียนท่าบ่อพิทยาคม</h1>
-            <p className="text-xs text-gray-600 p-0 m-0">Thabopitthayakhom School</p>
+      <nav className='container mx-auto flex justify-between items-center px-3 sm:px-4 md:px-5'>
+        {/* ส่วนโลโก้และชื่อโรงเรียน - Mobile Optimized with Centered Alignment */}
+        <Link to="/" className="flex items-center gap-2 sm:gap-2.5 md:gap-3 min-w-0 flex-1 lg:flex-initial">
+          <img 
+            src="/logo.png" 
+            alt="โรงเรียนท่าบ่อพิทยาคม" 
+            className='h-9 sm:h-10 md:h-12 w-auto flex-shrink-0' 
+          />
+          <div className="min-w-0 flex-1 lg:flex-initial flex flex-col justify-center">
+            <h1 className="text-sm sm:text-base md:text-lg font-bold text-primary leading-none mb-0.5 mt-3">
+              โรงเรียนท่าบ่อพิทยาคม
+            </h1>
+            <p className="text-[10px] sm:text-xs text-gray-600 leading-none">
+              Thabopitthayakhom School
+            </p>
           </div>
         </Link>
 
         {/* เมนูสำหรับ Desktop Navigation */}
-        <ul className='hidden lg:flex items-center gap-2 p-0 m-0'>
+        <ul className='hidden lg:flex items-center gap-1 xl:gap-2 p-0 m-0'>
           {navLists.map((list, index) => (
             <li key={index} className="relative">
               {list.dropdown ? (
@@ -93,12 +101,13 @@ const Navbar = () => {
                   {/* ปุ่มเมนูที่มี dropdown */}
                   <button
                     onClick={() => toggleDropdown(index)}
-                    className="flex items-center gap-1 text-amber-600 hover:text-primary hover:bg-yellow-700/10 px-3 py-2 rounded-lg"
+                    className="flex items-center gap-1.5 text-amber-600 hover:text-primary hover:bg-yellow-700/10 active:bg-yellow-700/20 px-3 py-2.5 rounded-lg font-medium text-sm xl:text-base transition-all touch-manipulation"
                   >
-                    {list.name}
+                    <span className="truncate">{list.name}</span>
                     <motion.div
                       animate={{ rotate: openDropdown === index ? 180 : 0 }}
                       transition={{ duration: 0.3 }}
+                      className="flex-shrink-0"
                     >
                       <ChevronDown className="h-4 w-4" />
                     </motion.div>
@@ -106,7 +115,7 @@ const Navbar = () => {
                   {/* Dropdown เมนู */}
                   {openDropdown === index && (
                     <motion.div
-                      className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg"
+                      className="absolute top-full left-0 mt-2 w-56 bg-white border-2 border-gray-200 rounded-xl shadow-xl overflow-hidden"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
@@ -116,9 +125,10 @@ const Navbar = () => {
                         <Link
                           key={idx}
                           to={link.path}
-                          className="block text-gray-700 hover:text-primary  hover:bg-yellow-700/10 px-3 py-2 rounded-lg"
+                          className="block text-gray-700 hover:text-primary hover:bg-yellow-700/10 active:bg-yellow-700/20 px-4 py-3 font-medium text-sm transition-all border-b border-gray-100 last:border-b-0"
+                          onClick={() => setOpenDropdown(null)}
                         >
-                          {link.name}
+                          <span className="truncate block">{link.name}</span>
                         </Link>
                       ))}
                     </motion.div>
@@ -129,7 +139,7 @@ const Navbar = () => {
                 <NavLink
                   to={list.path}
                   className={({ isActive }) =>
-                    `hover:text-primary hover:bg-yellow-700/10 px-3 py-2 rounded-lg  ${isActive ? "text-primary font-semibold" : "text-amber-600"}`
+                    `hover:text-primary hover:bg-yellow-700/10 active:bg-yellow-700/20 px-3 py-2.5 rounded-lg font-medium text-sm xl:text-base transition-all truncate block ${isActive ? "text-primary font-bold" : "text-amber-600"}`
                   }
                 >
                   {list.name}
@@ -140,17 +150,22 @@ const Navbar = () => {
 
           {/* ส่วนผู้ใช้และปุ่มเข้าสู่ระบบ/ออกจากระบบ */}
           {user ? (
-            <li className='flex gap-4 items-center'>
-              <img src={AvaterImg} alt="" className='size-8 rounded-full' />
+            <li className='flex gap-3 items-center'>
+              <img 
+                src={AvaterImg} 
+                alt={user.name || "ผู้ใช้"} 
+                className='w-9 h-9 rounded-full border-2 border-amber-200 flex-shrink-0' 
+              />
               <div className="relative">
                 <button
                   onClick={() => toggleDropdown('user')}
-                  className="flex items-center gap-1 text-gray-700 hover:text-primary"
+                  className="flex items-center gap-1.5 text-gray-700 hover:text-primary font-medium text-sm xl:text-base transition-colors"
                 >
-                  {user.name}
+                  <span className="truncate max-w-[120px] xl:max-w-[150px]">{user.name}</span>
                   <motion.div
                     animate={{ rotate: openDropdown === 'user' ? 180 : 0 }}
                     transition={{ duration: 0.3 }}
+                    className="flex-shrink-0"
                   >
                     <ChevronDown className="h-4 w-4" />
                   </motion.div>
@@ -158,7 +173,7 @@ const Navbar = () => {
                 {/* Dropdown เมนูผู้ใช้ */}
                 {openDropdown === 'user' && (
                   <motion.div
-                    className="absolute top-full right-0 mt-4 w-48 bg-white border border-gray-300 rounded-lg shadow-lg"
+                    className="absolute top-full right-0 mt-3 w-52 bg-white border-2 border-gray-200 rounded-xl shadow-xl overflow-hidden"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
@@ -168,26 +183,35 @@ const Navbar = () => {
                     {(user.role === 'admin' || user.role === 'super_admin') && (
                       <Link
                         to="/dashboard"
-                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
+                        className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-700/10 hover:text-primary font-medium text-sm transition-all border-b border-gray-100"
+                        onClick={() => setOpenDropdown(null)}
                       >
-                        <Settings className="mr-2 h-4 w-4" /> แดชบอร์ด
+                        <Settings className="mr-2.5 h-4 w-4 flex-shrink-0" /> 
+                        <span className="truncate">แดชบอร์ด</span>
                       </Link>
                     )}
                     {/* ปุ่ม Profile */}
                     {(user.role === 'admin' || user.role === 'super_admin') && (
                       <Link
                         to="/profile"
-                        className="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-700/10 rounded-lg hover:text-primary"
+                        className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-700/10 hover:text-primary font-medium text-sm transition-all border-b border-gray-100"
+                        onClick={() => setOpenDropdown(null)}
                       >
-                        <User className="mr-2 h-4 w-4" /> โปรไฟล์
-                      </Link>)}
+                        <User className="mr-2.5 h-4 w-4 flex-shrink-0" /> 
+                        <span className="truncate">โปรไฟล์</span>
+                      </Link>
+                    )}
 
                     {/* ปุ่ม Logout */}
                     <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => {
+                        handleLogout();
+                        setOpenDropdown(null);
+                      }}
+                      className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 font-medium text-sm transition-all"
                     >
-                      <LogOut className="mr-2 h-4 w-4" /> ออกจากระบบ
+                      <LogOut className="mr-2.5 h-4 w-4 flex-shrink-0" /> 
+                      <span className="truncate">ออกจากระบบ</span>
                     </button>
                   </motion.div>
                 )}
@@ -195,141 +219,202 @@ const Navbar = () => {
             </li>
           ) : (
             {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอิน */ },
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <NavLink to="/login" className="text-gray-700 hover:text-primary">
+            <motion.li whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <NavLink 
+                to="/login" 
+                className="text-gray-700 hover:text-primary hover:bg-yellow-700/10 active:bg-yellow-700/20 px-4 py-2.5 rounded-lg font-medium text-sm xl:text-base transition-all"
+              >
                 เข้าสู่ระบบ
               </NavLink>
-            </motion.div>
+            </motion.li>
           )}
         </ul>
 
-        {/* ปุ่มเมนูสำหรับ Mobile Navigation */}
+        {/* ปุ่มเมนูสำหรับ Mobile Navigation - Touch Optimized */}
         <div className='flex items-center lg:hidden'>
           <button
             onClick={toggleMenu}
-            className='flex items-center px-3 py-2 bg-gray-100 rounded text-gray-700 hover:text-primary'
+            className='flex items-center justify-center px-3 py-2.5 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 active:bg-gray-300 hover:text-primary transition-all touch-manipulation min-h-[44px] min-w-[44px]'
+            aria-label={isMenuOpen ? "ปิดเมนู" : "เปิดเมนู"}
           >
-            {isMenuOpen ? <IoClose className='size-6' /> : <IoMenuSharp className='size-6' />}
+            {isMenuOpen ? <IoClose className='w-6 h-6' /> : <IoMenuSharp className='w-6 h-6' />}
           </button>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className='fixed top-[84px] left-0 w-full h-[calc(100vh-84px)] bg-white shadow-sm z-50 overflow-y-auto'>
-          <ul className='px-4'>
-            {navLists.map((list, index) => (
-              <li key={index} className='mt-5'>
-                {list.dropdown ? (
-                  <>
-                    {/* ปุ่มเมนูที่มี dropdown บน Mobile */}
-                    <button
-                      onClick={() => toggleDropdown(index)}
-                      className="flex items-center justify-between w-full py-2 text-gray-700 hover:text-primary"
-                    >
-                      {list.name}
-                      <motion.div
-                        animate={{ rotate: openDropdown === index ? 180 : 0 }}
-                        transition={{ duration: 0.3 }}
+      {/* Mobile Menu - Mobile First Design */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div 
+            className='fixed top-[60px] sm:top-[68px] left-0 w-full h-[calc(100vh-60px)] sm:h-[calc(100vh-68px)] bg-white shadow-lg z-50 overflow-y-auto'
+            initial={{ opacity: 0, x: -100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ul className='px-4 sm:px-5 py-4'>
+              {navLists.map((list, index) => (
+                <li key={index} className='border-b border-gray-100 last:border-b-0'>
+                  {list.dropdown ? (
+                    <>
+                      {/* ปุ่มเมนูที่มี dropdown บน Mobile - Touch Optimized */}
+                      <button
+                        onClick={() => toggleDropdown(index)}
+                        className="flex items-center justify-between w-full py-3.5 text-gray-700 hover:text-primary active:text-primary hover:bg-yellow-700/5 active:bg-yellow-700/10 px-2 rounded-lg font-medium text-base touch-manipulation transition-all min-h-[48px]"
                       >
-                        <ChevronDown className="h-4 w-4" />
-                      </motion.div>
-                    </button>
-                    {/* Dropdown เมนูบน Mobile */}
-                    {openDropdown === index && (
-                      <div className="pl-4">
-                        {list.dropdown.map((link, idx) => (
-                          <Link
-                            key={idx}
-                            to={link.path}
-                            className="block py-2 text-gray-700 hover:text-primary"
-                            onClick={() => setIsMenuOpen(false)}
+                        <span className="truncate flex-1 text-left">{list.name}</span>
+                        <motion.div
+                          animate={{ rotate: openDropdown === index ? 180 : 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex-shrink-0 ml-2"
+                        >
+                          <ChevronDown className="h-5 w-5" />
+                        </motion.div>
+                      </button>
+                      {/* Dropdown เมนูบน Mobile */}
+                      <AnimatePresence>
+                        {openDropdown === index && (
+                          <motion.div 
+                            className="pl-4 sm:pl-5 pb-2"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            {link.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  {/* เมนูทั่วไปบน Mobile */ },
-                  <NavLink
-                    to={list.path}
-                    className={({ isActive }) =>
-                      `block py-2 ${isActive ? "text-primary font-semibold" : "text-gray-700"}`
-                    }
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {list.name}
-                  </NavLink>
-                )}
-              </li>
-            ))}
-            {/* ส่วนผู้ใช้และปุ่มเข้าสู่ระบบ/ออกจากระบบบน Mobile */}
-            {user ? (
-              <li className='mt-5'>
-                <button
-                  onClick={() => toggleDropdown('user')}
-                  className="flex items-center justify-between w-full py-2 text-gray-700 hover:text-primary"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src={AvaterImg} alt="" className='size-8 rounded-full' />
-                    {user.name}
-                  </div>
-                  <motion.div
-                    animate={{ rotate: openDropdown === 'user' ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </motion.div>
-                </button>
-                {/* Dropdown เมนูผู้ใช้บน Mobile */}
-                {openDropdown === 'user' && (
-                  <div className="pl-4">
-                    {/* ปุ่ม Dashboard สำหรับ Admin บน Mobile */}
-                    {(user.role === 'admin' || user.role === 'super_admin') && (
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center py-2 text-gray-700 hover:text-primary"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Settings className="mr-2 h-4 w-4" /> แดชบอร์ด
-                      </Link>
-                    )}
-                    {/* ปุ่ม Profile บน Mobile */}
-                    {(user.role === 'admin' || user.role === 'super_admin') && (
-                      <Link
-                        to="/profile"
-                        className="flex items-center py-2 text-gray-700 hover:text-primary"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <User className="mr-2 h-4 w-4" /> โปรไฟล์
-                      </Link>)}
-                    {/* ปุ่ม Logout บน Mobile */}
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center py-2 text-red-600 hover:text-red-700"
+                            {list.dropdown.map((link, idx) => (
+                              <Link
+                                key={idx}
+                                to={link.path}
+                                className="flex items-center py-3 text-gray-600 hover:text-primary active:text-primary hover:bg-yellow-700/5 active:bg-yellow-700/10 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"
+                                onClick={() => {
+                                  setIsMenuOpen(false);
+                                  setOpenDropdown(null);
+                                }}
+                              >
+                                <span className="truncate">{link.name}</span>
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  ) : (
+                    {/* เมนูทั่วไปบน Mobile - Touch Optimized */ },
+                    <NavLink
+                      to={list.path}
+                      className={({ isActive }) =>
+                        `flex items-center py-3.5 px-2 rounded-lg font-medium text-base touch-manipulation transition-all min-h-[48px] ${
+                          isActive 
+                            ? "text-primary font-bold bg-yellow-700/10" 
+                            : "text-gray-700 hover:text-primary hover:bg-yellow-700/5 active:bg-yellow-700/10"
+                        }`
+                      }
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setOpenDropdown(null);
+                      }}
                     >
-                      <LogOut className="mr-2 h-4 w-4" /> ออกจากระบบ
-                    </button>
-                  </div>
-                )}
-              </li>
-            ) : (
-              {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอินบน Mobile */ },
-              <li className='mt-5'>
-                <NavLink
-                  to="/login"
-                  className="block py-2 text-gray-700 hover:text-primary"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  เข้าสู่ระบบ
-                </NavLink>
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
+                      <span className="truncate">{list.name}</span>
+                    </NavLink>
+                  )}
+                </li>
+              ))}
+              {/* ส่วนผู้ใช้และปุ่มเข้าสู่ระบบ/ออกจากระบบบน Mobile */}
+              {user ? (
+                <li className='border-b border-gray-100 last:border-b-0'>
+                  <button
+                    onClick={() => toggleDropdown('user')}
+                    className="flex items-center justify-between w-full py-3.5 px-2 text-gray-700 hover:text-primary active:text-primary hover:bg-yellow-700/5 active:bg-yellow-700/10 rounded-lg font-medium text-base touch-manipulation transition-all min-h-[48px]"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <img 
+                        src={AvaterImg} 
+                        alt={user.name || "ผู้ใช้"} 
+                        className='w-8 h-8 rounded-full border-2 border-amber-200 flex-shrink-0' 
+                      />
+                      <span className="truncate">{user.name}</span>
+                    </div>
+                    <motion.div
+                      animate={{ rotate: openDropdown === 'user' ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex-shrink-0 ml-2"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </motion.div>
+                  </button>
+                  {/* Dropdown เมนูผู้ใช้บน Mobile */}
+                  <AnimatePresence>
+                    {openDropdown === 'user' && (
+                      <motion.div 
+                        className="pl-4 sm:pl-5 pb-2"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {/* ปุ่ม Dashboard สำหรับ Admin บน Mobile */}
+                        {(user.role === 'admin' || user.role === 'super_admin') && (
+                          <Link
+                            to="/dashboard"
+                            className="flex items-center py-3 text-gray-600 hover:text-primary active:text-primary hover:bg-blue-700/5 active:bg-blue-700/10 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setOpenDropdown(null);
+                            }}
+                          >
+                            <Settings className="mr-2.5 h-5 w-5 flex-shrink-0" /> 
+                            <span className="truncate">แดชบอร์ด</span>
+                          </Link>
+                        )}
+                        {/* ปุ่ม Profile บน Mobile */}
+                        {(user.role === 'admin' || user.role === 'super_admin') && (
+                          <Link
+                            to="/profile"
+                            className="flex items-center py-3 text-gray-600 hover:text-primary active:text-primary hover:bg-blue-700/5 active:bg-blue-700/10 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setOpenDropdown(null);
+                            }}
+                          >
+                            <User className="mr-2.5 h-5 w-5 flex-shrink-0" /> 
+                            <span className="truncate">โปรไฟล์</span>
+                          </Link>
+                        )}
+                        {/* ปุ่ม Logout บน Mobile */}
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMenuOpen(false);
+                            setOpenDropdown(null);
+                          }}
+                          className="flex items-center w-full py-3 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"
+                        >
+                          <LogOut className="mr-2.5 h-5 w-5 flex-shrink-0" /> 
+                          <span className="truncate">ออกจากระบบ</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </li>
+              ) : (
+                {/* ปุ่มเข้าสู่ระบบสำหรับผู้ใช้ที่ยังไม่ได้ล็อกอินบน Mobile */ },
+                <li className='border-b border-gray-100 last:border-b-0'>
+                  <NavLink
+                    to="/login"
+                    className="flex items-center py-3.5 px-2 text-gray-700 hover:text-primary active:text-primary hover:bg-yellow-700/5 active:bg-yellow-700/10 rounded-lg font-medium text-base touch-manipulation transition-all min-h-[48px]"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setOpenDropdown(null);
+                    }}
+                  >
+                    <span className="truncate">เข้าสู่ระบบ</span>
+                  </NavLink>
+                </li>
+              )}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 };
