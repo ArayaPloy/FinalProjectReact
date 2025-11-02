@@ -4,16 +4,16 @@ import { formatDate } from "../../../utilis/dateFormater";
 import PostAComment from "./PostAComment";
 import { useSelector } from "react-redux";
 
-const CommentCard = ({ comments }) => {
+const CommentCard = ({ comments = [] }) => {
   const user = useSelector((state) => state.auth.user);
-  console.log(user?.username)
+  // console.log(user?.username)
   // console.log(comments);
 
   return (
     <div className="my-6 bg-white p-8">
       <div>
         {
-          comments.length > 0 ? <div>
+          comments?.length > 0 ? <div>
             <h3 className="text-lg font-medium">ความคิดเห็นทั้งหมด</h3>
             <div>
               {comments.map((comment, index) => (
@@ -37,7 +37,7 @@ const CommentCard = ({ comments }) => {
                 </div>
               ))}
             </div>
-          </div> : (<div className="text-lg font-medium">No comments found!</div>)
+          </div> : (<div className="text-lg font-medium">ไม่มีความคิดเห็น!</div>)
         }
       </div>
 

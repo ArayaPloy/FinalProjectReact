@@ -79,7 +79,7 @@ const blogRoutes = require('./src/routes/blog.route');
 const aboutRoutes = require('./src/routes/about.route');
 const commentRoutes = require('./src/routes/comment.route');
 const teachersRoutes = require('./src/routes/teachers.route');
-const blogRoutesOld = require('./src/routes/blog.route.old');
+// const blogRoutesOld = require('./src/routes/blog.route.old'); // Removed - using MySQL/Prisma now
 const clubsRoutes = require('./src/routes/clubs.route');
 const homeVisitRoutes = require('./src/routes/homevisits.route');
 const flagpoleAttendanceRoutes = require('./src/routes/flagpole-attendance.route');
@@ -95,7 +95,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/auth', authMeRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/about', aboutRoutes);
-app.use('/api/blogsOld', blogRoutesOld);
+// app.use('/api/blogsOld', blogRoutesOld); // Removed - using MySQL/Prisma now
 app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/clubs', clubsRoutes);

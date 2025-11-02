@@ -1,15 +1,40 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useFetchRelatedBlogsQuery } from '../../../redux/features/blogs/blogsApi';
 
-const RelatedBlogs = () => {
-  const { id } = useParams(); 
+const RelatedBlogs = ({ blogId }) => {
+  const navigate = useNavigate();
+  // ใช้ skip เพื่อไม่ให้ fetch ถ้า blogId ไม่มี
+  const { data: blogs = [], error, isLoading } = useFetchRelatedBlogsQuery(blogId, {
+    skip: !blogId, // ข้าม query ถ้า blogId เป็น undefined
+    refetchOnMountOrArgChange: true // Refetch เมื่อ blogId เปลี่ยน
+  });
 
-  const { data: blogs = [], error, isLoading } = useFetchRelatedBlogsQuery(id);
-  console.log(blogs);
+  // ถ้าไม่มี blogId ไม่ต้องแสดงอะไร
+  if (!blogId) {
+    return null;
+  }
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">กำลังโหลด...</span>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="text-red-600 text-center py-4">
+          <p>ไม่สามารถโหลดข่าวสารที่เกี่ยวข้องได้</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -20,10 +45,15 @@ const RelatedBlogs = () => {
       ) : (
         <div className="space-y-6">
           {blogs.map((blog) => (
-            <Link
-              to={`/blogs/${blog._id}`}
-              key={blog._id}
-              className="flex flex-col sm:flex-row items-center gap-2 p-2 rounded-lg hover:bg-gray-200 transition-all duration-300"
+            <div 
+              key={blog.id}
+              className="flex flex-col sm:flex-row items-center gap-2 p-2 rounded-lg hover:bg-gray-200 transition-all duration-300 cursor-pointer"
+              onClick={() => {
+                // ใช้ navigate แทน window.location.href เพื่อให้ React Router จัดการ
+                navigate(`/blogs/${blog.id}`);
+                // Scroll to top
+                window.scrollTo(0, 0);
+              }}
             >
               {/* รูปภาพ */}
               <div className="w-20 h-20 flex-shrink-0">
@@ -43,7 +73,7 @@ const RelatedBlogs = () => {
                   {blog?.description.substring(0, 80)}...
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

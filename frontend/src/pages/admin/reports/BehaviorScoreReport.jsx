@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { FileText, History, TrendingUp, TrendingDown, Edit2, Save, X, Calendar, Filter, Download, Eye, Clock, User, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { 
@@ -8,8 +9,10 @@ import {
     useDeleteBehaviorScoreMutation
 } from '../../../services/behaviorScoreApi';
 import { useGetClassroomsQuery } from '../../../services/studentsApi';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
 const ReportBehaviorScore = () => {
+    const currentUser = useSelector(selectCurrentUser);
     const [activeTab, setActiveTab] = useState('history');
     const [selectedClass, setSelectedClass] = useState('ทั้งหมด');
     const [searchStudent, setSearchStudent] = useState(''); // สำหรับ History tab
@@ -25,16 +28,22 @@ const ReportBehaviorScore = () => {
 
     // RTK Query hooks
     const { data: classroomsData, isLoading: isLoadingClassrooms } = useGetClassroomsQuery();
-    const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory } = useGetBehaviorReportsHistoryQuery({
+    const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory, isFetching } = useGetBehaviorReportsHistoryQuery({
         classRoom: selectedClass === 'ทั้งหมด' ? undefined : selectedClass,
         search: searchStudent || undefined, // ใช้สำหรับค้นหาชื่อ/รหัสนักเรียน
         startDate: dateRange.start || undefined,
         endDate: dateRange.end || undefined
+    }, {
+        refetchOnMountOrArgChange: true,
+        skip: false
     });
     const { data: summaryData, isLoading: isLoadingSummary, refetch: refetchSummary } = useGetBehaviorReportsSummaryQuery({
         classRoom: selectedClass === 'ทั้งหมด' ? undefined : selectedClass,
         search: searchStudent || undefined, // เพิ่มการค้นหาในหน้า Summary
         period: reportPeriod
+    }, {
+        refetchOnMountOrArgChange: true,
+        skip: false
     });
     const [updateBehaviorScore, { isLoading: isUpdating }] = useUpdateBehaviorScoreMutation();
     const [deleteBehaviorScore, { isLoading: isDeleting }] = useDeleteBehaviorScoreMutation();
@@ -47,8 +56,14 @@ const ReportBehaviorScore = () => {
 
     // Get filtered records
     const filteredRecords = useMemo(() => {
-        return historyData?.data || [];
-    }, [historyData]);
+        const data = historyData?.data || [];
+        console.log('History Data:', historyData);
+        console.log('Filtered Records:', data);
+        console.log('Selected Class:', selectedClass);
+        console.log('Search Student:', searchStudent);
+        console.log('Date Range:', dateRange);
+        return data;
+    }, [historyData, selectedClass, searchStudent, dateRange]);
 
     // Summary statistics with sorting
     const summaryStats = useMemo(() => {
@@ -139,7 +154,7 @@ const ReportBehaviorScore = () => {
                     id: recordId,
                     score: editForm.score,
                     comments: editForm.comments,
-                    updatedBy: 1 // TODO: Get from auth context
+                    updatedBy: currentUser?.id || 1
                 }).unwrap();
 
                 await Swal.fire({
@@ -190,7 +205,7 @@ const ReportBehaviorScore = () => {
             if (result.isConfirmed) {
                 await deleteBehaviorScore({
                     id: record.id,
-                    deletedBy: 1 // TODO: Get from auth context
+                    deletedBy: currentUser?.id || 1
                 }).unwrap();
 
                 await Swal.fire({
@@ -248,55 +263,55 @@ const ReportBehaviorScore = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6 border-t-4 border-indigo-600">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-indigo-600 flex items-center gap-3">
-                                <div className="p-2 bg-indigo-100 rounded-lg">
-                                    <FileText className="w-8 h-8" />
+        <div className="bg-gray-50 py-4 sm:py-6 md:py-8 px-3 sm:px-4">
+            <div className="max-w-full mx-auto overflow-x-hidden">
+                {/* Header - Mobile First */}
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6 mb-4 md:mb-6 border-t-4 border-indigo-600">
+                    <div className="flex items-start mb-4 md:mb-4">
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-indigo-600 flex items-center gap-2 sm:gap-3 leading-tight">
+                                <div className="p-1.5 sm:p-2 bg-indigo-100 rounded-lg flex-shrink-0">
+                                    <FileText className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
                                 </div>
-                                รายงานบันทึกคะแนนความประพฤติ
+                                <span className="truncate">รายงานบันทึกคะแนนความประพฤติ</span>
                             </h1>
-                            <p className="text-gray-600 mt-2 ml-1">โรงเรียนท่าบ่อพิทยาคม</p>
+                            <p className="text-sm sm:text-base text-gray-600 mt-1.5 sm:mt-2 ml-0 sm:ml-1 leading-relaxed">โรงเรียนท่าบ่อพิทยาคม</p>
                         </div>
                     </div>
 
-                    {/* Tabs */}
-                    <div className="flex gap-2 mt-6">
+                    {/* Tabs - Mobile First with Horizontal Scroll */}
+                    <div className="flex gap-2 mt-4 md:mt-6 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
                         <button
                             onClick={() => setActiveTab('history')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'history'
+                            className={`flex items-center gap-2 px-4 sm:px-5 md:px-6 py-3 rounded-lg font-bold text-sm sm:text-base transition-all touch-manipulation min-h-[48px] flex-shrink-0 ${activeTab === 'history'
                                     ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
                                 }`}
                         >
-                            <History className="w-5 h-5" />
-                            ประวัติการบันทึก
+                            <History className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                            <span className="whitespace-nowrap">ประวัติการบันทึก</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('summary')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${activeTab === 'summary'
+                            className={`flex items-center gap-2 px-4 sm:px-5 md:px-6 py-3 rounded-lg font-bold text-sm sm:text-base transition-all touch-manipulation min-h-[48px] flex-shrink-0 ${activeTab === 'summary'
                                     ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
                                 }`}
                         >
-                            <FileText className="w-5 h-5" />
-                            รายงานสรุป
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                            <span className="whitespace-nowrap">รายงานสรุป</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Filters */}
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Filter className="w-5 h-5 text-indigo-600" />
-                        <h2 className="text-lg font-semibold text-gray-800">ตัวกรอง</h2>
+                {/* Filters - Mobile First */}
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6 mb-4 md:mb-6">
+                    <div className="flex items-center gap-2 mb-3 md:mb-4">
+                        <Filter className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                        <h2 className="text-base sm:text-lg font-bold text-gray-800 leading-tight">ตัวกรอง</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">ห้องเรียน</label>
                             <select
@@ -335,7 +350,7 @@ const ReportBehaviorScore = () => {
                                         type="date"
                                         value={dateRange.start}
                                         onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                        className="w-full px- py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                     />
                                 </div>
 
@@ -354,11 +369,11 @@ const ReportBehaviorScore = () => {
 
                     {activeTab === 'summary' && (
                         <div className="mt-4">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">ช่วงเวลาสรุป</label>
-                            <div className="flex gap-2">
+                            <label className="block text-sm sm:text-base font-bold text-gray-700 mb-2">ช่วงเวลาสรุป</label>
+                            <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => setReportPeriod('week')}
-                                    className={`px-4 py-2 rounded-lg font-semibold ${reportPeriod === 'week'
+                                    className={`flex-1 sm:flex-none px-4 min-h-[48px] rounded-lg font-semibold text-base touch-manipulation transition-colors ${reportPeriod === 'week'
                                             ? 'bg-indigo-600 text-white'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
@@ -367,7 +382,7 @@ const ReportBehaviorScore = () => {
                                 </button>
                                 <button
                                     onClick={() => setReportPeriod('month')}
-                                    className={`px-4 py-2 rounded-lg font-semibold ${reportPeriod === 'month'
+                                    className={`flex-1 sm:flex-none px-4 min-h-[48px] rounded-lg font-semibold text-base touch-manipulation transition-colors ${reportPeriod === 'month'
                                             ? 'bg-indigo-600 text-white'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
@@ -376,7 +391,7 @@ const ReportBehaviorScore = () => {
                                 </button>
                                 <button
                                     onClick={() => setReportPeriod('semester')}
-                                    className={`px-4 py-2 rounded-lg font-semibold ${reportPeriod === 'semester'
+                                    className={`flex-1 sm:flex-none px-4 min-h-[48px] rounded-lg font-semibold text-base touch-manipulation transition-colors ${reportPeriod === 'semester'
                                             ? 'bg-indigo-600 text-white'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
@@ -388,36 +403,37 @@ const ReportBehaviorScore = () => {
                     )}
                 </div>
 
+                
                 {/* Export Buttons */}
-                <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-                    <div className="flex items-center gap-3">
+                <div className="bg-white rounded-lg shadow-md p-4 sm:p-5 md:p-6 mb-6">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <button
                             onClick={exportToExcel}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all"
+                            className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-base touch-manipulation transition-colors"
                         >
-                            <Download className="w-4 h-4" />
-                            ส่งออก Excel
+                            <Download className="w-5 h-5 flex-shrink-0" />
+                            <span>ส่งออก Excel</span>
                         </button>
                         <button
                             onClick={exportToPDF}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all"
+                            className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-base touch-manipulation transition-colors"
                         >
-                            <Download className="w-4 h-4" />
-                            ส่งออก PDF
+                            <Download className="w-5 h-5 flex-shrink-0" />
+                            <span>ส่งออก PDF</span>
                         </button>
                     </div>
-                </div>
+                </div>               
 
                 {/* Content */}
                 {activeTab === 'history' ? (
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-800">
+                    <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                        <div className="mb-4 sm:mb-5 md:mb-6 flex items-center justify-between">
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 truncate">
                                 ประวัติการบันทึก ({filteredRecords.length} รายการ)
                             </h2>
                         </div>
 
-                        {isLoadingHistory ? (
+                        {isLoadingHistory || isFetching ? (
                             <div className="text-center py-12">
                                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                                 <p className="text-gray-600 font-medium mt-4">กำลังโหลดข้อมูล...</p>
@@ -428,143 +444,321 @@ const ReportBehaviorScore = () => {
                                 <p className="text-gray-600 font-medium">ไม่พบข้อมูล</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {filteredRecords.map((record) => (
-                                    <div
-                                        key={record.id}
-                                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                                    >
-                                        {editingRecord === record.id ? (
-                                            <div className="space-y-4">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                            คะแนน
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            value={editForm.score}
-                                                            onChange={(e) => setEditForm({ ...editForm, score: parseInt(e.target.value) })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                            คะแนนปัจจุบัน
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={record.currentTotal}
-                                                            disabled
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                        รายละเอียด
-                                                    </label>
-                                                    <textarea
-                                                        value={editForm.comments}
-                                                        onChange={(e) => setEditForm({ ...editForm, comments: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                                        rows="3"
-                                                    />
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleSaveEdit(record.id)}
-                                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold"
-                                                    >
-                                                        <Save className="w-4 h-4" />
-                                                        บันทึก
-                                                    </button>
-                                                    <button
-                                                        onClick={handleCancelEdit}
-                                                        className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                        ยกเลิก
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-2">
-                                                            <span className="text-sm font-semibold text-gray-600">
-                                                                {record.studentCode}
-                                                            </span>
-                                                            <span className="font-bold text-gray-800">{record.studentName}</span>
-                                                            <span className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                                                {record.classRoom}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-sm text-gray-600 mb-2">
-                                                            <Calendar className="w-4 h-4 inline mr-1" />
+                            <>
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <div className="inline-block min-w-full align-middle">
+                                        <table className="min-w-full border-collapse">
+                                            <thead>
+                                                <tr className="bg-indigo-600 text-white">
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">วันที่</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">รหัส</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">ชื่อ-สกุล</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">ห้อง</th>
+                                                    <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">คะแนน</th>
+                                                    <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">คะแนนรวม</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">รายละเอียด</th>
+                                                    <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">ผู้บันทึก</th>
+                                                    <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredRecords.map((record) => (
+                                                editingRecord === record.id ? (
+                                                    <tr key={record.id} className="border-b bg-blue-50">
+                                                        <td colSpan="9" className="px-4 md:px-6 py-4 md:py-5">
+                                                            <div className="space-y-4">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                            คะแนน
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={editForm.score}
+                                                                            onChange={(e) => setEditForm({ ...editForm, score: parseInt(e.target.value) })}
+                                                                            className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                            คะแนนปัจจุบัน
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={record.currentTotal}
+                                                                            disabled
+                                                                            className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg bg-gray-50"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                        รายละเอียด
+                                                                    </label>
+                                                                    <textarea
+                                                                        value={editForm.comments}
+                                                                        onChange={(e) => setEditForm({ ...editForm, comments: e.target.value })}
+                                                                        className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                                        rows="3"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    <button
+                                                                        onClick={() => handleSaveEdit(record.id)}
+                                                                        className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold touch-manipulation transition-colors"
+                                                                    >
+                                                                        <Save className="w-5 h-5 flex-shrink-0" />
+                                                                        <span>บันทึก</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={handleCancelEdit}
+                                                                        className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold touch-manipulation transition-colors"
+                                                                    >
+                                                                        <X className="w-5 h-5 flex-shrink-0" />
+                                                                        <span>ยกเลิก</span>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    <tr key={record.id} className="border-b hover:bg-gray-50 transition-colors">
+                                                        <td className="px-3 py-3 text-sm whitespace-nowrap">
                                                             {formatDate(record.createdAt)}
-                                                        </div>
-                                                        <div className="bg-gray-50 rounded-lg p-3">
-                                                            <p className="text-sm text-gray-700">{record.comments}</p>
-                                                        </div>
-                                                        <div className="mt-2 text-xs text-gray-500">
-                                                            <User className="w-3 h-3 inline mr-1" />
-                                                            บันทึกโดย: {record.recorderName}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <span
-                                                                className={`text-2xl font-bold px-4 py-2 rounded-lg ${record.score > 0
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : 'bg-red-100 text-red-700'
-                                                                    }`}
-                                                            >
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm font-semibold whitespace-nowrap">
+                                                            {record.studentCode}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm">
+                                                            {record.studentName}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm whitespace-nowrap">
+                                                            {record.classRoom}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center">
+                                                            <span className={`text-sm font-bold px-2 py-1 rounded-lg whitespace-nowrap ${record.score > 0
+                                                                    ? 'bg-green-100 text-green-700'
+                                                                    : 'bg-red-100 text-red-700'
+                                                                }`}>
                                                                 {record.score > 0 ? '+' : ''}{record.score}
                                                             </span>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center text-sm font-bold whitespace-nowrap">
+                                                            {record.currentTotal}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm">
+                                                            <div className="max-w-[120px] truncate" title={record.comments}>
+                                                                {record.comments}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-sm">
+                                                            <div className="max-w-[100px] truncate" title={record.recorderName}>
+                                                                {record.recorderName}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleEdit(record)}
+                                                                    className="min-h-[36px] min-w-[36px] flex items-center justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation"
+                                                                    title="แก้ไข"
+                                                                    disabled={isUpdating || isDeleting}
+                                                                >
+                                                                    <Edit2 className="w-5 h-5 flex-shrink-0" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(record)}
+                                                                    className="min-h-[36px] min-w-[36px] flex items-center justify-center bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors touch-manipulation"
+                                                                    title="ลบ"
+                                                                    disabled={isUpdating || isDeleting}
+                                                                >
+                                                                    <Trash2 className="w-5 h-5 flex-shrink-0" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleViewLogs(record)}
+                                                                    className="min-h-[36px] min-w-[36px] flex items-center justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors touch-manipulation"
+                                                                    title="ดูประวัติการแก้ไข"
+                                                                >
+                                                                    <Clock className="w-5 h-5 flex-shrink-0" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            ))}
+                                        </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Mobile Cards View */}
+                                <div className="md:hidden space-y-3">
+                                    {filteredRecords.map((record) => (
+                                        <div
+                                            key={record.id}
+                                            className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
+                                        >
+                                            {editingRecord === record.id ? (
+                                                <div className="space-y-4">
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                คะแนน
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={editForm.score}
+                                                                onChange={(e) => setEditForm({ ...editForm, score: parseInt(e.target.value) })}
+                                                                className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                            />
                                                         </div>
-                                                        <div className="text-sm text-gray-600">
-                                                            คะแนนรวม: <span className="font-bold">{record.currentTotal}</span>
+                                                        <div>
+                                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                คะแนนปัจจุบัน
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={record.currentTotal}
+                                                                disabled
+                                                                className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg bg-gray-100"
+                                                            />
                                                         </div>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <button
-                                                                onClick={() => handleEdit(record)}
-                                                                className="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors"
-                                                                title="แก้ไข"
-                                                                disabled={isUpdating || isDeleting}
-                                                            >
-                                                                <Edit2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(record)}
-                                                                className="p-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
-                                                                title="ลบ"
-                                                                disabled={isUpdating || isDeleting}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleViewLogs(record)}
-                                                                className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors"
-                                                                title="ดูประวัติการแก้ไข"
-                                                            >
-                                                                <Clock className="w-4 h-4" />
-                                                            </button>
+                                                        <div>
+                                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                                รายละเอียด
+                                                            </label>
+                                                            <textarea
+                                                                value={editForm.comments}
+                                                                onChange={(e) => setEditForm({ ...editForm, comments: e.target.value })}
+                                                                className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                                rows="3"
+                                                            />
                                                         </div>
                                                     </div>
+                                                    <div className="flex flex-col gap-2 pt-3 border-t-2 border-gray-300">
+                                                        <button
+                                                            onClick={() => handleSaveEdit(record.id)}
+                                                            className="flex items-center justify-center gap-2 w-full min-h-[48px] bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold touch-manipulation transition-colors"
+                                                        >
+                                                            <Save className="w-5 h-5 flex-shrink-0" />
+                                                            <span>บันทึก</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            className="flex items-center justify-center gap-2 w-full min-h-[48px] bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold touch-manipulation transition-colors"
+                                                        >
+                                                            <X className="w-5 h-5 flex-shrink-0" />
+                                                            <span>ยกเลิก</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                            ) : (
+                                                <>
+                                                    {/* Score Badge */}
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className={`text-2xl font-bold px-4 py-2 rounded-lg ${record.score > 0
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-red-100 text-red-700'
+                                                            }`}>
+                                                            {record.score > 0 ? '+' : ''}{record.score}
+                                                        </span>
+                                                        <span className="text-sm text-gray-600">
+                                                            คะแนนรวม: <span className="font-bold text-lg">{record.currentTotal}</span>
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Date */}
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                                                        <i className="bi bi-calendar-event flex-shrink-0"></i>
+                                                        <span>{formatDate(record.createdAt)}</span>
+                                                    </div>
+
+                                                    {/* Student Info Grid */}
+                                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                                        <div>
+                                                            <div className="text-xs text-gray-500 mb-1">รหัสนักเรียน</div>
+                                                            <div className="flex items-center gap-2">
+                                                                <i className="bi bi-person-badge flex-shrink-0 text-indigo-600"></i>
+                                                                <span className="font-semibold text-gray-800">{record.studentCode}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-xs text-gray-500 mb-1">ห้องเรียน</div>
+                                                            <div className="flex items-center gap-2">
+                                                                <i className="bi bi-building flex-shrink-0 text-indigo-600"></i>
+                                                                <span className="font-semibold text-gray-800">{record.classRoom}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Student Name */}
+                                                    <div className="pt-3 border-t-2 border-gray-300 mb-3">
+                                                        <div className="text-xs text-gray-500 mb-1">ชื่อ-สกุล</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <i className="bi bi-person flex-shrink-0 text-indigo-600"></i>
+                                                            <span className="font-semibold text-gray-800">{record.studentName}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Comments */}
+                                                    <div className="mb-3">
+                                                        <div className="text-xs text-gray-500 mb-1">รายละเอียด</div>
+                                                        <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                                            <div className="flex items-start gap-2">
+                                                                <i className="bi bi-chat-dots flex-shrink-0 text-indigo-600 mt-0.5"></i>
+                                                                <p className="text-sm text-gray-700 leading-relaxed">{record.comments}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Recorder */}
+                                                    <div className="mb-3">
+                                                        <div className="text-xs text-gray-500 mb-1">ผู้บันทึก</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <i className="bi bi-person-check flex-shrink-0 text-indigo-600"></i>
+                                                            <span className="text-sm text-gray-700">{record.recorderName}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Action Buttons */}
+                                                    <div className="grid grid-cols-3 gap-2 pt-3 border-t-2 border-gray-300">
+                                                        <button
+                                                            onClick={() => handleEdit(record)}
+                                                            className="min-h-[48px] flex flex-col items-center justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation"
+                                                            disabled={isUpdating || isDeleting}
+                                                        >
+                                                            <Edit2 className="w-5 h-5 flex-shrink-0 mb-1" />
+                                                            <span className="text-xs font-semibold">แก้ไข</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(record)}
+                                                            className="min-h-[48px] flex flex-col items-center justify-center bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors touch-manipulation"
+                                                            disabled={isUpdating || isDeleting}
+                                                        >
+                                                            <Trash2 className="w-5 h-5 flex-shrink-0 mb-1" />
+                                                            <span className="text-xs font-semibold">ลบ</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleViewLogs(record)}
+                                                            className="min-h-[48px] flex flex-col items-center justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors touch-manipulation"
+                                                        >
+                                                            <Clock className="w-5 h-5 flex-shrink-0 mb-1" />
+                                                            <span className="text-xs font-semibold">ประวัติ</span>
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <div className="mb-4">
-                            <h2 className="text-xl font-bold text-gray-800">
+                    <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                        <div className="mb-4 sm:mb-5 md:mb-6">
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
                                 รายงานสรุปคะแนน ({reportPeriod === 'week' ? 'รายสัปดาห์' : reportPeriod === 'month' ? 'รายเดือน' : 'ภาคเรียน'})
                             </h2>
                         </div>
@@ -580,124 +774,214 @@ const ReportBehaviorScore = () => {
                                 <p className="text-gray-600 font-medium">ไม่พบข้อมูล</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="bg-indigo-600 text-white">
-                                            <th className="px-4 py-3 text-left text-sm font-semibold">ลำดับ</th>
-                                            <th 
-                                                onClick={() => handleSort('studentCode')}
-                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
+                            <>
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="bg-indigo-600 text-white">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-semibold">ลำดับ</th>
+                                                <th 
+                                                    onClick={() => handleSort('studentCode')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    รหัสนักเรียน {getSortIcon('studentCode')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('studentName')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    ชื่อ-สกุล {getSortIcon('studentName')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('classRoom')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-left text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    ห้อง {getSortIcon('classRoom')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('recordCount')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    จำนวนครั้ง {getSortIcon('recordCount')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('addedPoints')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5 inline mr-1 flex-shrink-0" />
+                                                    เพิ่ม {getSortIcon('addedPoints')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('deductedPoints')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    <TrendingDown className="w-4 h-4 md:w-5 md:h-5 inline mr-1 flex-shrink-0" />
+                                                    หัก {getSortIcon('deductedPoints')}
+                                                </th>
+                                                <th 
+                                                    onClick={() => handleSort('currentScore')}
+                                                    className="px-4 md:px-6 py-3 md:py-4 text-center text-sm md:text-base font-semibold cursor-pointer hover:bg-indigo-700 transition-colors touch-manipulation"
+                                                >
+                                                    คะแนนรวม {getSortIcon('currentScore')}
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {summaryStats.map((stat, index) => (
+                                                <tr key={stat.studentCode} className="border-b hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base">{index + 1}</td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base font-semibold">{stat.studentCode}</td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base">{stat.studentName}</td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base">{stat.classRoom}</td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-center font-semibold">{stat.recordCount}</td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-center">
+                                                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-semibold text-sm md:text-base">
+                                                            +{stat.addedPoints || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-center">
+                                                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-lg font-semibold text-sm md:text-base">
+                                                            -{stat.deductedPoints || 0}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-center">
+                                                        <span className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-bold text-sm md:text-base">
+                                                            {stat.currentScore}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile Cards View */}
+                                <div className="md:hidden space-y-3">
+                                    {summaryStats.map((stat, index) => {
+                                        const scoreColor = stat.currentScore >= 90 
+                                            ? 'bg-green-100 text-green-700 border-green-300' 
+                                            : stat.currentScore >= 70 
+                                            ? 'bg-blue-100 text-blue-700 border-blue-300'
+                                            : 'bg-red-100 text-red-700 border-red-300';
+                                        
+                                        return (
+                                            <div
+                                                key={stat.studentCode}
+                                                className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
                                             >
-                                                รหัสนักเรียน {getSortIcon('studentCode')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('studentName')}
-                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                ชื่อ-สกุล {getSortIcon('studentName')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('classRoom')}
-                                                className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                ห้อง {getSortIcon('classRoom')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('recordCount')}
-                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                จำนวนครั้ง {getSortIcon('recordCount')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('addedPoints')}
-                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                <TrendingUp className="w-4 h-4 inline mr-1" />
-                                                เพิ่ม {getSortIcon('addedPoints')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('deductedPoints')}
-                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                <TrendingDown className="w-4 h-4 inline mr-1" />
-                                                หัก {getSortIcon('deductedPoints')}
-                                            </th>
-                                            <th 
-                                                onClick={() => handleSort('currentScore')}
-                                                className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-indigo-700 transition-colors"
-                                            >
-                                                คะแนนรวม {getSortIcon('currentScore')}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {summaryStats.map((stat, index) => (
-                                            <tr key={stat.studentCode} className="border-b hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-sm">{index + 1}</td>
-                                                <td className="px-4 py-3 text-sm font-medium">{stat.studentCode}</td>
-                                                <td className="px-4 py-3 text-sm">{stat.studentName}</td>
-                                                <td className="px-4 py-3 text-sm">{stat.classRoom}</td>
-                                                <td className="px-4 py-3 text-sm text-center">{stat.recordCount}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-semibold text-sm">
-                                                        +{stat.addedPoints || 0}
+                                                {/* Header with Index and Score */}
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="bg-indigo-600 text-white text-sm font-bold px-3 py-1 rounded-lg">
+                                                        #{index + 1}
                                                     </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className="bg-red-100 text-red-700 px-3 py-1 rounded-lg font-semibold text-sm">
-                                                        -{stat.deductedPoints || 0}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-sm">
+                                                    <span className={`text-2xl font-bold px-4 py-2 rounded-lg border-2 ${scoreColor}`}>
                                                         {stat.currentScore}
                                                     </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                </div>
 
+                                                {/* Student Info */}
+                                                <div className="space-y-2 mb-3">
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 mb-1">รหัสนักเรียน</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <i className="bi bi-person-badge flex-shrink-0 text-indigo-600"></i>
+                                                            <span className="font-semibold text-gray-800">{stat.studentCode}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 mb-1">ชื่อ-สกุล</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <i className="bi bi-person flex-shrink-0 text-indigo-600"></i>
+                                                            <span className="font-semibold text-gray-800">{stat.studentName}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-gray-500 mb-1">ห้องเรียน</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <i className="bi bi-building flex-shrink-0 text-indigo-600"></i>
+                                                            <span className="font-semibold text-gray-800">{stat.classRoom}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Statistics Grid */}
+                                                <div className="grid grid-cols-3 gap-2 pt-3 border-t-2 border-gray-300">
+                                                    <div className="text-center">
+                                                        <div className="text-xs text-gray-500 mb-1">จำนวนครั้ง</div>
+                                                        <div className="bg-gray-100 rounded-lg py-2">
+                                                            <div className="text-lg font-bold text-gray-800">{stat.recordCount}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-xs text-gray-500 mb-1 flex items-center justify-center gap-1">
+                                                            <TrendingUp className="w-3 h-3 flex-shrink-0" />
+                                                            <span>เพิ่ม</span>
+                                                        </div>
+                                                        <div className="bg-green-100 rounded-lg py-2">
+                                                            <div className="text-lg font-bold text-green-700">+{stat.addedPoints || 0}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-xs text-gray-500 mb-1 flex items-center justify-center gap-1">
+                                                            <TrendingDown className="w-3 h-3 flex-shrink-0" />
+                                                            <span>หัก</span>
+                                                        </div>
+                                                        <div className="bg-red-100 rounded-lg py-2">
+                                                            <div className="text-lg font-bold text-red-700">-{stat.deductedPoints || 0}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
+                        {summaryStats.length > 0 && (
+                            <div>
                                 {/* Summary Totals */}
-                                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">จำนวนนักเรียน</div>
-                                        <div className="text-2xl font-bold text-blue-700">
+                                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                    <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">จำนวนนักเรียน</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700">
                                             {summaryData?.data?.statistics?.totalStudents || 0}
                                         </div>
                                     </div>
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">คะแนนเฉลี่ย</div>
-                                        <div className="text-2xl font-bold text-purple-700">
+                                    <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">คะแนนเฉลี่ย</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-700">
                                             {summaryData?.data?.statistics?.averageScore || '100.00'}
                                         </div>
                                     </div>
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">นักเรียนคะแนน ≥ 90</div>
-                                        <div className="text-2xl font-bold text-green-700">
-                                            {summaryData?.data?.statistics?.studentsAbove90 || 0} คน
+                                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">คะแนน ≥ 90</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-700">
+                                            {summaryData?.data?.statistics?.studentsAbove90 || 0}
                                         </div>
+                                        <div className="text-xs text-gray-500 mt-1">คน</div>
                                     </div>
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">นักเรียนคะแนน &lt; 70</div>
-                                        <div className="text-2xl font-bold text-red-700">
-                                            {summaryData?.data?.statistics?.studentsBelow70 || 0} คน
+                                    <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">คะแนน &lt; 70</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700">
+                                            {summaryData?.data?.statistics?.studentsBelow70 || 0}
                                         </div>
+                                        <div className="text-xs text-gray-500 mt-1">คน</div>
                                     </div>
                                 </div>
 
                                 {/* Additional Stats */}
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">คะแนนที่เพิ่มรวม</div>
-                                        <div className="text-2xl font-bold text-green-700">
+                                <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">คะแนนที่เพิ่มรวม</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-700">
                                             +{summaryData?.data?.statistics?.totalAdded || 0}
                                         </div>
                                     </div>
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <div className="text-sm text-gray-600 mb-1">คะแนนที่หักรวม</div>
-                                        <div className="text-2xl font-bold text-red-700">
+                                    <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3 sm:p-4 md:p-5">
+                                        <div className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">คะแนนที่หักรวม</div>
+                                        <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-700">
                                             -{summaryData?.data?.statistics?.totalDeducted || 0}
                                         </div>
                                     </div>
@@ -709,65 +993,68 @@ const ReportBehaviorScore = () => {
 
                 {/* Log Modal */}
                 {showLogModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                            <div className="bg-purple-600 text-white p-4 flex items-center justify-between">
-                                <h3 className="text-xl font-bold flex items-center gap-2">
-                                    <Clock className="w-6 h-6" />
-                                    ประวัติการแก้ไข
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:flex md:items-center md:justify-center md:p-4">
+                        <div className="bg-white h-full md:h-auto md:rounded-xl shadow-xl w-full max-w-full md:max-w-2xl overflow-hidden flex flex-col">
+                            <div className="bg-purple-600 text-white p-4 sm:p-5 flex items-center justify-between flex-shrink-0 sticky top-0 z-10">
+                                <h3 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
+                                    <Clock className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                                    <span className="truncate">ประวัติการแก้ไข</span>
                                 </h3>
                                 <button
                                     onClick={() => setShowLogModal(false)}
-                                    className="text-white hover:bg-purple-700 p-2 rounded-lg transition-colors"
+                                    className="min-h-[48px] min-w-[48px] flex items-center justify-center text-white hover:bg-purple-700 rounded-lg transition-colors touch-manipulation flex-shrink-0"
                                 >
-                                    <X className="w-5 h-5" />
+                                    <X className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
                                 </button>
                             </div>
 
-                            <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+                            <div className="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1">
                                 {selectedRecordLogs.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-600 font-medium">ยังไม่มีประวัติการแก้ไข</p>
+                                    <div className="text-center py-12 md:py-16">
+                                        <Clock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                                        <p className="text-base sm:text-lg text-gray-600 font-medium">ยังไม่มีประวัติการแก้ไข</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
+                                    <div className="space-y-3 sm:space-y-4">
                                         {selectedRecordLogs.map((log, index) => (
-                                            <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                                <div className="flex items-center justify-between mb-3">
+                                            <div key={index} className="border-2 border-gray-200 rounded-xl p-4 sm:p-5 bg-gray-50">
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 pb-3 border-b-2 border-gray-300">
                                                     <div className="flex items-center gap-2">
-                                                        <User className="w-4 h-4 text-purple-600" />
-                                                        <span className="font-semibold text-gray-800">{log.updatedBy}</span>
+                                                        <User className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                                                        <span className="font-bold text-gray-800 text-base sm:text-lg">{log.updatedBy}</span>
                                                     </div>
-                                                    <span className="text-sm text-gray-600">{formatDate(log.updatedAt)}</span>
+                                                    <div className="flex items-center gap-2 text-sm sm:text-base text-gray-600">
+                                                        <i className="bi bi-calendar-event flex-shrink-0"></i>
+                                                        <span>{formatDate(log.updatedAt)}</span>
+                                                    </div>
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-3 sm:space-y-4">
+                                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                                         <div>
-                                                            <div className="text-xs text-gray-500 mb-1">คะแนนเดิม</div>
-                                                            <div className={`font-bold ${log.changes.oldScore > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">คะแนนเดิม</div>
+                                                            <div className={`text-lg sm:text-xl font-bold px-3 py-2 rounded-lg text-center ${log.changes.oldScore > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                                 {log.changes.oldScore > 0 ? '+' : ''}{log.changes.oldScore}
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-xs text-gray-500 mb-1">คะแนนใหม่</div>
-                                                            <div className={`font-bold ${log.changes.newScore > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">คะแนนใหม่</div>
+                                                            <div className={`text-lg sm:text-xl font-bold px-3 py-2 rounded-lg text-center ${log.changes.newScore > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                                 {log.changes.newScore > 0 ? '+' : ''}{log.changes.newScore}
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <div className="text-xs text-gray-500 mb-1">รายละเอียดเดิม</div>
-                                                        <div className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-200">
+                                                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">รายละเอียดเดิม</div>
+                                                        <div className="text-sm sm:text-base text-gray-700 bg-white p-3 rounded-lg border border-gray-300 leading-relaxed">
                                                             {log.changes.oldComments}
                                                         </div>
                                                     </div>
 
                                                     <div>
-                                                        <div className="text-xs text-gray-500 mb-1">รายละเอียดใหม่</div>
-                                                        <div className="text-sm text-gray-700 bg-white p-2 rounded border border-gray-200">
+                                                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">รายละเอียดใหม่</div>
+                                                        <div className="text-sm sm:text-base text-gray-700 bg-white p-3 rounded-lg border border-gray-300 leading-relaxed">
                                                             {log.changes.newComments}
                                                         </div>
                                                     </div>

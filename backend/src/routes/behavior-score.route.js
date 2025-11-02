@@ -186,6 +186,8 @@ router.get('/history/:studentId', async (req, res) => {
 router.get('/reports/history', async (req, res) => {
   try {
     const { classRoom, studentId, search, startDate, endDate } = req.query;
+    
+    console.log('History Query Params:', { classRoom, studentId, search, startDate, endDate });
 
     // Build where clause
     let whereClause = {
@@ -196,10 +198,22 @@ router.get('/reports/history', async (req, res) => {
     if (startDate || endDate) {
       whereClause.createdAt = {};
       if (startDate) {
-        whereClause.createdAt.gte = new Date(startDate);
+        try {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0); // เริ่มต้นวัน
+          whereClause.createdAt.gte = start;
+        } catch (e) {
+          console.error('Invalid startDate:', startDate);
+        }
       }
       if (endDate) {
-        whereClause.createdAt.lte = new Date(endDate);
+        try {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999); // สิ้นสุดวัน
+          whereClause.createdAt.lte = end;
+        } catch (e) {
+          console.error('Invalid endDate:', endDate);
+        }
       }
     }
 
@@ -253,38 +267,101 @@ router.get('/reports/history', async (req, res) => {
 
     // Format data with current total
     const formattedRecords = await Promise.all(filteredRecords.map(async (record) => {
-      // Calculate current total for this student
-      const allScores = await prisma.studentbehaviorscores.findMany({
-        where: {
-          studentId: record.studentId,
-          isDeleted: false
-        },
-        select: { score: true }
-      });
-      const currentTotal = 100 + allScores.reduce((sum, s) => sum + s.score, 0);
+      try {
+        // Calculate current total for this student
+        const allScores = await prisma.studentbehaviorscores.findMany({
+          where: {
+            studentId: record.studentId,
+            isDeleted: false
+          },
+          select: { score: true }
+        });
+        const currentTotal = 100 + allScores.reduce((sum, s) => sum + s.score, 0);
 
-      return {
-        id: record.id,
-        studentId: record.students?.id,
-        studentCode: record.students?.studentNumber?.toString().padStart(5, '0') || '',
-        studentName: `${record.students?.namePrefix || ''}${record.students?.fullName || ''}`,
-        classRoom: record.students?.classRoom || '',
-        score: record.score,
-        currentTotal: currentTotal,
-        comments: record.comments,
-        category: record.score > 0 ? 'เพิ่มคะแนน' : 'หักคะแนน',
-        recorderId: record.users_studentbehaviorscores_recorderIdTousers?.id,
-        recorderName: record.users_studentbehaviorscores_recorderIdTousers?.username || 'ไม่ระบุ',
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt,
-        updateLogs: [] // TODO: Implement audit logs if needed
-      };
+        // ดึง audit logs สำหรับบันทึกนี้
+        let auditLogs = [];
+        try {
+          auditLogs = await prisma.audit_logs.findMany({
+            where: {
+              tableName: 'studentbehaviorscores',
+              recordId: record.id,
+              action: 'UPDATE'
+            },
+            include: {
+              users: {
+                select: {
+                  id: true,
+                  username: true,
+                  fullName: true
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          });
+        } catch (auditError) {
+          console.error('Error fetching audit logs:', auditError);
+          auditLogs = [];
+        }
+
+        // แปลง audit logs เป็นรูปแบบที่ frontend ต้องการ
+        const updateLogs = auditLogs.map(log => {
+          let oldValues = {};
+          let newValues = {};
+          
+          try {
+            oldValues = log.oldValues ? JSON.parse(log.oldValues) : {};
+            newValues = log.newValues ? JSON.parse(log.newValues) : {};
+          } catch (e) {
+            console.error('Error parsing audit log values:', e);
+          }
+
+          return {
+            updatedBy: log.users?.fullName || log.users?.username || 'ไม่ระบุ',
+            updatedAt: log.createdAt,
+            changes: {
+              oldScore: oldValues.score || 0,
+              newScore: newValues.score || 0,
+              oldComments: oldValues.comments || '',
+              newComments: newValues.comments || ''
+            }
+          };
+        });
+
+        return {
+          id: record.id,
+          studentId: record.students?.id,
+          studentCode: record.students?.studentNumber?.toString().padStart(5, '0') || '',
+          studentName: `${record.students?.namePrefix || ''}${record.students?.fullName || ''}`,
+          classRoom: record.students?.classRoom || '',
+          score: record.score,
+          currentTotal: currentTotal,
+          comments: record.comments,
+          category: record.score > 0 ? 'เพิ่มคะแนน' : 'หักคะแนน',
+          recorderId: record.users_studentbehaviorscores_recorderIdTousers?.id,
+          recorderName: record.users_studentbehaviorscores_recorderIdTousers?.username || 'ไม่ระบุ',
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+          updateLogs: updateLogs
+        };
+      } catch (recordError) {
+        console.error('Error formatting record:', recordError);
+        return null;
+      }
     }));
+
+    // Filter out null records
+    const validRecords = formattedRecords.filter(r => r !== null);
+    
+    console.log(`Found ${records.length} total records`);
+    console.log(`After filtering: ${filteredRecords.length} records`);
+    console.log(`After formatting: ${validRecords.length} valid records`);
 
     res.json({
       success: true,
-      data: formattedRecords,
-      total: formattedRecords.length
+      data: validRecords,
+      total: validRecords.length
     });
 
   } catch (error) {
@@ -450,12 +527,23 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // เก็บค่าเก่าสำหรับ audit log
+    const oldValues = {
+      score: existingRecord.score,
+      comments: existingRecord.comments
+    };
+
+    const newValues = {
+      score: score !== undefined ? score : existingRecord.score,
+      comments: comments !== undefined ? comments : existingRecord.comments
+    };
+
     // อัพเดท
     const updated = await prisma.studentbehaviorscores.update({
       where: { id: parseInt(id) },
       data: {
-        score: score !== undefined ? score : existingRecord.score,
-        comments: comments !== undefined ? comments : existingRecord.comments,
+        score: newValues.score,
+        comments: newValues.comments,
         updatedBy: updatedBy || existingRecord.updatedBy,
         updatedAt: new Date()
       },
@@ -468,6 +556,27 @@ router.put('/:id', async (req, res) => {
         }
       }
     });
+
+    // บันทึก audit log
+    if (updatedBy) {
+      try {
+        await prisma.audit_logs.create({
+          data: {
+            userId: updatedBy,
+            tableName: 'studentbehaviorscores',
+            recordId: parseInt(id),
+            action: 'UPDATE',
+            oldValues: JSON.stringify(oldValues),
+            newValues: JSON.stringify(newValues),
+            ipAddress: req.ip || req.connection.remoteAddress,
+            userAgent: req.get('user-agent')
+          }
+        });
+      } catch (auditError) {
+        console.error('Error creating audit log:', auditError);
+        // ไม่ให้ error ของ audit log ทำให้การอัพเดทล้มเหลว
+      }
+    }
 
     res.json({
       success: true,

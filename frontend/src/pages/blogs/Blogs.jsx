@@ -17,8 +17,6 @@ const Blogs = ({ limit }) => {
   const { data, error, isLoading } = useFetchBlogsQuery(query);
   const blogs = data || [];
 
-
-
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleSearch = () => {
     setQuery({ search, category });
@@ -50,12 +48,17 @@ const Blogs = ({ limit }) => {
   }, [blogs, currentPage, blogsPerPage, limit]);
 
   // ฟังก์ชันเปลี่ยนหน้า
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top ของ section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // ฟังก์ชันเปลี่ยนจำนวนรายการต่อหน้า
   const handleBlogsPerPageChange = (e) => {
     setBlogsPerPage(parseInt(e.target.value));
     setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ฟังก์ชันตัดคำอธิบาย
@@ -205,12 +208,13 @@ const Blogs = ({ limit }) => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="mt-12 flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-6 rounded-lg"
+            className="mt-12 flex flex-col items-center justify-center gap-6 bg-white p-6 rounded-lg shadow-md"
           >
-            <div className="flex items-center gap-2">
+            {/* จำนวนรายการต่อหน้า */}
+            <div className="flex items-center gap-2 w-full md:w-auto justify-center">
               <span className="text-sm text-textSecondary">แสดง:</span>
               <select
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent bg-white cursor-pointer"
                 value={blogsPerPage}
                 onChange={handleBlogsPerPageChange}
               >
@@ -222,51 +226,85 @@ const Blogs = ({ limit }) => {
               <span className="text-sm text-textSecondary">รายการต่อหน้า</span>
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-textSecondary">
+            {/* ปุ่มเปลี่ยนหน้า */}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <span className="text-sm text-textSecondary font-medium">
                 หน้า {currentPage} จาก {totalPages}
               </span>
-              <div className="flex gap-2">
+              
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {/* ปุ่มก่อนหน้า */}
                 <button
                   onClick={() => paginate(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors"
                 >
                   ก่อนหน้า
                 </button>
                 
-                {/* แสดงปุ่มเลขหน้า */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
+                {/* ปุ่มหน้าแรก (แสดงเฉพาะเมื่อ currentPage > 3 และ totalPages > 5) */}
+                {currentPage > 3 && totalPages > 5 && (
+                  <>
                     <button
-                      key={pageNum}
-                      onClick={() => paginate(pageNum)}
-                      className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-primary text-white border-primary'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
+                      onClick={() => paginate(1)}
+                      className="px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50 transition-colors"
                     >
-                      {pageNum}
+                      1
                     </button>
-                  );
-                })}
+                    <span className="text-gray-400">...</span>
+                  </>
+                )}
                 
+                {/* แสดงปุ่มเลขหน้า (แสดงเฉพาะ 3 ปุ่มบน mobile, 5 ปุ่มบน desktop) */}
+                <div className="flex gap-2">
+                  {Array.from({ length: Math.min(window.innerWidth < 640 ? 3 : 5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    const maxButtons = window.innerWidth < 640 ? 3 : 5;
+                    
+                    if (totalPages <= maxButtons) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= Math.ceil(maxButtons / 2)) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - Math.floor(maxButtons / 2)) {
+                      pageNum = totalPages - maxButtons + i + 1;
+                    } else {
+                      pageNum = currentPage - Math.floor(maxButtons / 2) + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => paginate(pageNum)}
+                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                          currentPage === pageNum
+                            ? 'bg-primary text-white border-primary shadow-md transform scale-105'
+                            : 'border-gray-300 hover:bg-gray-50 hover:border-primary'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* ปุ่มหน้าสุดท้าย (แสดงเฉพาะเมื่อ currentPage < totalPages - 2 และ totalPages > 5) */}
+                {currentPage < totalPages - 2 && totalPages > 5 && (
+                  <>
+                    <span className="text-gray-400">...</span>
+                    <button
+                      onClick={() => paginate(totalPages)}
+                      className="px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+                
+                {/* ปุ่มถัดไป */}
                 <button
                   onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors"
                 >
                   ถัดไป
                 </button>

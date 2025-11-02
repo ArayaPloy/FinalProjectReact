@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useRegisterUserMutation } from "../../redux/features/auth/authApi";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaEnvelope, FaLock } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 const RegisterForm = () => {
   const [username, setUserName] = useState("");
@@ -21,9 +22,28 @@ const RegisterForm = () => {
 
     try {
       await registerUser(data).unwrap();
-      alert("สมัครสมาชิกสำเร็จ");
-      navigate('/login');
+      
+      // แสดง SweetAlert2 เมื่อสมัครสำเร็จ
+      Swal.fire({
+        icon: "success",
+        title: "สมัครสมาชิกสำเร็จ!",
+        text: "บัญชีของคุณถูกสร้างเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ",
+        confirmButtonText: "ไปหน้าเข้าสู่ระบบ",
+        confirmButtonColor: "#B45309",
+        timer: 3000,
+        timerProgressBar: true
+      }).then(() => {
+        navigate('/login');
+      });
     } catch (err) {
+      // แสดง SweetAlert2 เมื่อสมัครไม่สำเร็จ
+      Swal.fire({
+        icon: "error",
+        title: "สมัครสมาชิกไม่สำเร็จ",
+        text: err?.data?.message || "กรุณาตรวจสอบข้อมูลและลองอีกครั้ง",
+        confirmButtonText: "ลองอีกครั้ง",
+        confirmButtonColor: "#B45309"
+      });
       setMessage("สมัครสมาชิกไม่สำเร็จ กรุณาลองอีกครั้ง");
     }
   };

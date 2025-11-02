@@ -176,7 +176,7 @@ const ManageUser = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user, index) => (
-                <tr key={user.id || user._id || `user-${index}`} className="hover:bg-gray-50 transition-colors">
+                <tr key={user.id || `user-${index}`} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {index + 1}
                   </td>
@@ -203,7 +203,7 @@ const ManageUser = () => {
                         แก้ไข
                       </button>
                       <button
-                        onClick={() => setShowDeleteConfirm(user.id || user._id)}
+                        onClick={() => setShowDeleteConfirm(user.id)}
                         className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors"
                         title="ลบผู้ใช้"
                         disabled={isDeleting}

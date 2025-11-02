@@ -6,6 +6,7 @@ import EditorJS from '@editorjs/editorjs';
 import List from '@editorjs/list'; 
 import Header from '@editorjs/header';
 import { getApiURL } from "../../../utils/apiConfig";
+import Swal from 'sweetalert2';
 
 const AddPost = () => {
   const editorRef = useRef(null);
@@ -146,7 +147,13 @@ const AddPost = () => {
     
     // ตรวจสอบว่า editor พร้อมหรือยัง
     if (!editorRef.current || !isEditorReady) {
-      setMessage("กรุณารอสักครู่ Editor กำลังโหลด...");
+      await Swal.fire({
+        icon: 'warning',
+        title: 'กรุณารอสักครู่',
+        text: 'Editor กำลังโหลด...',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#3085d6'
+      });
       return;
     }
 
@@ -156,9 +163,26 @@ const AddPost = () => {
       
       // ตรวจสอบว่ามีเนื้อหาหรือไม่
       if (!content.blocks || content.blocks.length === 0) {
-        setMessage("กรุณาเพิ่มเนื้อหาบทความ");
+        await Swal.fire({
+          icon: 'warning',
+          title: 'เนื้อหาไม่ครบ',
+          text: 'กรุณาเพิ่มเนื้อหาบทความ',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#3085d6'
+        });
         return;
       }
+
+      // แสดง loading
+      Swal.fire({
+        title: 'กำลังบันทึก...',
+        html: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       const newPost = {
         title, 
@@ -172,11 +196,27 @@ const AddPost = () => {
       console.log('Sending post data:', newPost);
       
       const response = await PostBlog(newPost).unwrap();
-      alert(response.message);
+      
+      // แสดงความสำเร็จ
+      await Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: response.message || 'เพิ่มบทความสำเร็จ',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#10b981'
+      });
+      
       navigate("/blogs");
     } catch (error) {
       console.error('Error creating post:', error);
-      setMessage("เพิ่มบทความไม่สำเร็จ กรุณาลองอีกครั้ง");
+      
+      await Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: error.data?.message || 'เพิ่มบทความไม่สำเร็จ กรุณาลองอีกครั้ง',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#ef4444'
+      });
     }
   }
 

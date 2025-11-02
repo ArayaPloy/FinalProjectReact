@@ -3,6 +3,7 @@ import { usePostCommentMutation } from '../../../redux/features/comments/comment
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useFetchBlogByIdQuery } from '../../../redux/features/blogs/blogsApi';
+import Swal from 'sweetalert2';
 
 const PostAComment = () => {
   const { id } = useParams();
@@ -21,19 +22,35 @@ const PostAComment = () => {
 
     // Check if user is logged in
     if (!user) {
-      alert('คุณต้องเข้าสู่ระบบเพื่อแสดงความคิดเห็น');
+      await Swal.fire({
+        icon: 'warning',
+        title: 'กรุณาเข้าสู่ระบบ',
+        text: 'คุณต้องเข้าสู่ระบบเพื่อแสดงความคิดเห็น',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#3085d6'
+      });
       navigate('/login');
       return;
     }
 
     // Confirm before submitting
-    const isConfirmed = window.confirm('คุณแน่ใจหรือไม่ที่จะส่งความคิดเห็นนี้?');
-    if (!isConfirmed) return;
+    const result = await Swal.fire({
+      title: 'ยืนยันการส่งความคิดเห็น',
+      text: 'คุณแน่ใจหรือไม่ที่จะส่งความคิดเห็นนี้?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!result.isConfirmed) return;
 
     // Prepare the comment data
     const newComment = {
       comment: comment,
-      user: user._id, // Ensure user ID is correctly passed
+      user: user.id, // Prisma uses 'id' not '_id'
       postId: id, // Ensure post ID is correctly passed
     };
 
@@ -45,17 +62,30 @@ const PostAComment = () => {
       // Clear the comment input and refetch comments
       setComment('');
       refetch();
-      alert('แสดงความคิดเห็นสำเร็จ!');
+      
+      await Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: 'แสดงความคิดเห็นสำเร็จ',
+        timer: 1500,
+        showConfirmButton: false
+      });
     } catch (err) {
       // Handle errors
       console.error('Failed to post comment:', err);
-      alert(err.data?.message || 'เกิดข้อผิดพลาดในการแสดงความคิดเห็น');
+      await Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด!',
+        text: err.data?.message || 'เกิดข้อผิดพลาดในการแสดงความคิดเห็น',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#d33'
+      });
     }
   };
 
   return (
     <div className='mt-8'>
-      <h3 className="text-lg font-medium mb-8">Leave a Comment</h3>
+      <h3 className="text-lg font-medium mb-8">ความคิดเห็น</h3>
       <form onSubmit={handleSubmit}>
         <textarea
           value={comment}

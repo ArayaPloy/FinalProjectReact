@@ -86,30 +86,30 @@ const FlagpoleAttendanceReport = () => {
     const loading = reportLoading || classesLoading;
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="min-h-screen bg-gray-50 py-4 sm:py-6 md:py-8 px-3 sm:px-4">
             <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-amber-600 flex items-center gap-2">
-                                <i className="bi bi-graph-up-arrow text-4xl"></i>
-                                รายงานการเช็คชื่อนักเรียนเข้าแถว
+                {/* Header - Mobile First */}
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6 mb-4 md:mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 md:mb-4">
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-600 flex items-center gap-2 sm:gap-3 leading-tight">
+                                <i className="bi bi-graph-up-arrow text-2xl sm:text-3xl md:text-4xl flex-shrink-0"></i>
+                                <span className="truncate">รายงานการเช็คชื่อนักเรียนเข้าแถว</span>
                             </h1>
-                            <p className="text-gray-600 mt-1">สถิติและข้อมูลการเข้าแถวหน้าเสาธง</p>
+                            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-1.5 leading-relaxed">สถิติและข้อมูลการเข้าแถวหน้าเสาธง</p>
                         </div>
                         <button
                             onClick={handleExport}
                             disabled={!reportData?.records?.length}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-4 sm:px-5 md:px-6 py-3 sm:py-2.5 rounded-lg md:rounded-xl flex items-center justify-center gap-2 font-bold text-sm sm:text-base transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-h-[48px] sm:min-h-0"
                         >
-                            <i className="bi bi-download text-lg"></i>
-                            ส่งออก CSV
+                            <i className="bi bi-download text-base sm:text-lg flex-shrink-0"></i>
+                            <span>ส่งออก CSV</span>
                         </button>
                     </div>
 
-                    {/* Filters */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Filters - Mobile First */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         <DatePicker label="วันที่เริ่มต้น" value={startDate} onChange={setStartDate} />
                         <DatePicker label="วันที่สิ้นสุด" value={endDate} onChange={setEndDate} />
                         <ClassSelect
@@ -126,68 +126,68 @@ const FlagpoleAttendanceReport = () => {
                     <LoadingSpinner message="กำลังโหลดรายงาน..." />
                 ) : (
                     <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+                        {/* Summary Cards - Mobile First */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4 md:mb-6">
                             <SummaryCard
                                 title="ทั้งหมด"
                                 value={totalRecords}
-                                icon={<i className="bi bi-clipboard-data text-2xl"></i>}
+                                icon={<i className="bi bi-clipboard-data text-xl sm:text-2xl"></i>}
                                 color="bg-gray-500"
                             />
                             <SummaryCard
                                 title="มา"
                                 value={presentCount}
-                                icon={<i className="bi bi-check-circle-fill text-2xl"></i>}
+                                icon={<i className="bi bi-check-circle-fill text-xl sm:text-2xl"></i>}
                                 color="bg-green-500"
                             />
                             <SummaryCard 
                                 title="สาย" 
                                 value={lateCount} 
-                                icon={<i className="bi bi-clock-fill text-2xl"></i>}
+                                icon={<i className="bi bi-clock-fill text-xl sm:text-2xl"></i>}
                                 color="bg-yellow-500" 
                             />
                             <SummaryCard 
                                 title="ลาป่วย" 
                                 value={sickLeaveCount} 
-                                icon={<i className="bi bi-heart-pulse-fill text-2xl"></i>}
+                                icon={<i className="bi bi-heart-pulse-fill text-xl sm:text-2xl"></i>}
                                 color="bg-blue-500" 
                             />
                             <SummaryCard 
                                 title="ลากิจ" 
                                 value={personalLeaveCount} 
-                                icon={<i className="bi bi-person-fill-dash text-2xl"></i>}
+                                icon={<i className="bi bi-person-fill-dash text-xl sm:text-2xl"></i>}
                                 color="bg-purple-500" 
                             />
                             <SummaryCard 
                                 title="ขาด" 
                                 value={absentCount} 
-                                icon={<i className="bi bi-x-circle-fill text-2xl"></i>}
+                                icon={<i className="bi bi-x-circle-fill text-xl sm:text-2xl"></i>}
                                 color="bg-red-500" 
                             />
                         </div>
 
-                        {/* Attendance Rate */}
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4">อัตราการเข้าแถวหน้าเสาธง</h2>
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+                        {/* Attendance Rate - Mobile First */}
+                        <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6 mb-4 md:mb-6">
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">อัตราการเข้าแถวหน้าเสาธง</h2>
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="flex-1 bg-gray-200 rounded-full h-7 sm:h-8 overflow-hidden">
                                     <div
-                                        className="bg-green-500 h-full flex items-center justify-center text-white font-bold text-sm transition-all"
+                                        className="bg-green-500 h-full flex items-center justify-center text-white font-bold text-xs sm:text-sm transition-all"
                                         style={{ width: `${attendanceRate}%` }}
                                     >
                                         {attendanceRate > 10 && `${attendanceRate}%`}
                                     </div>
                                 </div>
-                                <span className="text-2xl font-bold text-green-600">{attendanceRate}%</span>
+                                <span className="text-xl sm:text-2xl font-bold text-green-600 flex-shrink-0">{attendanceRate}%</span>
                             </div>
                         </div>
 
-                        {/* Charts */}
+                        {/* Charts - Mobile First */}
                         {chartData.length > 0 ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-4 md:mb-6">
                                 {/* Bar Chart */}
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟแท่ง - การเข้าแถวรายวัน</h2>
+                                <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                                    <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">กราฟแท่ง - การเข้าแถวรายวัน</h2>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart data={chartData}>
                                             <CartesianGrid strokeDasharray="3 3" />
@@ -205,8 +205,8 @@ const FlagpoleAttendanceReport = () => {
                                 </div>
 
                                 {/* Pie Chart */}
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-xl font-bold text-gray-800 mb-4">กราฟวงกลม - สัดส่วนสถานะการมาเข้าแถว</h2>
+                                <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                                    <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">กราฟวงกลม - สัดส่วนสถานะการมาเข้าแถว</h2>
                                     <ResponsiveContainer width="100%" height={300}>
                                         <PieChart>
                                             <Pie
@@ -229,55 +229,57 @@ const FlagpoleAttendanceReport = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-                                <i className="bi bi-inbox text-6xl mb-4 opacity-50 block"></i>
-                                <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+                            <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-8 sm:p-10 md:p-12 text-center text-gray-500">
+                                <i className="bi bi-inbox text-5xl sm:text-6xl mb-3 md:mb-4 opacity-50 block"></i>
+                                <p className="text-sm sm:text-base leading-relaxed">ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
                             </div>
                         )}
 
-                        {/* Data Table */}
+                        {/* Data Table - Dual View: Desktop Table + Mobile Cards */}
                         {reportData?.records?.length > 0 && (
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4">ตารางข้อมูลรายละเอียด</h2>
-                                <div className="overflow-x-auto">
+                            <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">ตารางข้อมูลรายละเอียด</h2>
+                                
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     วันที่
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     เลขประจำตัว
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     ชื่อ-นามสกุล
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     ห้องเรียน
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     สถานะ
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {reportData.records.map((record, index) => (
-                                                <tr key={index} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-900">
                                                         {record.date}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-900 font-medium">
                                                         {record.studentNumber}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-900">
                                                         {record.studentName}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-900 font-medium">
                                                         {record.classRoom}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-4 md:px-6 py-3 md:py-4">
                                                         <span
-                                                            className="px-3 py-1 rounded-full text-white text-sm font-semibold"
+                                                            className="px-3 py-1.5 rounded-lg text-white text-sm font-bold"
                                                             style={{ backgroundColor: COLORS[record.status] }}
                                                         >
                                                             {record.status}
@@ -288,6 +290,72 @@ const FlagpoleAttendanceReport = () => {
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Mobile Card View */}
+                                <div className="md:hidden space-y-3">
+                                    {reportData.records.map((record, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 space-y-3 hover:border-amber-300 transition-colors"
+                                        >
+                                            {/* Header with Status */}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-gray-500 font-medium">รายการที่ {index + 1}</span>
+                                                <span
+                                                    className="px-3 py-1.5 rounded-lg text-white text-sm font-bold"
+                                                    style={{ backgroundColor: COLORS[record.status] }}
+                                                >
+                                                    {record.status}
+                                                </span>
+                                            </div>
+
+                                            {/* Date */}
+                                            <div className="flex items-start gap-2">
+                                                <i className="bi bi-calendar-event text-gray-400 text-base flex-shrink-0 mt-0.5"></i>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs text-gray-500 mb-0.5">วันที่</p>
+                                                    <p className="text-sm font-bold text-gray-800 leading-tight">
+                                                        {record.date}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Student Info */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="flex items-start gap-2">
+                                                    <i className="bi bi-person-badge text-gray-400 text-base flex-shrink-0 mt-0.5"></i>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs text-gray-500 mb-0.5">เลขประจำตัว</p>
+                                                        <p className="text-sm font-bold text-gray-800 leading-tight break-words">
+                                                            {record.studentNumber}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-start gap-2">
+                                                    <i className="bi bi-building text-gray-400 text-base flex-shrink-0 mt-0.5"></i>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs text-gray-500 mb-0.5">ห้องเรียน</p>
+                                                        <p className="text-sm font-bold text-gray-800 leading-tight">
+                                                            {record.classRoom}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Name */}
+                                            <div className="flex items-start gap-2 pt-2 border-t border-gray-200">
+                                                <i className="bi bi-person text-gray-400 text-base flex-shrink-0 mt-0.5"></i>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs text-gray-500 mb-0.5">ชื่อ-นามสกุล</p>
+                                                    <p className="text-sm font-bold text-gray-800 leading-tight break-words">
+                                                        {record.studentName}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </>
@@ -297,15 +365,15 @@ const FlagpoleAttendanceReport = () => {
     );
 };
 
-// Summary Card Component
+// Summary Card Component - Mobile First
 const SummaryCard = ({ title, value, icon, color }) => {
     return (
-        <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-600">{title}</h3>
-                {icon && <div className={`${color} text-white p-2 rounded-lg`}>{icon}</div>}
+        <div className="bg-white rounded-lg md:rounded-xl shadow-md p-3 sm:p-4 md:p-5">
+            <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                <h3 className="text-xs sm:text-sm font-bold text-gray-600 leading-tight">{title}</h3>
+                {icon && <div className={`${color} text-white p-1.5 sm:p-2 rounded-lg flex-shrink-0`}>{icon}</div>}
             </div>
-            <p className="text-3xl font-bold text-gray-800">{value.toLocaleString()}</p>
+            <p className="text-2xl sm:text-2xl md:text-3xl font-bold text-gray-800 leading-none">{value.toLocaleString()}</p>
         </div>
     );
 };

@@ -44,8 +44,8 @@ const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
     }
     
     try {
-      // Use both possible ID formats for compatibility
-      const userId = user.id || user._id;
+      // Prisma uses 'id' field
+      const userId = user.id;
       const roleId = getRoleId(role);
       
       await updateUserRole({ userId, roleId, username: username.trim() }).unwrap();
