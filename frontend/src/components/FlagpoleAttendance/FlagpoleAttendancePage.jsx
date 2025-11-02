@@ -38,13 +38,37 @@ const FlagpoleAttendancePage = () => {
   const [createAttendance, { isLoading: isSaving }] = useCreateFlagpoleAttendanceMutation();
 
   // Academic Year & Semester hooks
-  const { data: academicYears = [], isLoading: isLoadingYears } = useGetAcademicYearsQuery();
-  const { data: currentSemester } = useGetCurrentSemesterQuery();
+  const { 
+    data: academicYears = [], 
+    isLoading: isLoadingYears,
+    error: yearsError 
+  } = useGetAcademicYearsQuery();
+  
+  const { 
+    data: currentSemester,
+    isLoading: isLoadingCurrentSemester,
+    error: semesterError 
+  } = useGetCurrentSemesterQuery();
+
+  // Debug: ตรวจสอบข้อมูลที่ดึงมา
+  useEffect(() => {
+    console.log('=== Academic Data Debug ===');
+    console.log('Academic Years:', academicYears);
+    console.log('Academic Years Error:', yearsError);
+    console.log('Current Semester:', currentSemester);
+    console.log('Current Semester Error:', semesterError);
+    console.log('Selected Academic Year:', selectedAcademicYear);
+    console.log('Selected Semester:', selectedSemester);
+    console.log('Is Loading Years:', isLoadingYears);
+    console.log('Is Loading Current Semester:', isLoadingCurrentSemester);
+    console.log('==========================');
+  }, [academicYears, currentSemester, selectedAcademicYear, selectedSemester, isLoadingYears, isLoadingCurrentSemester, yearsError, semesterError]);
 
   // Filter active semesters for selected academic year
   const availableSemesters = useMemo(() => {
     if (!selectedAcademicYear) return [];
     const year = academicYears.find(y => y.id === parseInt(selectedAcademicYear));
+    console.log('Available Semesters for year:', selectedAcademicYear, year?.semesters);
     return year?.semesters || [];
   }, [selectedAcademicYear, academicYears]);
 
@@ -57,10 +81,17 @@ const FlagpoleAttendancePage = () => {
   // Set default academic year and semester from current semester
   useEffect(() => {
     if (currentSemester && !selectedAcademicYear && !selectedSemester) {
-      setSelectedAcademicYear(currentSemester.academicYearId.toString());
-      setSelectedSemester(currentSemester.id.toString());
+      console.log('Setting default values from currentSemester:', currentSemester);
+      // ตรวจสอบว่า academicYearId อยู่ใน currentSemester หรือ academic_years
+      const yearId = currentSemester.academicYearId || currentSemester.academic_years?.id;
+      if (yearId) {
+        setSelectedAcademicYear(yearId.toString());
+        setSelectedSemester(currentSemester.id.toString());
+      } else {
+        console.error('ไม่พบ academicYearId ใน currentSemester:', currentSemester);
+      }
     }
-  }, [currentSemester]);
+  }, [currentSemester, selectedAcademicYear, selectedSemester]);
 
   // Filter students using useMemo to prevent unnecessary re-renders
   const filteredStudents = useMemo(() => {
