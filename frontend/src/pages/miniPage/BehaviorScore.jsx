@@ -144,33 +144,207 @@ const BehaviorScorePage = () => {
         setBulkCriteria({ criteriaId, points, description });
     };
 
-    const handleApplyBulkScore = () => {
+    const handleApplyBulkScore = async () => {
+        // ตรวจสอบข้อมูลที่จำเป็น
         if (!bulkCriteria || selectedStudents.length === 0 || !bulkComment.trim()) {
-            alert('กรุณาเลือกคะแนน เลือกนักเรียน และกรอกเหตุผล');
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                html: `
+                    <div class="text-left space-y-2">
+                        <p class="text-gray-700">กรุณาตรวจสอบข้อมูลต่อไปนี้:</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600 text-sm">
+                            ${!bulkCriteria ? '<li>เลือกคะแนนที่ต้องการบันทึก</li>' : ''}
+                            ${selectedStudents.length === 0 ? '<li>เลือกนักเรียนอย่างน้อย 1 คน</li>' : ''}
+                            ${!bulkComment.trim() ? '<li>กรอกเหตุผลการให้คะแนน</li>' : ''}
+                        </ul>
+                    </div>
+                `,
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'เข้าใจแล้ว',
+                customClass: {
+                    confirmButton: 'font-bold px-6 py-3'
+                }
+            });
             return;
         }
+
+        // ยืนยันการบันทึก
+        const result = await Swal.fire({
+            title: 'ยืนยันการบันทึกกลุ่ม',
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-gray-700">คุณต้องการบันทึกคะแนนกลุ่มใช่หรือไม่?</p>
+                    
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-3">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-people-fill text-amber-600"></i>
+                                <span class="text-gray-700">จำนวนนักเรียน: <strong class="text-amber-700">${selectedStudents.length}</strong> คน</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${bulkCriteria.points > 0 
+                                    ? '<i class="bi bi-arrow-up-circle-fill text-green-600"></i>' 
+                                    : '<i class="bi bi-arrow-down-circle-fill text-red-600"></i>'}
+                                <span class="text-gray-700">คะแนน: <strong class="${bulkCriteria.points > 0 ? 'text-green-600' : 'text-red-600'}">${bulkCriteria.points > 0 ? '+' : ''}${bulkCriteria.points}</strong> คะแนน</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border-2 border-gray-200 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 mb-1">เหตุผล:</p>
+                        <p class="text-gray-700 text-sm">${bulkComment}</p>
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-check-circle-fill mr-2"></i>ยืนยัน',
+            cancelButtonText: '<i class="bi bi-x-circle mr-2"></i>ยกเลิก',
+            confirmButtonColor: '#D97706',
+            cancelButtonColor: '#6B7280',
+            reverseButtons: true,
+            customClass: {
+                confirmButton: 'font-bold px-6 py-3',
+                cancelButton: 'font-bold px-6 py-3'
+            }
+        });
+
+        if (!result.isConfirmed) return;
+
+        // บันทึกคะแนน
         const newRecords = { ...scoreRecords };
         selectedStudents.forEach(studentId => {
             newRecords[studentId] = { ...bulkCriteria, comment: bulkComment };
         });
         setScoreRecords(newRecords);
+
+        // แสดงผลสำเร็จ
+        Swal.fire({
+            icon: 'success',
+            title: 'บันทึกคะแนนกลุ่มสำเร็จ!',
+            html: `
+                <div class="space-y-3">
+                    <p class="text-gray-700">บันทึกคะแนนความประพฤติกลุ่มเรียบร้อยแล้ว</p>
+                    <div class="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2 text-green-700">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>บันทึกสำเร็จ <strong>${selectedStudents.length}</strong> คน</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-green-700">
+                                ${bulkCriteria.points > 0 
+                                    ? '<i class="bi bi-arrow-up-circle-fill"></i>' 
+                                    : '<i class="bi bi-arrow-down-circle-fill"></i>'}
+                                <span>คะแนน: <strong>${bulkCriteria.points > 0 ? '+' : ''}${bulkCriteria.points}</strong> คะแนน</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">
+                        <i class="bi bi-info-circle mr-1"></i>
+                        กรุณากดปุ่ม "บันทึกข้อมูล" ด้านล่างเพื่อบันทึกลงฐานข้อมูล
+                    </p>
+                </div>
+            `,
+            confirmButtonColor: '#10B981', // Green
+            confirmButtonText: 'เรียบร้อย',
+            timer: 5000,
+            timerProgressBar: true,
+            customClass: {
+                confirmButton: 'font-bold px-6 py-3'
+            }
+        });
+
+        // รีเซ็ตโหมดบันทึกกลุ่ม
         setBulkScoreMode(false);
         setSelectedStudents([]);
         setBulkCriteria(null);
         setBulkComment('');
-        alert('บันทึกคะแนนสำเร็จ');
     };
 
-    const handleCancelBulk = () => {
-        setBulkScoreMode(false);
-        setSelectedStudents([]);
-        setBulkCriteria(null);
-        setBulkComment('');
+    const handleCancelBulk = async () => {
+        const result = await Swal.fire({
+            title: 'ยกเลิกโหมดบันทึกกลุ่ม?',
+            html: `
+                <div class="text-left space-y-2">
+                    <p class="text-gray-700">การตั้งค่าทั้งหมดจะถูกรีเซ็ต:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600 text-sm">
+                        ${selectedStudents.length > 0 ? `<li>นักเรียนที่เลือก (${selectedStudents.length} คน)</li>` : ''}
+                        ${bulkCriteria ? `<li>คะแนนที่เลือก (${bulkCriteria.points > 0 ? '+' : ''}${bulkCriteria.points} คะแนน)</li>` : ''}
+                        ${bulkComment.trim() ? '<li>เหตุผลที่กรอก</li>' : ''}
+                    </ul>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-check-circle mr-2"></i>ใช่, ยกเลิก',
+            cancelButtonText: '<i class="bi bi-x-circle mr-2"></i>ไม่, กลับไป',
+            confirmButtonColor: '#EF4444', // Red
+            cancelButtonColor: '#6B7280', // Gray
+            reverseButtons: true,
+            customClass: {
+                confirmButton: 'font-bold px-6 py-3',
+                cancelButton: 'font-bold px-6 py-3'
+            }
+        });
+
+        if (result.isConfirmed) {
+            setBulkScoreMode(false);
+            setSelectedStudents([]);
+            setBulkCriteria(null);
+            setBulkComment('');
+
+            Swal.fire({
+                icon: 'info',
+                title: 'ยกเลิกแล้ว',
+                text: 'ออกจากโหมดบันทึกกลุ่มเรียบร้อย',
+                confirmButtonColor: '#D97706',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        }
     };
 
-    const handleReset = () => {
-        if (window.confirm('ยืนยันการยกเลิก?')) {
+    const handleReset = async () => {
+        const result = await Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            html: `
+                <div class="text-left space-y-2">
+                    <p class="text-gray-700">การเปลี่ยนแปลงทั้งหมดจะถูกยกเลิก</p>
+                    <div class="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 mt-3">
+                        <p class="text-orange-800 text-sm">
+                            <i class="bi bi-exclamation-triangle-fill mr-2"></i>
+                            ข้อมูลจะกลับไปเป็นค่าเดิมก่อนแก้ไข
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-arrow-counterclockwise mr-2"></i>ใช่, ยกเลิก',
+            cancelButtonText: '<i class="bi bi-x-circle mr-2"></i>ไม่, กลับไป',
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            reverseButtons: true,
+            customClass: {
+                confirmButton: 'font-bold px-6 py-3',
+                cancelButton: 'font-bold px-6 py-3'
+            }
+        });
+
+        if (result.isConfirmed) {
             setScoreRecords({ ...originalScoreRecords });
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'ยกเลิกสำเร็จ',
+                text: 'ย้อนกลับไปเป็นค่าเดิมแล้ว',
+                confirmButtonColor: '#D97706',
+                timer: 1500,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
         }
     };
 
@@ -189,20 +363,59 @@ const BehaviorScorePage = () => {
                     icon: 'warning',
                     title: 'ไม่มีข้อมูลที่ต้องบันทึก',
                     text: 'กรุณาเลือกคะแนนสำหรับนักเรียนอย่างน้อย 1 คน',
+                    confirmButtonColor: '#D97706', // Amber theme
                 });
                 return;
             }
 
             const confirmed = await Swal.fire({
                 title: 'ยืนยันการบันทึก',
-                text: `คุณต้องการบันทึกคะแนนสำหรับ ${records.length} คนใช่หรือไม่?`,
+                html: `
+                    <div class="text-left space-y-2">
+                        <p class="text-gray-700">คุณต้องการบันทึกคะแนนความประพฤติสำหรับ</p>
+                        <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-3 my-3">
+                            <p class="text-amber-800 font-bold text-lg">${records.length} คน</p>
+                        </div>
+                        ${scoreStats.totalAdded > 0 ? `
+                            <div class="flex items-center gap-2 text-green-600">
+                                <i class="bi bi-arrow-up-circle-fill"></i>
+                                <span>เพิ่มคะแนน: <strong>+${scoreStats.totalAdded}</strong> คะแนน</span>
+                            </div>
+                        ` : ''}
+                        ${scoreStats.totalDeducted < 0 ? `
+                            <div class="flex items-center gap-2 text-red-600">
+                                <i class="bi bi-arrow-down-circle-fill"></i>
+                                <span>หักคะแนน: <strong>${scoreStats.totalDeducted}</strong> คะแนน</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'ยกเลิก',
+                confirmButtonText: '<i class="bi bi-check-circle-fill mr-2"></i>ยืนยันการบันทึก',
+                cancelButtonText: '<i class="bi bi-x-circle mr-2"></i>ยกเลิก',
+                confirmButtonColor: '#D97706', // Amber
+                cancelButtonColor: '#6B7280', // Gray
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'font-bold px-6 py-3',
+                    cancelButton: 'font-bold px-6 py-3'
+                }
             });
 
             if (!confirmed.isConfirmed) return;
+
+            // แสดง Loading Alert
+            Swal.fire({
+                title: 'กำลังบันทึก...',
+                html: '<div class="flex items-center justify-center gap-3"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div><span class="text-gray-600">กรุณารอสักครู่</span></div>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
             // TODO: ใส่ recorderId จริงจาก user ที่ login
             const result = await saveBehaviorScores({
@@ -212,8 +425,25 @@ const BehaviorScorePage = () => {
 
             Swal.fire({
                 icon: 'success',
-                title: 'บันทึกสำเร็จ',
-                text: result.message || `บันทึกคะแนนสำเร็จ ${records.length} รายการ`,
+                title: 'บันทึกสำเร็จ!',
+                html: `
+                    <div class="space-y-3">
+                        <p class="text-gray-700">${result.message || 'บันทึกคะแนนความประพฤติเรียบร้อยแล้ว'}</p>
+                        <div class="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                            <p class="text-green-800 font-bold">
+                                <i class="bi bi-check-circle-fill mr-2"></i>
+                                บันทึกสำเร็จ ${records.length} รายการ
+                            </p>
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'เรียบร้อย',
+                timer: 3000,
+                timerProgressBar: true,
+                customClass: {
+                    confirmButton: 'font-bold px-6 py-3'
+                }
             });
 
             // Reset state
@@ -225,8 +455,23 @@ const BehaviorScorePage = () => {
             console.error('Error saving:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
+                title: 'เกิดข้อผิดพลาด!',
+                html: `
+                    <div class="space-y-2">
+                        <p class="text-gray-700">ไม่สามารถบันทึกข้อมูลได้</p>
+                        <div class="bg-red-50 border-2 border-red-200 rounded-lg p-3 mt-3">
+                            <p class="text-red-800 text-sm">
+                                <i class="bi bi-exclamation-triangle-fill mr-2"></i>
+                                ${error.data?.message || 'กรุณาลองใหม่อีกครั้งหรือติดต่อผู้ดูแลระบบ'}
+                            </p>
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#EF4444', // Red
+                confirmButtonText: 'ปิด',
+                customClass: {
+                    confirmButton: 'font-bold px-6 py-3'
+                }
             });
         }
     };

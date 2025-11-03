@@ -26,6 +26,10 @@ const ReportBehaviorScore = () => {
     // Sorting state for summary table
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+    // 🎯 Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const RECORDS_PER_PAGE = 50; // แสดง 50 รายการต่อหน้า
+
     // RTK Query hooks
     const { data: classroomsData, isLoading: isLoadingClassrooms } = useGetClassroomsQuery();
     const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory, isFetching } = useGetBehaviorReportsHistoryQuery({
@@ -64,6 +68,26 @@ const ReportBehaviorScore = () => {
         console.log('Date Range:', dateRange);
         return data;
     }, [historyData, selectedClass, searchStudent, dateRange]);
+
+    // 🎯 Pagination Logic
+    const allRecords = filteredRecords;
+    const totalPages = Math.ceil(allRecords.length / RECORDS_PER_PAGE);
+    const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;
+    const endIndex = startIndex + RECORDS_PER_PAGE;
+    const paginatedRecords = allRecords.slice(startIndex, endIndex);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            // Scroll to top of table
+            document.getElementById('history-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedClass, searchStudent, dateRange]);
 
     // Summary statistics with sorting
     const summaryStats = useMemo(() => {
@@ -426,11 +450,18 @@ const ReportBehaviorScore = () => {
 
                 {/* Content */}
                 {activeTab === 'history' ? (
-                    <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
-                        <div className="mb-4 sm:mb-5 md:mb-6 flex items-center justify-between">
+                    <div id="history-table" className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                        {/* Header with Record Count */}
+                        <div className="mb-4 sm:mb-5 md:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 truncate">
-                                ประวัติการบันทึก ({filteredRecords.length} รายการ)
+                                ประวัติการบันทึก
                             </h2>
+                            {allRecords.length > 0 && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <i className="bi bi-info-circle text-indigo-600"></i>
+                                    <span>แสดง <span className="font-bold text-indigo-700">{startIndex + 1}-{Math.min(endIndex, allRecords.length)}</span> จากทั้งหมด <span className="font-bold text-indigo-700">{allRecords.length}</span> รายการ</span>
+                                </div>
+                            )}
                         </div>
 
                         {isLoadingHistory || isFetching ? (
@@ -438,7 +469,7 @@ const ReportBehaviorScore = () => {
                                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                                 <p className="text-gray-600 font-medium mt-4">กำลังโหลดข้อมูล...</p>
                             </div>
-                        ) : filteredRecords.length === 0 ? (
+                        ) : allRecords.length === 0 ? (
                             <div className="text-center py-12">
                                 <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <p className="text-gray-600 font-medium">ไม่พบข้อมูล</p>
@@ -463,7 +494,7 @@ const ReportBehaviorScore = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredRecords.map((record) => (
+                                            {paginatedRecords.map((record) => (
                                                 editingRecord === record.id ? (
                                                     <tr key={record.id} className="border-b bg-blue-50">
                                                         <td colSpan="9" className="px-4 md:px-6 py-4 md:py-5">
@@ -594,7 +625,7 @@ const ReportBehaviorScore = () => {
 
                                 {/* Mobile Cards View */}
                                 <div className="md:hidden space-y-3">
-                                    {filteredRecords.map((record) => (
+                                    {paginatedRecords.map((record) => (
                                         <div
                                             key={record.id}
                                             className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
@@ -752,6 +783,98 @@ const ReportBehaviorScore = () => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* 🎯 Pagination Controls - Mobile Optimized */}
+                                {totalPages > 1 && (
+                                    <div className="mt-6 md:mt-8 border-t-2 border-gray-200 pt-4 md:pt-6">
+                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            {/* Page Info */}
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <i className="bi bi-files text-indigo-600"></i>
+                                                <span>หน้า <span className="font-bold text-indigo-700">{currentPage}</span> จาก <span className="font-bold text-indigo-700">{totalPages}</span></span>
+                                            </div>
+
+                                            {/* Pagination Buttons */}
+                                            <div className="flex items-center gap-2">
+                                                {/* First Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(1)}
+                                                    disabled={currentPage === 1}
+                                                    className="px-3 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                    title="หน้าแรก"
+                                                >
+                                                    <i className="bi bi-chevron-double-left"></i>
+                                                </button>
+
+                                                {/* Previous Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    className="px-4 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    <i className="bi bi-chevron-left mr-1"></i>
+                                                    <span className="hidden sm:inline">ก่อนหน้า</span>
+                                                </button>
+
+                                                {/* Page Numbers - Show only on larger screens */}
+                                                <div className="hidden md:flex items-center gap-1">
+                                                    {[...Array(totalPages)].map((_, idx) => {
+                                                        const pageNum = idx + 1;
+                                                        // Show first 2, last 2, and 2 around current page
+                                                        const showPage = 
+                                                            pageNum === 1 || 
+                                                            pageNum === 2 || 
+                                                            pageNum === totalPages || 
+                                                            pageNum === totalPages - 1 ||
+                                                            Math.abs(pageNum - currentPage) <= 1;
+
+                                                        if (!showPage && pageNum === 3 && currentPage > 4) {
+                                                            return <span key={pageNum} className="px-2 text-gray-400">...</span>;
+                                                        }
+                                                        if (!showPage && pageNum === totalPages - 2 && currentPage < totalPages - 3) {
+                                                            return <span key={pageNum} className="px-2 text-gray-400">...</span>;
+                                                        }
+                                                        if (!showPage) return null;
+
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => handlePageChange(pageNum)}
+                                                                className={`px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                                                                    currentPage === pageNum
+                                                                        ? 'bg-indigo-600 text-white shadow-md'
+                                                                        : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-indigo-50 hover:border-indigo-300'
+                                                                }`}
+                                                            >
+                                                                {pageNum}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Next Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-4 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    <span className="hidden sm:inline">ถัดไป</span>
+                                                    <i className="bi bi-chevron-right ml-1"></i>
+                                                </button>
+
+                                                {/* Last Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(totalPages)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-3 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                    title="หน้าสุดท้าย"
+                                                >
+                                                    <i className="bi bi-chevron-double-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>

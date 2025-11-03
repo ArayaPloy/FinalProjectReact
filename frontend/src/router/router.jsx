@@ -36,6 +36,7 @@ import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
 import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
 import ManageAcademicYears from "../pages/admin/academic/ManageAcademicYears";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 
 const router = createBrowserRouter([
   {
@@ -204,7 +205,11 @@ const router = createBrowserRouter([
           // รายงานต่างๆ
           {
             path: 'flagpole-attendance-report', // รายงานการเข้าแถว
-            element: <FlagpoleAttendanceReport />,
+            element: (
+              <ErrorBoundary>
+                <FlagpoleAttendanceReport />
+              </ErrorBoundary>
+            ),
           },
           {
             path: "behavior-score-report", // รายงานคะแนนความประพฤติ 

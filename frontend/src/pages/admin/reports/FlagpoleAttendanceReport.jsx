@@ -13,6 +13,10 @@ const FlagpoleAttendanceReport = () => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClass, setSelectedClass] = useState('all');
 
+    // 🎯 Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const RECORDS_PER_PAGE = 50; // แสดง 50 รายการต่อหน้า
+
     // RTK Query hooks
     const { data: classRooms = [], isLoading: classesLoading } = useGetClassRoomsQuery();
     const { data: reportData, isLoading: reportLoading, refetch } = useGetFlagpoleReportQuery(
@@ -31,6 +35,7 @@ const FlagpoleAttendanceReport = () => {
     useEffect(() => {
         if (startDate && endDate) {
             refetch();
+            setCurrentPage(1); // รีเซ็ตกลับหน้า 1 เมื่อเปลี่ยนตัวกรอง
         }
     }, [startDate, endDate, selectedClass, refetch]);
 
@@ -53,16 +58,31 @@ const FlagpoleAttendanceReport = () => {
 
     const attendanceRate = totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : 0;
 
+    // 🎯 Pagination Logic
+    const allRecords = reportData?.records || [];
+    const totalPages = Math.ceil(allRecords.length / RECORDS_PER_PAGE);
+    const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;
+    const endIndex = startIndex + RECORDS_PER_PAGE;
+    const paginatedRecords = allRecords.slice(startIndex, endIndex);
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            // Scroll to top of table
+            document.getElementById('records-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     const handleExport = () => {
-        if (!reportData?.records || reportData.records.length === 0) {
+        if (!allRecords || allRecords.length === 0) {
             showError('ไม่มีข้อมูล', 'ไม่มีข้อมูลให้ส่งออก');
             return;
         }
 
-        // CSV export with detailed records
+        // 🎯 CSV export ส่งออกข้อมูล **ทั้งหมด** (ไม่ถูกจำกัดด้วย pagination)
         // ใช้ ="value" เพื่อบังคับให้ Excel แสดงเป็น Text และไม่แปลงค่า
         const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ'];
-        const rows = reportData.records.map((record) => [
+        const rows = allRecords.map((record) => [
             record.date,
             record.studentNumber,
             record.studentName,
@@ -236,9 +256,16 @@ const FlagpoleAttendanceReport = () => {
                         )}
 
                         {/* Data Table - Dual View: Desktop Table + Mobile Cards */}
-                        {reportData?.records?.length > 0 && (
-                            <div className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
-                                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">ตารางข้อมูลรายละเอียด</h2>
+                        {allRecords.length > 0 && (
+                            <div id="records-table" className="bg-white rounded-xl md:rounded-2xl shadow-md p-4 sm:p-5 md:p-6">
+                                {/* Header with Record Count */}
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 md:mb-4">
+                                    <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 leading-tight">ตารางข้อมูลรายละเอียด</h2>
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                        <i className="bi bi-info-circle text-amber-600"></i>
+                                        <span>แสดง <span className="font-bold text-amber-700">{startIndex + 1}-{Math.min(endIndex, allRecords.length)}</span> จากทั้งหมด <span className="font-bold text-amber-700">{allRecords.length}</span> รายการ</span>
+                                    </div>
+                                </div>
                                 
                                 {/* Desktop Table View */}
                                 <div className="hidden md:block overflow-x-auto">
@@ -263,8 +290,8 @@ const FlagpoleAttendanceReport = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {reportData.records.map((record, index) => (
-                                                <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                            {paginatedRecords.map((record, index) => (
+                                                <tr key={`${record.date}-${record.studentNumber}-${index}`} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-900">
                                                         {record.date}
                                                     </td>
@@ -293,14 +320,14 @@ const FlagpoleAttendanceReport = () => {
 
                                 {/* Mobile Card View */}
                                 <div className="md:hidden space-y-3">
-                                    {reportData.records.map((record, index) => (
+                                    {paginatedRecords.map((record, index) => (
                                         <div
-                                            key={index}
+                                            key={`mobile-${record.date}-${record.studentNumber}-${index}`}
                                             className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 space-y-3 hover:border-amber-300 transition-colors"
                                         >
                                             {/* Header with Status */}
                                             <div className="flex items-center justify-between">
-                                                <span className="text-xs text-gray-500 font-medium">รายการที่ {index + 1}</span>
+                                                <span className="text-xs text-gray-500 font-medium">รายการที่ {startIndex + index + 1}</span>
                                                 <span
                                                     className="px-3 py-1.5 rounded-lg text-white text-sm font-bold"
                                                     style={{ backgroundColor: COLORS[record.status] }}
@@ -356,6 +383,98 @@ const FlagpoleAttendanceReport = () => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* 🎯 Pagination Controls - Mobile Optimized */}
+                                {totalPages > 1 && (
+                                    <div className="mt-6 md:mt-8 border-t-2 border-gray-200 pt-4 md:pt-6">
+                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            {/* Page Info */}
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <i className="bi bi-files text-amber-600"></i>
+                                                <span>หน้า <span className="font-bold text-amber-700">{currentPage}</span> จาก <span className="font-bold text-amber-700">{totalPages}</span></span>
+                                            </div>
+
+                                            {/* Pagination Buttons */}
+                                            <div className="flex items-center gap-2">
+                                                {/* First Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(1)}
+                                                    disabled={currentPage === 1}
+                                                    className="px-3 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                    title="หน้าแรก"
+                                                >
+                                                    <i className="bi bi-chevron-double-left"></i>
+                                                </button>
+
+                                                {/* Previous Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    className="px-4 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    <i className="bi bi-chevron-left mr-1"></i>
+                                                    <span className="hidden sm:inline">ก่อนหน้า</span>
+                                                </button>
+
+                                                {/* Page Numbers - Show only on larger screens */}
+                                                <div className="hidden md:flex items-center gap-1">
+                                                    {[...Array(totalPages)].map((_, idx) => {
+                                                        const pageNum = idx + 1;
+                                                        // Show first 2, last 2, and 2 around current page
+                                                        const showPage = 
+                                                            pageNum === 1 || 
+                                                            pageNum === 2 || 
+                                                            pageNum === totalPages || 
+                                                            pageNum === totalPages - 1 ||
+                                                            Math.abs(pageNum - currentPage) <= 1;
+
+                                                        if (!showPage && pageNum === 3 && currentPage > 4) {
+                                                            return <span key={pageNum} className="px-2 text-gray-400">...</span>;
+                                                        }
+                                                        if (!showPage && pageNum === totalPages - 2 && currentPage < totalPages - 3) {
+                                                            return <span key={pageNum} className="px-2 text-gray-400">...</span>;
+                                                        }
+                                                        if (!showPage) return null;
+
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => handlePageChange(pageNum)}
+                                                                className={`px-3 py-2 rounded-lg font-semibold text-sm transition-all ${
+                                                                    currentPage === pageNum
+                                                                        ? 'bg-amber-600 text-white shadow-md'
+                                                                        : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-amber-50 hover:border-amber-300'
+                                                                }`}
+                                                            >
+                                                                {pageNum}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Next Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-4 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    <span className="hidden sm:inline">ถัดไป</span>
+                                                    <i className="bi bi-chevron-right ml-1"></i>
+                                                </button>
+
+                                                {/* Last Page */}
+                                                <button
+                                                    onClick={() => handlePageChange(totalPages)}
+                                                    disabled={currentPage === totalPages}
+                                                    className="px-3 py-2 rounded-lg bg-white border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                    title="หน้าสุดท้าย"
+                                                >
+                                                    <i className="bi bi-chevron-double-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
