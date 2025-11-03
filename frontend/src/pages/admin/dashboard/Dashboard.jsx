@@ -10,6 +10,7 @@ import BlogsChart from "./BlogsChart";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [query] = useState({ search: '', category: '' });
+  const [hideAlert, setHideAlert] = useState(false); // State สำหรับซ่อนการแจ้งเตือน
   const { data: blogs = [], error, isLoading } = useFetchBlogsQuery(query);
   const { data: users = [] } = useGetUserQuery();
   const { data: comments = [] } = useGetCommentsQuery();
@@ -149,7 +150,7 @@ const Dashboard = () => {
           </div>
 
           {/* Alert/Notification - ผู้ใช้ใหม่รอตรวจสอบ */}
-          {roleStats.pendingUsers > 0 && (
+          {roleStats.pendingUsers > 0 && !hideAlert && (
             <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-4 shadow-lg">
               <div className="flex items-start gap-4">
                 <div className="bg-orange-500 p-3 rounded-lg flex-shrink-0">
@@ -172,10 +173,11 @@ const Dashboard = () => {
                       ตรวจสอบผู้ใช้ใหม่
                     </button>
                     <button
-                      className="bg-white hover:bg-gray-50 text-orange-700 border-2 border-orange-300 font-semibold px-4 py-2 rounded-lg transition-all duration-300 flex items-center text-sm"
+                      onClick={() => setHideAlert(true)}
+                      className="bg-white hover:bg-red-50 text-orange-700 hover:text-red-700 border-2 border-orange-300 hover:border-red-300 font-semibold px-4 py-2 rounded-lg transition-all duration-300 flex items-center text-sm"
                     >
-                      <i className="bi bi-info-circle mr-2"></i>
-                      คำแนะนำ
+                      <i className="bi bi-x-circle mr-2"></i>
+                      ปิดการแจ้งเตือน
                     </button>
                   </div>
                 </div>
