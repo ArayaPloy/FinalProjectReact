@@ -179,8 +179,8 @@ const Navbar = () => {
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {/* ปุ่ม Dashboard สำหรับ Admin */}
-                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                    {/* ปุ่ม Dashboard สำหรับ Admin, Super Admin และ Teacher */}
+                    {(user.role === 'admin' || user.role === 'super_admin' || user.role === 'teacher') && (
                       <Link
                         to="/dashboard"
                         className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-700/10 hover:text-primary font-medium text-sm transition-all border-b border-gray-100"
@@ -191,7 +191,7 @@ const Navbar = () => {
                       </Link>
                     )}
                     {/* ปุ่ม Profile */}
-                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                    {(user.role === 'admin' || user.role === 'super_admin' || user.role === 'teacher') && (
                       <Link
                         to="/profile"
                         className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-700/10 hover:text-primary font-medium text-sm transition-all border-b border-gray-100"
@@ -352,8 +352,8 @@ const Navbar = () => {
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
                       >
-                        {/* ปุ่ม Dashboard สำหรับ Admin บน Mobile */}
-                        {(user.role === 'admin' || user.role === 'super_admin') && (
+                        {/* ปุ่ม Dashboard สำหรับ Admin, Super Admin และ Teacher บน Mobile */}
+                        {(user.role === 'admin' || user.role === 'super_admin' || user.role === 'teacher') && (
                           <Link
                             to="/dashboard"
                             className="flex items-center py-3 text-gray-600 hover:text-primary active:text-primary hover:bg-blue-700/5 active:bg-blue-700/10 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"
@@ -367,7 +367,7 @@ const Navbar = () => {
                           </Link>
                         )}
                         {/* ปุ่ม Profile บน Mobile */}
-                        {(user.role === 'admin' || user.role === 'super_admin') && (
+                        {(user.role === 'admin' || user.role === 'super_admin' || user.role === 'teacher') && (
                           <Link
                             to="/profile"
                             className="flex items-center py-3 text-gray-600 hover:text-primary active:text-primary hover:bg-blue-700/5 active:bg-blue-700/10 px-3 rounded-lg font-medium text-sm touch-manipulation transition-all min-h-[44px]"

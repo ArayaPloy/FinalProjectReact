@@ -149,8 +149,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Alert/Notification - ผู้ใช้ใหม่รอตรวจสอบ */}
-          {roleStats.pendingUsers > 0 && !hideAlert && (
+          {/* Alert/Notification - ผู้ใช้ใหม่รอตรวจสอบ (แสดงเฉพาะ super_admin และ admin) */}
+          {roleStats.pendingUsers > 0 && !hideAlert && (user.role === 'super_admin' || user.role === 'admin') && (
             <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-4 shadow-lg">
               <div className="flex items-start gap-4">
                 <div className="bg-orange-500 p-3 rounded-lg flex-shrink-0">
