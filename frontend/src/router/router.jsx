@@ -33,8 +33,10 @@ import UpdatePosts from "../pages/admin/post/UpdatePosts";
 import ErrorPage from "../components/ErrorPage";
 import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
+import ManageTeacher from "../pages/admin/manage-teacher/ManageTeacher";
 import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
+import HomeVisitReport from "../pages/admin/reports/HomeVisitReport";
 import ManageAcademicYears from "../pages/admin/academic/ManageAcademicYears";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
@@ -193,11 +195,11 @@ const router = createBrowserRouter([
           {
             path: 'manage-academic-years', // จัดการปีการศึกษา
             element: <ManageAcademicYears />,
-          },/*
-          {
-            path: 'manage-teachers', // จัดการครูและบุคลากร -ยังไม่ได้ทำหน้านี้
-            element: <ManageTeachers />,
           },
+          {
+            path: 'manage-teachers', // จัดการครูและบุคลากร
+            element: <ManageTeacher />,
+          },/*
           {
             path: 'manage-schedule', // จัดการตารางเรียน -ยังไม่ได้ทำหน้านี้
               element: <ManageSchedule />,
@@ -214,15 +216,15 @@ const router = createBrowserRouter([
           {
             path: "behavior-score-report", // รายงานคะแนนความประพฤติ 
             element: <BehaviorScoreReport />
-          }/*,
-          {
-            path: 'club-attendance-report', // รายงานการเข้าร่วมชุมนุม -ยังไม่ได้ทำหน้านี้
-            element: <ClubAttendanceReport />,
           },
           {
-            path: 'home-visit-reports', // รายงานการเยี่ยมบ้าน -ยังไม่ได้ทำหน้านี้
-            element: <HomeVisitReports />,
-          }*/
+            path: 'home-visit-report', // รายงานการเยี่ยมบ้านนักเรียน
+            element: (
+              <ErrorBoundary>
+                <HomeVisitReport />
+              </ErrorBoundary>
+            ),
+          }
         ],
       },
 

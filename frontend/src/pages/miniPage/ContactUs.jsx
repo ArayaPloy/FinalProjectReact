@@ -36,7 +36,7 @@ const ContactUs = () => {
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
-          src="/src/assets/images/thabo_school.jpg"
+          src="/thabo_school.jpg"
           alt="ติดต่อเรา"
           className="w-full h-[400px] object-cover"
         />

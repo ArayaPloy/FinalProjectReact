@@ -9,7 +9,6 @@ import { motion } from "framer-motion"; // นำเข้า motion จาก f
 import Img1 from "../../assets/images/3.jpg";
 import Img2 from "../../assets/images/12.jpg";
 import Img3 from "../../assets/images/11.jpg";
-import Img4 from "../../assets/images/thabo_school.jpg";
 
 const Hero = () => {
   const quickLinks = [
@@ -157,7 +156,7 @@ const Hero = () => {
                   <SwiperSlide>
                     <div className="relative">
                       <img
-                        src={Img4 || "/placeholder.svg"}
+                        src="/thabo_school.jpg"
                         alt="โรงเรียนเรียนท่าบ่อพิทยาคม"
                         className="object-cover w-full h-[300px] md:h-[400px] lg:h-[450px]"
                       />

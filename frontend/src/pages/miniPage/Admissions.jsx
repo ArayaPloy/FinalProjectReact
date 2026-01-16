@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { IoChevronBack, IoCalendar, IoTime, IoBook, IoPeople, IoLocation, IoSchool } from 'react-icons/io5';
 import admissionBanner from '../../assets/images/student_register.jpg'; // เปลี่ยนเป็นรูปแนวนอนแบบแบนเนอร์
-import thaboSchool from '../../assets/images/thabo_school.jpg';
 
 const Admissions = () => {
     const [isHovered, setIsHovered] = useState(false);
@@ -43,7 +42,7 @@ const Admissions = () => {
             <div className="relative mb-12">
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
                 <img
-                    src={thaboSchool}
+                    src="/thabo_school.jpg"
                     alt="รับสมัครนักเรียนโรงเรียนท่าบ่อพิทยาคม"
                     className="w-full h-[400px] object-cover"
                 />

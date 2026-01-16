@@ -247,7 +247,7 @@ const AdminNavigation = () => {
           </li>
           <li>
             <NavLink
-              to="/dashboard/club-attendance-report"
+              to="/dashboard/home-visit-report"
               onClick={closeMenu}
               className={({ isActive }) =>
                 `flex items-center gap-3 p-3 min-h-[48px] rounded-lg transition-colors touch-manipulation ${isActive

@@ -86,3 +86,14 @@ body {
 .editorjsdiv hr {
     @apply my-6 border-t-2 border-gray-300;
 }
+
+/* Print Styles for Reports */
+@media print {
+    .print\:hidden {
+        display: none !important;
+    }
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}

@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { IoChevronBack, IoSchool, IoBook, IoMedal, IoLibrary } from "react-icons/io5";
-import thaboSchool from "../../assets/images/thabo_school.jpg";
 import schoolRewards from "../../assets/images/school_rewards.jpg";
 
 const AcademicInfo = () => {
@@ -41,7 +40,7 @@ const AcademicInfo = () => {
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
-          src={thaboSchool}
+          src="/thabo_school.jpg"
           alt="ข้อมูลวิชาการโรงเรียนท่าบ่อพิทยาคม"
           className="w-full h-[400px] object-cover"
         />

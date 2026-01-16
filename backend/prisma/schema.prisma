@@ -7,128 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model blog_categories {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique @db.VarChar(100)
-  slug        String    @unique @db.VarChar(100)
-  description String?   @db.Text
-  icon        String?   @db.VarChar(50)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime  @default(now()) @db.Timestamp(0)
-  isDeleted   Boolean?  @default(false)
-  deletedAt   DateTime? @db.Timestamp(0)
-  updatedBy   Int?
-  users       users?    @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "blog_categories_ibfk_1")
-  blogs       blogs[]
-
-  @@index([updatedBy], map: "updatedBy")
-  @@index([isDeleted], map: "idx_blog_categories_deleted")
-}
-
-model club_categories {
-  id                  Int             @id @default(autoincrement())
-  name                String          @unique @db.VarChar(100)
-  slug                String          @unique @db.VarChar(100)
-  description         String?         @db.Text
-  icon                String?         @db.VarChar(50)
-  sortOrder           Int             @default(0)
-  relatedDepartmentId Int?
-  createdAt           DateTime        @default(now()) @db.Timestamp(0)
-  updatedAt           DateTime        @default(now()) @db.Timestamp(0)
-  isDeleted           Boolean?        @default(false)
-  deletedAt           DateTime?       @db.Timestamp(0)
-  updatedBy           Int?
-  academicclubs       academicclubs[]
-  departments         departments?    @relation(fields: [relatedDepartmentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "club_categories_ibfk_1")
-  users               users?          @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "club_categories_ibfk_2")
-
-  @@index([relatedDepartmentId], map: "relatedDepartmentId")
-  @@index([updatedBy], map: "updatedBy")
-  @@index([isDeleted], map: "idx_club_categories_deleted")
-}
-
-model audit_logs {
-  id        Int      @id @default(autoincrement())
-  userId    Int?
-  tableName String   @db.VarChar(100)
-  recordId  Int
-  action    String   @db.VarChar(20)
-  oldValues String?  @db.LongText
-  newValues String?  @db.LongText
-  ipAddress String?  @db.VarChar(45)
-  userAgent String?  @db.Text
-  createdAt DateTime @default(now()) @db.Timestamp(0)
-  users     users?   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "audit_logs_ibfk_1")
-
-  @@index([tableName, recordId], map: "idx_audit_table_record")
-  @@index([action], map: "idx_audit_action")
-  @@index([createdAt], map: "idx_audit_created")
-  @@index([userId], map: "idx_audit_user")
-}
-
-model user_login_logs {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  action       String    @db.VarChar(20)
-  ipAddress    String?   @db.VarChar(45)
-  userAgent    String?   @db.Text
-  loginAt      DateTime  @default(now()) @db.Timestamp(0)
-  logoutAt     DateTime? @db.Timestamp(0)
-  sessionToken String?   @db.VarChar(255)
-  users        users     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "user_login_logs_ibfk_1")
-
-  @@index([userId], map: "idx_login_user")
-  @@index([loginAt], map: "idx_login_time")
-  @@index([userId, loginAt], map: "idx_user_login_time")
-}
-
 model academic_years {
-  id                             Int         @id @default(autoincrement())
-  year                           String      @unique @db.VarChar(20)
-  startDate                      DateTime    @db.Date
-  endDate                        DateTime    @db.Date
-  isCurrent                      Boolean     @default(false)
-  isActive                       Boolean     @default(true)
-  createdAt                      DateTime    @default(now()) @db.Timestamp(0)
-  updatedAt                      DateTime    @default(now()) @db.Timestamp(0)
-  createdBy                      Int?
-  updatedBy                      Int?
-  users_academic_years_createdBy users?      @relation("academic_years_createdBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_1")
-  users_academic_years_updatedBy users?      @relation("academic_years_updatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_2")
-  semesters                      semesters[]
+  id                                    Int         @id @default(autoincrement())
+  year                                  String      @unique @db.VarChar(20)
+  startDate                             DateTime    @db.Date
+  endDate                               DateTime    @db.Date
+  isCurrent                             Boolean     @default(false)
+  isActive                              Boolean     @default(true)
+  createdAt                             DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt                             DateTime    @default(now()) @db.Timestamp(0)
+  createdBy                             Int?
+  updatedBy                             Int?
+  users_academic_years_createdByTousers users?      @relation("academic_years_createdByTousers", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_1")
+  users_academic_years_updatedByTousers users?      @relation("academic_years_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_2")
+  semesters                             semesters[]
 
   @@index([createdBy], map: "createdBy")
-  @@index([updatedBy], map: "updatedBy")
-  @@index([isCurrent], map: "idx_academic_years_current")
   @@index([isActive], map: "idx_academic_years_active")
-}
-
-model semesters {
-  id                        Int                      @id @default(autoincrement())
-  academicYearId            Int
-  semesterNumber            Int                      @db.TinyInt
-  startDate                 DateTime                 @db.Date
-  endDate                   DateTime                 @db.Date
-  isCurrent                 Boolean                  @default(false)
-  isActive                  Boolean                  @default(true)
-  createdAt                 DateTime                 @default(now()) @db.Timestamp(0)
-  updatedAt                 DateTime                 @default(now()) @db.Timestamp(0)
-  createdBy                 Int?
-  updatedBy                 Int?
-  academicclubattendance    academicclubattendance[]
-  flagpoleattendance        flagpoleattendance[]
-  homeroomattendance        homeroomattendance[]
-  academic_years            academic_years           @relation(fields: [academicYearId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "semesters_ibfk_1")
-  users_semesters_createdBy users?                   @relation("semesters_createdBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_2")
-  users_semesters_updatedBy users?                   @relation("semesters_updatedBy", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_3")
-
-  @@unique([academicYearId, semesterNumber], map: "unique_semester_per_year")
-  @@index([academicYearId], map: "academicYearId")
-  @@index([createdBy], map: "createdBy")
+  @@index([isCurrent], map: "idx_academic_years_current")
   @@index([updatedBy], map: "updatedBy")
-  @@index([isCurrent], map: "idx_semesters_current")
-  @@index([isActive], map: "idx_semesters_active")
 }
 
 model academicclubattendance {
@@ -155,10 +52,10 @@ model academicclubattendance {
 
   @@index([clubId], map: "clubId")
   @@index([recorderId], map: "recorderId")
+  @@index([semesterId], map: "semesterId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
 }
 
 model academicclubs {
@@ -185,9 +82,9 @@ model academicclubs {
   users                  users?                   @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubs_ibfk_2")
   club_categories        club_categories?         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academicclubs_ibfk_3")
 
+  @@index([categoryId], map: "categoryId")
   @@index([teacherId], map: "teacherId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([categoryId], map: "categoryId")
 }
 
 model admins {
@@ -220,7 +117,44 @@ model attendancestatuses {
   @@index([updatedBy], map: "updatedBy")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_logs {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  tableName String   @db.VarChar(100)
+  recordId  Int
+  action    String   @db.VarChar(20)
+  oldValues String?  @db.LongText
+  newValues String?  @db.LongText
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  users     users?   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "audit_logs_ibfk_1")
+
+  @@index([action], map: "idx_audit_action")
+  @@index([createdAt], map: "idx_audit_created")
+  @@index([tableName, recordId], map: "idx_audit_table_record")
+  @@index([userId], map: "idx_audit_user")
+}
+
+model blog_categories {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @db.VarChar(100)
+  slug        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  icon        String?   @db.VarChar(50)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(0)
+  isDeleted   Boolean?  @default(false)
+  deletedAt   DateTime? @db.Timestamp(0)
+  updatedBy   Int?
+  users       users?    @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "blog_categories_ibfk_1")
+  blogs       blogs[]
+
+  @@index([isDeleted], map: "idx_blog_categories_deleted")
+  @@index([updatedBy], map: "updatedBy")
+}
+
 model blogs {
   id                           Int              @id @default(autoincrement())
   title                        String           @db.VarChar(255)
@@ -241,8 +175,8 @@ model blogs {
   comments                     comments[]
 
   @@index([author], map: "author")
-  @@index([updatedBy], map: "updatedBy")
   @@index([categoryId], map: "categoryId")
+  @@index([updatedBy], map: "updatedBy")
 }
 
 model classschedules {
@@ -264,6 +198,28 @@ model classschedules {
   @@index([dayOfWeekId], map: "dayOfWeekId")
   @@index([subjectId], map: "subjectId")
   @@index([teacherId], map: "teacherId")
+  @@index([updatedBy], map: "updatedBy")
+}
+
+model club_categories {
+  id                  Int             @id @default(autoincrement())
+  name                String          @unique @db.VarChar(100)
+  slug                String          @unique @db.VarChar(100)
+  description         String?         @db.Text
+  icon                String?         @db.VarChar(50)
+  sortOrder           Int             @default(0)
+  relatedDepartmentId Int?
+  createdAt           DateTime        @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime        @default(now()) @db.Timestamp(0)
+  isDeleted           Boolean?        @default(false)
+  deletedAt           DateTime?       @db.Timestamp(0)
+  updatedBy           Int?
+  academicclubs       academicclubs[]
+  departments         departments?    @relation(fields: [relatedDepartmentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "club_categories_ibfk_1")
+  users               users?          @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "club_categories_ibfk_2")
+
+  @@index([isDeleted], map: "idx_club_categories_deleted")
+  @@index([relatedDepartmentId], map: "relatedDepartmentId")
   @@index([updatedBy], map: "updatedBy")
 }
 
@@ -305,28 +261,28 @@ model departments {
 }
 
 model flagpoleattendance {
-  id                 Int                @id @default(autoincrement())
-  studentId          Int?
-  date               DateTime?          @db.Date
-  statusId           Int
-  recorderId         Int?
-  createdAt          DateTime           @default(now()) @db.Timestamp(0)
-  updatedAt          DateTime           @default(now()) @db.Timestamp(0)
-  deletedAt          DateTime?          @db.Timestamp(0)
-  updatedBy          Int?
-  semesterId         Int?
-  students           students?          @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_1")
-  attendancestatuses attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "flagpoleattendance_ibfk_2")
-  recorder           users?             @relation("flagpoleattendance_recorder", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_3")
-  users              users?             @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_4")
-  semesters          semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_5")
+  id                                         Int                @id @default(autoincrement())
+  studentId                                  Int?
+  date                                       DateTime?          @db.Date
+  statusId                                   Int
+  recorderId                                 Int?
+  createdAt                                  DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt                                  DateTime           @default(now()) @db.Timestamp(0)
+  deletedAt                                  DateTime?          @db.Timestamp(0)
+  updatedBy                                  Int?
+  semesterId                                 Int?
+  students                                   students?          @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_1")
+  attendancestatuses                         attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "flagpoleattendance_ibfk_2")
+  users_flagpoleattendance_recorderIdTousers users?             @relation("flagpoleattendance_recorderIdTousers", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_3")
+  users_flagpoleattendance_updatedByTousers  users?             @relation("flagpoleattendance_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_4")
+  semesters                                  semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "flagpoleattendance_ibfk_5")
 
+  @@index([date, semesterId], map: "idx_flagpole_date_semester")
   @@index([recorderId], map: "recorderId")
+  @@index([semesterId], map: "semesterId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
-  @@index([date, semesterId], map: "idx_flagpole_date_semester")
 }
 
 model genders {
@@ -364,10 +320,10 @@ model homeroomattendance {
 
   @@unique([homeroomTeacherId, studentId, date], map: "HomeroomAttendance_index_0")
   @@index([recorderId], map: "recorderId")
+  @@index([semesterId], map: "semesterId")
   @@index([statusId], map: "statusId")
   @@index([studentId], map: "studentId")
   @@index([updatedBy], map: "updatedBy")
-  @@index([semesterId], map: "semesterId")
 }
 
 model homeroomteacherstudent {
@@ -383,7 +339,6 @@ model homeroomteacherstudent {
   @@index([studentId], map: "studentId")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model homevisit_files {
   id          Int                       @id @default(autoincrement())
   homeVisitId Int
@@ -406,7 +361,6 @@ model homevisit_files {
   @@index([homeVisitId], map: "idx_homevisit_files_visit")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model homevisits {
   id                    Int               @id @default(autoincrement())
   teacherId             Int?
@@ -496,6 +450,33 @@ model school_timeline {
   deletedBy   Int?
 }
 
+model semesters {
+  id                               Int                      @id @default(autoincrement())
+  academicYearId                   Int
+  semesterNumber                   Int                      @db.TinyInt
+  startDate                        DateTime                 @db.Date
+  endDate                          DateTime                 @db.Date
+  isCurrent                        Boolean                  @default(false)
+  isActive                         Boolean                  @default(true)
+  createdAt                        DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt                        DateTime                 @default(now()) @db.Timestamp(0)
+  createdBy                        Int?
+  updatedBy                        Int?
+  academicclubattendance           academicclubattendance[]
+  flagpoleattendance               flagpoleattendance[]
+  homeroomattendance               homeroomattendance[]
+  academic_years                   academic_years           @relation(fields: [academicYearId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "semesters_ibfk_1")
+  users_semesters_createdByTousers users?                   @relation("semesters_createdByTousers", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_2")
+  users_semesters_updatedByTousers users?                   @relation("semesters_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_3")
+
+  @@unique([academicYearId, semesterNumber], map: "unique_semester_per_year")
+  @@index([academicYearId], map: "academicYearId")
+  @@index([createdBy], map: "createdBy")
+  @@index([isActive], map: "idx_semesters_active")
+  @@index([isCurrent], map: "idx_semesters_current")
+  @@index([updatedBy], map: "updatedBy")
+}
+
 model studentbehaviorscores {
   id                                            Int       @id @default(autoincrement())
   studentId                                     Int?
@@ -516,37 +497,36 @@ model studentbehaviorscores {
   @@index([updatedBy], map: "updatedBy")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model students {
-  id                              Int                      @id @default(autoincrement())
-  namePrefix                      String?                  @db.VarChar(10)
-  fullName                        String                   @db.VarChar(255)
-  genderId                        Int
-  classRoom                       String                   @db.VarChar(50)
-  studentNumber                   Int?
-  homeroomTeacherId               Int?
-  guardianName                    String?                  @db.VarChar(255)
-  guardianRelation                String?                  @db.VarChar(50)
-  createdAt                       DateTime?                @default(now()) @db.Timestamp(0)
-  updatedAt                       DateTime?                @default(now()) @db.Timestamp(0)
-  isDeleted                       Boolean?                 @default(false)
-  deletedAt                       DateTime?                @db.Timestamp(0)
-  updatedBy                       Int?
-  dob                             DateTime?                @db.Date
-  nationality                     String?                  @db.VarChar(50)
-  weight                          Int?
-  height                          Int?
-  disease                         String?                  @db.VarChar(50)
-  phoneNumber                     String?                  @db.VarChar(50)
-  academicclubattendance          academicclubattendance[]
-  flagpoleattendance              flagpoleattendance[]
-  homeroomattendance              homeroomattendance[]
-  homeroomteacherstudent          homeroomteacherstudent[]
-  homevisits                      homevisits[]
-  studentbehaviorscores           studentbehaviorscores[]
-  genders                         genders                  @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "students_ibfk_2")
-  teachers                        teachers?                @relation(fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_3")
-  users_students_updatedByTousers users?                   @relation("students_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_4")
+  id                     Int                      @id @default(autoincrement())
+  namePrefix             String?                  @db.VarChar(10)
+  fullName               String                   @db.VarChar(255)
+  genderId               Int
+  classRoom              String                   @db.VarChar(50)
+  studentNumber          Int?
+  homeroomTeacherId      Int?
+  guardianName           String?                  @db.VarChar(255)
+  guardianRelation       String?                  @db.VarChar(50)
+  createdAt              DateTime?                @default(now()) @db.Timestamp(0)
+  updatedAt              DateTime?                @default(now()) @db.Timestamp(0)
+  isDeleted              Boolean?                 @default(false)
+  deletedAt              DateTime?                @db.Timestamp(0)
+  updatedBy              Int?
+  dob                    DateTime?                @db.Date
+  nationality            String?                  @db.VarChar(50)
+  weight                 Int?
+  height                 Int?
+  disease                String?                  @db.VarChar(50)
+  phoneNumber            String?                  @db.VarChar(50)
+  academicclubattendance academicclubattendance[]
+  flagpoleattendance     flagpoleattendance[]
+  homeroomattendance     homeroomattendance[]
+  homeroomteacherstudent homeroomteacherstudent[]
+  homevisits             homevisits[]
+  studentbehaviorscores  studentbehaviorscores[]
+  genders                genders                  @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "students_ibfk_2")
+  teachers               teachers?                @relation(fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_3")
+  users                  users?                   @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_4")
 
   @@index([genderId], map: "genderId")
   @@index([homeroomTeacherId], map: "homeroomTeacherId")
@@ -648,6 +628,22 @@ model teachersubjects {
   @@index([subjectId], map: "subjectId")
 }
 
+model user_login_logs {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  action       String    @db.VarChar(20)
+  ipAddress    String?   @db.VarChar(45)
+  userAgent    String?   @db.Text
+  loginAt      DateTime  @default(now()) @db.Timestamp(0)
+  logoutAt     DateTime? @db.Timestamp(0)
+  sessionToken String?   @db.VarChar(255)
+  users        users     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "user_login_logs_ibfk_1")
+
+  @@index([loginAt], map: "idx_login_time")
+  @@index([userId], map: "idx_login_user")
+  @@index([userId, loginAt], map: "idx_user_login_time")
+}
+
 model userroles {
   id        Int       @id @default(autoincrement())
   roleName  String    @unique(map: "roleName") @db.VarChar(50)
@@ -668,8 +664,8 @@ model users {
   isDeleted                                                     Boolean?                 @default(false)
   deletedAt                                                     DateTime?                @db.Timestamp(0)
   updatedBy                                                     Int?
-  academic_years_academic_years_createdByTousers                academic_years[]         @relation("academic_years_createdBy")
-  academic_years_academic_years_updatedByTousers                academic_years[]         @relation("academic_years_updatedBy")
+  academic_years_academic_years_createdByTousers                academic_years[]         @relation("academic_years_createdByTousers")
+  academic_years_academic_years_updatedByTousers                academic_years[]         @relation("academic_years_updatedByTousers")
   academicclubattendance                                        academicclubattendance[]
   academicclubs                                                 academicclubs[]
   admins                                                        admins[]
@@ -681,16 +677,16 @@ model users {
   classschedules                                                classschedules[]
   club_categories                                               club_categories[]
   comments                                                      comments[]
-  flagpoleattendance_recorder                                   flagpoleattendance[]     @relation("flagpoleattendance_recorder")
-  flagpoleattendance                                            flagpoleattendance[]
+  flagpoleattendance_flagpoleattendance_recorderIdTousers       flagpoleattendance[]     @relation("flagpoleattendance_recorderIdTousers")
+  flagpoleattendance_flagpoleattendance_updatedByTousers        flagpoleattendance[]     @relation("flagpoleattendance_updatedByTousers")
   homeroomattendance                                            homeroomattendance[]
   homevisit_files                                               homevisit_files[]
   homevisits                                                    homevisits[]
-  semesters_semesters_createdByTousers                          semesters[]              @relation("semesters_createdBy")
-  semesters_semesters_updatedByTousers                          semesters[]              @relation("semesters_updatedBy")
+  semesters_semesters_createdByTousers                          semesters[]              @relation("semesters_createdByTousers")
+  semesters_semesters_updatedByTousers                          semesters[]              @relation("semesters_updatedByTousers")
   studentbehaviorscores_studentbehaviorscores_recorderIdTousers studentbehaviorscores[]  @relation("studentbehaviorscores_recorderIdTousers")
   studentbehaviorscores_studentbehaviorscores_updatedByTousers  studentbehaviorscores[]  @relation("studentbehaviorscores_updatedByTousers")
-  students_students_updatedByTousers                            students[]               @relation("students_updatedByTousers")
+  students                                                      students[]
   subjects                                                      subjects[]
   superadmin                                                    superadmin?
   teachers_teachers_teacherIdTousers                            teachers?                @relation("teachers_teacherIdTousers")

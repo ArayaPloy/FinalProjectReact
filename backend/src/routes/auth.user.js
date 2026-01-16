@@ -31,13 +31,16 @@ router.post('/register', async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Create user
+        // Create user with default profile image
         const user = await prisma.users.create({
             data: {
                 email,
                 password: hashedPassword,
                 username,
-                roleId: parseInt(roleId)
+                roleId: parseInt(roleId),
+                profileImage: '/default-avatar.jpg', // ⭐ Default avatar
+                phone: null, // Optional field
+                lastLogin: null // Will be updated on first login
             },
             include: {
                 userroles: true
@@ -62,10 +65,7 @@ router.post('/login', async (req, res) => {
         const user = await prisma.users.findUnique({
             where: { email },
             include: {
-                userroles: true,
-                students_students_updatedByTousers: true,
-                teachers_teachers_teacherIdTousers: true,
-                superadmin: true
+                userroles: true
             }
         });
 
@@ -103,10 +103,7 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 username: user.username,
                 role: user.userroles.roleName,
-                roleId: user.roleId,
-                student: user.students_students_updatedByTousers,
-                teacher: user.teachers_teachers_teacherIdTousers,
-                superAdmin: user.superadmin
+                roleId: user.roleId
             }
         });
     } catch (error) {

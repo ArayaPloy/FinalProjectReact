@@ -62,7 +62,8 @@ const FacultyStaff = () => {
         health: 'กลุ่มสาระสุขศึกษาฯ',
         art: 'กลุ่มสาระศิลปะ',
         foreign: 'กลุ่มสาระภาษาต่างประเทศ',
-        support: 'เจ้าหน้าที่สนับสนุน'
+        support: 'ธุระการโรงเรียน',
+        janitor: 'นักการภารโรง'
     };
 
     // Filter staff based on search term
@@ -102,8 +103,7 @@ const FacultyStaff = () => {
         );
     };
 
-    // FIXED: Helper function to get image source
-    // FIXED: Helper function to get image source
+    // Helper function to get image source
     const getImageSrc = (staff) => {
         console.log('🖼️ Getting image for staff:', {
             id: staff?.id,
@@ -114,15 +114,15 @@ const FacultyStaff = () => {
 
         // Check if staff and image exist and are not empty
         if (!staff || !staff.image || staff.image === '' || staff.image === '-' || staff.image === null) {
-            console.log('⚠️ No image found, using default');
-            return '/src/assets/images/teachers/admin1.jpg';
+            console.log('⚠️ No image found, using default avatar');
+            return '/default-avatar.jpg';
         }
 
-        // ADDED: Clean up the image path by removing extra quotes
+        // Clean up the image path by removing extra quotes
         let cleanImagePath = staff.image;
         if (typeof cleanImagePath === 'string') {
             // Remove surrounding quotes (both single and double)
-            cleanImagePath = cleanImagePath.replace(/^['"]|['"]$/g, '');
+            cleanImagePath = cleanImagePath.replace(/^['"]|['"]$/g, '').trim();
         }
 
         // If it's already a full URL (starts with http)
@@ -131,27 +131,12 @@ const FacultyStaff = () => {
             return cleanImagePath;
         }
 
-
-        // Remove leading slash if it exists to avoid double slashes
-        const imagePath = cleanImagePath.startsWith('/') ? cleanImagePath.substring(1) : cleanImagePath;
-
-        const fullImageUrl = `${imagePath}`;
-        console.log('✅ Constructed image URL:', fullImageUrl);
-
-        // Add this to test if the URL is reachable
-        fetch(fullImageUrl)
-            .then(response => {
-                if (response.ok) {
-                    console.log('✅ Image URL is reachable');
-                } else {
-                    console.log('❌ Image URL returns error:', response.status);
-                }
-            })
-            .catch(error => {
-                console.log('❌ Image URL failed to fetch:', error);
-            });
-
-        return fullImageUrl;
+        // If path already starts with /, it's correct - use as is
+        // If not, add / to make it absolute path from public folder
+        const finalPath = cleanImagePath.startsWith('/') ? cleanImagePath : `/${cleanImagePath}`;
+        
+        console.log('✅ Final image path:', finalPath);
+        return finalPath;
     };
 
     // Add debug effect to log the data when it loads
@@ -301,7 +286,7 @@ const FacultyStaff = () => {
                                                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-amber-200"
                                                     onError={(e) => {
                                                         console.log('❌ Image failed to load:', e.target.src);
-                                                        e.target.src = "/src/assets/images/teachers/admin1.jpg";
+                                                        e.target.src = "/default-avatar.jpg";
                                                     }}
                                                     onLoad={() => {
                                                         console.log('✅ Image loaded successfully:', getImageSrc(selectedStaff));
@@ -379,7 +364,7 @@ const FacultyStaff = () => {
                                             className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-amber-200 mx-auto md:mx-0"
                                             onError={(e) => {
                                                 console.log('❌ Modal image failed to load:', e.target.src);
-                                                e.target.src = '/src/assets/images/teachers/admin1.jpg';
+                                                e.target.src = '/default-avatar.jpg';
                                             }}
                                             onLoad={() => {
                                                 console.log('✅ Modal image loaded successfully:', getImageSrc(selectedStaff));

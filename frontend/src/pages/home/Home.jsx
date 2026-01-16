@@ -110,7 +110,7 @@ const Home = () => {
             >
               <div className="relative h-[250px] sm:h-[350px] md:h-[400px] rounded-lg overflow-hidden shadow-xl">
                 <img
-                  src="/src/assets/images/thabo_school.jpg"
+                  src="/thabo_school.jpg"
                   alt="โรงเรียนท่าบ่อพิทยาคม"
                   className="w-full h-full object-cover"
                 />

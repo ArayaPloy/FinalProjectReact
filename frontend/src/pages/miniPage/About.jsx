@@ -141,11 +141,11 @@ const About = () => {
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
-          src={schoolInfo?.hero_image || "/src/assets/images/thabo_school.jpg"}
+          src={schoolInfo?.hero_image || "/thabo_school.jpg"}
           alt="ประวัติโรงเรียน"
           className="w-full h-[400px] object-cover"
           onError={(e) => {
-            e.target.src = "/src/assets/images/default-school.jpg";
+            e.target.src = "/thabo_school.jpg";
           }}
         />
         <div className="container relative z-20 mx-auto px-4 py-20 text-center">
@@ -291,11 +291,11 @@ const About = () => {
             <div className="text-center">
               <div className="relative w-48 h-46 mx-auto mb-4 overflow-hidden rounded-full border-4 border-amber-500 shadow-lg">
                 <img
-                  src={schoolInfo?.director_image || "/src/assets/images/default-avatar.jpg"}
+                  src={schoolInfo?.director_image || "/images/teachers/admin1.jpg"}
                   alt="ผู้อำนวยการโรงเรียน"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.target.src = "/src/assets/images/default-avatar.jpg";
+                    e.target.src = "/images/teachers/admin1.jpg";
                   }}
                 />
               </div>

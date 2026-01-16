@@ -35,7 +35,8 @@ router.get('/by-department', async (req, res) => {
             6: 'health',        // กลุ่มสาระสุขศึกษาฯ
             7: 'art',           // กลุ่มสาระศิลปะ
             8: 'foreign',       // กลุ่มสาระภาษาต่างประเทศ
-            9: 'support'        // เจ้าหน้าที่สนับสนุน
+            9: 'support',       // ธุระการโรงเรียน
+            10: 'janitor'       // นักการภารโรง
         };
 
         // Group teachers by department
@@ -243,22 +244,36 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             nationality,
             position,
             level,
-            phoneNumber
+            phoneNumber,
+            email,
+            address,
+            education,
+            major,
+            biography,
+            specializations,
+            imagePath
         } = req.body;
 
         const teacher = await prisma.teachers.create({
             data: {
-                userId,
+                userId: userId || null,
                 departmentId,
-                namePrefix,
+                namePrefix: namePrefix || '',
                 fullName,
                 genderId,
                 dob: dob ? new Date(dob) : null,
-                nationality,
-                position,
-                level,
-                phoneNumber,
-                updatedBy: req.userId
+                nationality: nationality || 'ไทย',
+                position: position || '',
+                level: level || '',
+                phoneNumber: phoneNumber || '',
+                email: email || '',
+                address: address || '',
+                education: education || '',
+                major: major || '',
+                biography: biography || '',
+                specializations: specializations || '',
+                imagePath: imagePath || '/default-avatar.jpg',
+                ...(req.userId && { updatedBy: req.userId })
             },
             include: {
                 departments_teachers_departmentIdTodepartments: true,
@@ -285,7 +300,11 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const teacherId = parseInt(req.params.id);
-        const updates = req.body;
+        // Frontend sends { data: {...} }, ส่งข้อมูลซ้อนจึงต้องดึงข้อมูลแยกออกมา req.body.data
+        const updates = req.body.data || req.body;
+
+        console.log('🔄 Update teacher ID:', teacherId);
+        console.log('🔄 Update data received:', JSON.stringify(updates, null, 2));
 
         if (isNaN(teacherId)) {
             return res.status(400).json({

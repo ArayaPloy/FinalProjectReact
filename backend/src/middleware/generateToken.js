@@ -13,19 +13,7 @@ const generateToken = async (userId) => {
                 isDeleted: false 
             },
             include: {
-                userroles: true,
-                students_students_updatedByTousers: true,
-                teachers_teachers_teacherIdTousers: {
-                    include: {
-                        departments_teachers_departmentIdTodepartments: true,
-                        genders: true
-                    }
-                },
-                superadmin: {
-                    include: {
-                        genders: true
-                    }
-                }
+                userroles: true
             }
         });
 
