@@ -12,23 +12,46 @@ set DB_HOST=localhost
 set DB_PORT=3308
 set BACKUP_DIR=..\backups
 
-REM XAMPP MySQL path (change if your XAMPP is in different location)
-set MYSQL_BIN=C:\xampp\mysql\bin
-set MYSQLDUMP=%MYSQL_BIN%\mysqldump.exe
+REM Auto-detect MySQL path
+set MYSQLDUMP=
+if exist "C:\xampp\mysql\bin\mysqldump.exe" set MYSQLDUMP=C:\xampp\mysql\bin\mysqldump.exe
+if exist "D:\xampp\mysql\bin\mysqldump.exe" set MYSQLDUMP=D:\xampp\mysql\bin\mysqldump.exe
+if exist "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe" set MYSQLDUMP=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe
+
+REM If not found, try using PATH
+if not defined MYSQLDUMP (
+    where mysqldump.exe >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        set MYSQLDUMP=mysqldump.exe
+    )
+)
 
 REM Check if mysqldump exists
-if not exist "%MYSQLDUMP%" (
-    echo ERROR: mysqldump.exe not found at: %MYSQLDUMP%
+if not defined MYSQLDUMP (
+    echo ========================================
+    echo ERROR: mysqldump.exe not found!
+    echo ========================================
     echo.
-    echo Please update MYSQL_BIN path in this script to match your XAMPP installation.
+    echo Please make sure MySQL is installed and:
+    echo   1. XAMPP is running (check XAMPP Control Panel)
+    echo   2. MySQL bin folder is in system PATH
+    echo.
     echo Common locations:
-    echo   - C:\xampp\mysql\bin
-    echo   - D:\xampp\mysql\bin
-    echo   - C:\Program Files\MySQL\MySQL Server 8.0\bin
+    echo   - C:\xampp\mysql\bin\mysqldump.exe
+    echo   - D:\xampp\mysql\bin\mysqldump.exe
     echo.
+    echo To add to PATH:
+    echo   1. Search "Environment Variables" in Windows
+    echo   2. Edit System PATH
+    echo   3. Add: C:\xampp\mysql\bin
+    echo.
+    echo ========================================
     pause
     exit /b 1
 )
+
+echo Using MySQL at: %MYSQLDUMP%
+echo.
 
 REM Create timestamp
 for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /format:list') do set datetime=%%I

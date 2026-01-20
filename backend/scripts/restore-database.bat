@@ -12,17 +12,41 @@ set DB_HOST=localhost
 set DB_PORT=3308
 set BACKUP_DIR=..\backups
 
-REM XAMPP MySQL path
-set MYSQL_BIN=C:\xampp\mysql\bin
-set MYSQL=%MYSQL_BIN%\mysql.exe
+REM Auto-detect MySQL path
+set MYSQL=
+if exist "C:\xampp\mysql\bin\mysql.exe" set MYSQL=C:\xampp\mysql\bin\mysql.exe
+if exist "D:\xampp\mysql\bin\mysql.exe" set MYSQL=D:\xampp\mysql\bin\mysql.exe
+if exist "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" set MYSQL=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe
+
+REM If not found, try using PATH
+if not defined MYSQL (
+    where mysql.exe >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        set MYSQL=mysql.exe
+    )
+)
 
 REM Check if mysql exists
-if not exist "%MYSQL%" (
-    echo ERROR: mysql.exe not found at: %MYSQL%
-    echo Please update MYSQL_BIN path in this script.
+if not defined MYSQL (
+    echo ========================================
+    echo ERROR: mysql.exe not found!
+    echo ========================================
+    echo.
+    echo Please make sure MySQL is installed and:
+    echo   1. XAMPP is running (check XAMPP Control Panel)
+    echo   2. MySQL bin folder is in system PATH
+    echo.
+    echo Common locations:
+    echo   - C:\xampp\mysql\bin\mysql.exe
+    echo   - D:\xampp\mysql\bin\mysql.exe
+    echo.
+    echo ========================================
     pause
     exit /b 1
 )
+
+echo Using MySQL at: %MYSQL%
+echo.
 
 echo ========================================
 echo Available Backup Files:
