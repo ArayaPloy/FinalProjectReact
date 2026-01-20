@@ -5,6 +5,7 @@ import AdminNavigation from './AdminNavigation';
 
 const AdminLayout = () => {
   // ไม่ต้องตรวจสอบสิทธิ์ที่นี่ เพราะ ProtectedRoute ทำหน้าที่นี้แล้ว
+  // ใช้เป็น parent component สำหรับเส้นทาง /dashboard, /manage-posts, /add-post, /manage-users ฯลฯ
   
   return (
     <div className='container py-6 mx-auto flex flex-col md:flex-row gap-4 items-start justify-start shadow-md'>

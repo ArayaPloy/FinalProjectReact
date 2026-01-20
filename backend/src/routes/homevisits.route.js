@@ -269,7 +269,7 @@ router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
             summary: body.summary || null,
             notes: body.notes || null,
             imagePath: imagePaths.length ? imagePaths[0] : null,
-            imageGallery: imagePaths.length ? JSON.stringify(imagePaths) : null,
+            imageGallery: imagePaths.length > 1 ? JSON.stringify(imagePaths.slice(1)) : null,
         };
 
         const newVisit = await prisma.homevisits.create({ data });
@@ -367,14 +367,14 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
             updatedAt: new Date()
         };
 
-        // Handle JSON fields - ✅ แก้ไข: เพิ่มฟิลด์ที่หายไป
+        // Handle JSON fields -  เพิ่มฟิลด์ที่เป็น JSON
         if (updates.familyStatus) updateData.familyStatus = parseJsonField(updates.familyStatus);
         if (updates.houseType) updateData.houseType = parseJsonField(updates.houseType);
         if (updates.houseMaterial) updateData.houseMaterial = parseJsonField(updates.houseMaterial);
         if (updates.utilities) updateData.utilities = parseJsonField(updates.utilities);
         if (updates.visitPurpose) updateData.visitPurpose = parseJsonField(updates.visitPurpose);
 
-        // Handle simple text fields that were missing
+        // Handle simple text fields 
         if (updates.monthlyIncome) updateData.monthlyIncome = updates.monthlyIncome;
         if (updates.phoneNumber) updateData.phoneNumber = updates.phoneNumber;
         if (updates.emergencyContact) updateData.emergencyContact = updates.emergencyContact;
@@ -385,14 +385,26 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
         // Handle image updates
         if (newImagePaths.length > 0) {
             if (updates.replaceImages === 'true') {
-                updateData.imagePath = newImagePaths[0];
-                updateData.imageGallery = newImagePaths;
+                updateData.imagePath = newImagePaths[0]; // First image as main
+                updateData.imageGallery = newImagePaths.length > 1 ? JSON.stringify(newImagePaths.slice(1)) : null; // gallery
             } else {
                 // Append to existing images
-                const existingImages = existingVisit.imageGallery || [];
-                updateData.imageGallery = [...existingImages, ...newImagePaths];
+                const existingGallery = existingVisit.imageGallery 
+                    ? (typeof existingVisit.imageGallery === 'string' 
+                        ? JSON.parse(existingVisit.imageGallery) 
+                        : existingVisit.imageGallery)
+                    : [];
+                
+                // ถ้ายังไม่มี imagePath ให้ใช้รูปแรกเป็น imagePath
                 if (!existingVisit.imagePath && newImagePaths.length > 0) {
                     updateData.imagePath = newImagePaths[0];
+                    // เก็บรูปที่เหลือใน gallery
+                    if (newImagePaths.length > 1) {
+                        updateData.imageGallery = JSON.stringify([...existingGallery, ...newImagePaths.slice(1)]);
+                    }
+                } else {
+                    // มี imagePath แล้ว เก็บรูปใหม่ทั้งหมดใน gallery
+                    updateData.imageGallery = JSON.stringify([...existingGallery, ...newImagePaths]);
                 }
             }
         }

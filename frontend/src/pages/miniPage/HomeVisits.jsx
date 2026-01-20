@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { 
     Home, 
@@ -21,6 +22,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useFetchTeachersByDepartmentQuery } from '../../redux/features/teachers/teachersApi';
 
 const HomeVisits = () => {
+    const navigate = useNavigate();
     
     const [currentStep, setCurrentStep] = useState(0);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -141,7 +143,7 @@ const HomeVisits = () => {
             Swal.fire({
                 icon: 'warning',
                 title: 'เกินจำนวนที่กำหนด',
-                text: 'อัพโหลดได้สูงสุด 5 ไฟล์',
+                text: 'อัปโหลดได้สูงสุด 5 ไฟล์',
                 confirmButtonColor: '#D97706'
             });
             return;
@@ -540,7 +542,9 @@ const HomeVisits = () => {
                                                 type="checkbox"
                                                 checked={formData.familyStatus?.includes(item) || false}
                                                 onChange={(e) => {
-                                                    const currentValues = formData.familyStatus?.split(', ') || [];
+                                                    const currentValues = formData.familyStatus 
+                                                        ? formData.familyStatus.split(', ').filter(v => v.trim() !== '') 
+                                                        : [];
                                                     let newValues;
                                                     if (e.target.checked) {
                                                         newValues = [...currentValues, item];
@@ -761,7 +765,9 @@ const HomeVisits = () => {
                                                 type="checkbox"
                                                 checked={formData.houseMaterial?.includes(item) || false}
                                                 onChange={(e) => {
-                                                    const currentValues = formData.houseMaterial?.split(', ') || [];
+                                                    const currentValues = formData.houseMaterial
+                                                        ? formData.houseMaterial.split(', ').filter(v => v.trim() !== '')
+                                                        : [];
                                                     let newValues;
                                                     if (e.target.checked) {
                                                         newValues = [...currentValues, item];
@@ -809,7 +815,9 @@ const HomeVisits = () => {
                                                 type="checkbox"
                                                 checked={formData.utilities?.includes(item) || false}
                                                 onChange={(e) => {
-                                                    const currentValues = formData.utilities?.split(', ') || [];
+                                                    const currentValues = formData.utilities
+                                                        ? formData.utilities.split(', ').filter(v => v.trim() !== '')
+                                                        : [];
                                                     let newValues;
                                                     if (e.target.checked) {
                                                         newValues = [...currentValues, item];
@@ -921,7 +929,9 @@ const HomeVisits = () => {
                                                 type="checkbox"
                                                 checked={formData.visitPurpose?.includes(item.value) || false}
                                                 onChange={(e) => {
-                                                    const currentValues = formData.visitPurpose?.split(', ') || [];
+                                                    const currentValues = formData.visitPurpose
+                                                        ? formData.visitPurpose.split(', ').filter(v => v.trim() !== '')
+                                                        : [];
                                                     let newValues;
                                                     if (e.target.checked) {
                                                         newValues = [...currentValues, item.value];
@@ -1083,7 +1093,7 @@ const HomeVisits = () => {
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <Upload className="w-4 h-4 text-amber-600" />
-                                    อัพโหลดรูปภาพ (สูงสุด 5 ไฟล์)
+                                    อัปโหลดรูปภาพ (สูงสุด 5 ไฟล์)
                                 </label>
                                 
                                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-amber-500 transition-all bg-gray-50">
@@ -1155,7 +1165,7 @@ const HomeVisits = () => {
                                     <div className="flex items-center gap-3 mb-2">
                                         <i className="bi bi-cloud-upload text-blue-600 text-xl animate-pulse"></i>
                                         <span className="text-sm font-bold text-blue-700">
-                                            กำลังอัพโหลด... {uploadProgress}%
+                                            กำลังอัปโหลด... {uploadProgress}%
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -1230,9 +1240,7 @@ const HomeVisits = () => {
                             </button>
                             
                             <button
-                                onClick={() => {
-                                    window.location.href = '/admin/home-visits';
-                                }}
+                                onClick={() => navigate('/dashboard/home-visit-report')}
                                 className="w-full sm:w-auto bg-blue-600 text-white px-4 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                             >
                                 <i className="bi bi-eye"></i>
@@ -1392,7 +1400,7 @@ const HomeVisits = () => {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                         สร้างเมื่อ: {new Date().toLocaleString('th-TH')} | 
-                        รองรับการอัพโหลดไฟล์: JPG, PNG, GIF (สูงสุด 2MB/ไฟล์)
+                        รองรับการอัปโหลดไฟล์: JPG, PNG, GIF (สูงสุด 2MB/ไฟล์)
                     </p>
                 </div>
             </div>

@@ -4,7 +4,7 @@ import DatePicker from '../../../components/common/DatePicker';
 import ClassSelect from '../../../components/common/ClassSelect';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { useGetClassRoomsQuery, useGetFlagpoleReportQuery } from '../../../redux/features/attendance/flagpoleAttendanceApi';
-import { showError, showSuccess } from '../../../utilis/sweetAlertHelper';
+import { showError, showSuccess } from '../../../utils/sweetAlertHelper';
 
 const FlagpoleAttendanceReport = () => {
     const [startDate, setStartDate] = useState(
@@ -13,7 +13,7 @@ const FlagpoleAttendanceReport = () => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedClass, setSelectedClass] = useState('all');
 
-    // 🎯 Pagination State
+    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const RECORDS_PER_PAGE = 50; // แสดง 50 รายการต่อหน้า
 
@@ -58,7 +58,7 @@ const FlagpoleAttendanceReport = () => {
 
     const attendanceRate = totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : 0;
 
-    // 🎯 Pagination Logic
+    // Pagination Logic
     const allRecords = reportData?.records || [];
     const totalPages = Math.ceil(allRecords.length / RECORDS_PER_PAGE);
     const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;
@@ -79,7 +79,7 @@ const FlagpoleAttendanceReport = () => {
             return;
         }
 
-        // 🎯 CSV export ส่งออกข้อมูล **ทั้งหมด** (ไม่ถูกจำกัดด้วย pagination)
+        // CSV export ส่งออกข้อมูล **ทั้งหมด** (ไม่ถูกจำกัดด้วย pagination)
         // ใช้ ="value" เพื่อบังคับให้ Excel แสดงเป็น Text และไม่แปลงค่า
         const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ'];
         const rows = allRecords.map((record) => [

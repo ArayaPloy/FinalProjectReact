@@ -13,21 +13,21 @@ import Img3 from "../../assets/images/11.jpg";
 const Hero = () => {
   const quickLinks = [
     {
-      icon: <FaGraduationCap className="w-6 h-6" />,
-      title: "หลักสูตรการเรียน",
-      description: "หลักสูตรที่เปิดสอนในโรงเรียน",
-      link: "/privacy-policy",
-    },
-    {
       icon: <FaBook className="w-6 h-6" />,
       title: "การรับสมัครนักเรียน",
-      description: "เปิดรับสมัครนักเรียนใหม่ทุกปี",
+      description: "ข้อมูลการรับสมัครนักเรียนใหม่",
       link: "/admissions",
     },
     {
+      icon: <FaGraduationCap className="w-6 h-6" />,
+      title: "หลักสูตรการเรียน",
+      description: "หลักสูตรและแผนการเรียน",
+      link: "/privacy-policy",
+    },
+    {
       icon: <FaUsers className="w-6 h-6" />,
-      title: "บุคลากร",
-      description: "ครูและบุคลากรทางการศึกษา",
+      title: "คณะครูและบุคลากร",
+      description: "บุคลากรทางการศึกษาของโรงเรียน",
       link: "/faculty-staff",
     },
   ];
@@ -85,16 +85,16 @@ const Hero = () => {
                 className="flex flex-wrap justify-center gap-4 md:justify-start"
               >
                 <Link
-                  to="/about-us"
-                  className="mx-2 px-6 py-3 text-white font-semibold transition-colors rounded-md bg-amber-600 hover:bg-amber-800"
+                  to="/admissions"
+                  className="mx-2 px-8 py-4 text-white font-bold text-lg transition-all duration-300 rounded-lg bg-gradient-to-r from-amber-600 via-orange-500 to-amber-700 hover:from-amber-700 hover:via-orange-600 hover:to-amber-800 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  เกี่ยวกับเรา
+                  📝 ดูข้อมูลสมัครเรียน
                 </Link>
                 <Link
-                  to="/contact-us"
-                  className="px-6 py-3 font-semibold transition-colors border rounded-md text-primary border-primary hover:bg-amber-800 hover:text-white"
+                  to="/about-us"
+                  className="mx-2 px-8 py-5 font-semibold transition-colors border-2 rounded-lg text-amber-800 border-amber-600 hover:bg-amber-600 hover:text-white"
                 >
-                  ติดต่อเรา
+                  เกี่ยวกับเรา
                 </Link>
               </motion.div>
             </motion.div>
@@ -213,7 +213,7 @@ const Hero = () => {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         viewport={{ once: true }}
-        className="py-16 mt-16 text-white bg-amber-950"
+        className="py-16 mt-16 text-white bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900"
       >
         <div className="container px-4 mx-auto">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">

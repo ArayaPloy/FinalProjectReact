@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const verifyToken = require('../middleware/verifyToken');
+const isAdmin = require('../middleware/admin');
 
 const prisma = new PrismaClient();
 
@@ -43,7 +44,8 @@ router.post('/post-comment', verifyToken, async (req, res) => {
                     select: {
                         id: true,
                         username: true,
-                        email: true
+                        email: true,
+                        profileImage: true  // เพิ่ม profileImage
                     }
                 },
                 blogs: {
@@ -100,7 +102,8 @@ router.get('/post/:postId', async (req, res) => {
                     select: {
                         id: true,
                         username: true,
-                        email: true
+                        email: true,
+                        profileImage: true  // เพิ่ม profileImage
                     }
                 }
             },
@@ -127,6 +130,10 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Invalid comment ID' });
         }
 
+        if (!comment || comment.trim() === '') {
+            return res.status(400).json({ message: 'Comment content is required' });
+        }
+
         // ตรวจสอบว่า comment มีอยู่และเป็นของ user คนนี้
         const existingComment = await prisma.comments.findFirst({
             where: {
@@ -137,7 +144,7 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
         });
 
         if (!existingComment) {
-            return res.status(404).json({ message: 'Comment not found or you do not have permission to update this comment' });
+            return res.status(403).json({ message: 'Comment not found or you do not have permission to update this comment' });
         }
 
         const updatedComment = await prisma.comments.update({
@@ -145,14 +152,16 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
                 id: commentId
             },
             data: {
-                comment
+                comment,
+                updatedAt: new Date()
             },
             include: {
                 users: {
                     select: {
                         id: true,
                         username: true,
-                        email: true
+                        email: true,
+                        profileImage: true
                     }
                 }
             }
@@ -168,7 +177,7 @@ router.patch('/update/:commentId', verifyToken, async (req, res) => {
     }
 });
 
-// Delete comment (protected route - only comment owner can delete)
+// Delete comment (protected route - comment owner or admin can delete)
 router.delete('/delete/:commentId', verifyToken, async (req, res) => {
     try {
         const commentId = parseInt(req.params.commentId);
@@ -178,17 +187,32 @@ router.delete('/delete/:commentId', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Invalid comment ID' });
         }
 
-        // ตรวจสอบว่า comment มีอยู่และเป็นของ user คนนี้
+        // ดึงข้อมูล comment และ user role
         const existingComment = await prisma.comments.findFirst({
             where: {
                 id: commentId,
-                userId: userId,
                 deletedAt: null
             }
         });
 
         if (!existingComment) {
-            return res.status(404).json({ message: 'Comment not found or you do not have permission to delete this comment' });
+            return res.status(404).json({ message: 'Comment not found' });
+        }
+
+        // ตรวจสอบ role ของ user
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            include: { userroles: true }
+        });
+
+        const isCommentOwner = existingComment.userId === userId;
+        const isAdminUser = user?.userroles?.roleName === 'admin' || user?.userroles?.roleName === 'super_admin';
+
+        // อนุญาตให้ลบได้เฉพาะเจ้าของหรือแอดมิน
+        if (!isCommentOwner && !isAdminUser) {
+            return res.status(403).json({ 
+                message: 'You do not have permission to delete this comment. Only the comment owner or admin can delete it.' 
+            });
         }
 
         // Soft delete

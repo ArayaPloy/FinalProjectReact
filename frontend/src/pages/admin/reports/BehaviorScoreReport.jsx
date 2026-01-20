@@ -26,7 +26,7 @@ const ReportBehaviorScore = () => {
     // Sorting state for summary table
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // 🎯 Pagination State
+    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const RECORDS_PER_PAGE = 50; // แสดง 50 รายการต่อหน้า
 
@@ -69,7 +69,7 @@ const ReportBehaviorScore = () => {
         return data;
     }, [historyData, selectedClass, searchStudent, dateRange]);
 
-    // 🎯 Pagination Logic
+    // Pagination Logic
     const allRecords = filteredRecords;
     const totalPages = Math.ceil(allRecords.length / RECORDS_PER_PAGE);
     const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;

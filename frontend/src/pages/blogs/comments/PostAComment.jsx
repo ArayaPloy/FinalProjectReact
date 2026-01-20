@@ -1,21 +1,14 @@
 import React, { useState } from 'react';
 import { usePostCommentMutation } from '../../../redux/features/comments/commentsApi';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useFetchBlogByIdQuery } from '../../../redux/features/blogs/blogsApi';
 import Swal from 'sweetalert2';
 
-const PostAComment = () => {
-  const { id } = useParams();
+const PostAComment = ({ postId }) => {
   const navigate = useNavigate();
   const [comment, setComment] = useState('');
   const { user } = useSelector((state) => state.auth);
   const [postComment] = usePostCommentMutation();
-
-  // Refetch after posting a comment
-  const { refetch } = useFetchBlogByIdQuery(id, {
-    skip: !id, // Skip fetching if id is not available
-  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,8 +43,8 @@ const PostAComment = () => {
     // Prepare the comment data
     const newComment = {
       comment: comment,
-      user: user.id, // Prisma uses 'id' not '_id'
-      postId: id, // Ensure post ID is correctly passed
+      user: user.id,
+      postId: postId, // ใช้ postId จาก props
     };
 
     try {
@@ -59,9 +52,8 @@ const PostAComment = () => {
       const response = await postComment(newComment).unwrap();
       console.log('Comment posted successfully:', response);
 
-      // Clear the comment input and refetch comments
+      // Clear the comment input
       setComment('');
-      refetch();
       
       await Swal.fire({
         icon: 'success',

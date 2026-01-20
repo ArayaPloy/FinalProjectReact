@@ -14,10 +14,19 @@ router.get('/flagpole-attendance/:studentNumber', async (req, res) => {
     const { studentNumber } = req.params;
     const { academicYearId, semesterId } = req.query;
 
+    // Validate studentNumber
+    const studentNumberInt = parseInt(studentNumber);
+    if (isNaN(studentNumberInt)) {
+      return res.status(400).json({
+        success: false,
+        message: 'รหัสนักเรียนไม่ถูกต้อง'
+      });
+    }
+
     // ตรวจสอบว่ามีนักเรียนคนนี้หรือไม่
     const student = await prisma.students.findFirst({
       where: {
-        studentNumber: parseInt(studentNumber),
+        studentNumber: studentNumberInt,
         isDeleted: false
       },
       select: {
@@ -32,7 +41,7 @@ router.get('/flagpole-attendance/:studentNumber', async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบข้อมูลนักเรียน'
+        message: `ไม่พบข้อมูลนักเรียนรหัส ${studentNumber}`
       });
     }
 

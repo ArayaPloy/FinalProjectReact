@@ -3,6 +3,12 @@ import { Link, NavLink } from 'react-router-dom';
 import { IoClose, IoMenuSharp, IoChevronDown, IoLogOut, IoSettings, IoPerson } from "react-icons/io5";
 import { useLogoutUserMutation } from '../redux/features/auth/authApi';
 import AvaterImg from "../assets/commentor.png";
+
+const getApiURL = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const getBaseURL = () => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  return apiUrl.replace('/api', '');
+};
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -152,9 +158,9 @@ const Navbar = () => {
           {user ? (
             <li className='flex gap-3 items-center'>
               <img 
-                src={AvaterImg} 
+                src={user?.profileImage ? `${getBaseURL()}${user.profileImage}` : AvaterImg}
                 alt={user.name || "ผู้ใช้"} 
-                className='w-9 h-9 rounded-full border-2 border-amber-200 flex-shrink-0' 
+                className='w-9 h-9 rounded-full border-2 border-amber-200 flex-shrink-0 object-cover' 
               />
               <div className="relative">
                 <button
@@ -328,9 +334,9 @@ const Navbar = () => {
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <img 
-                        src={AvaterImg} 
+                        src={user?.profileImage ? `${getBaseURL()}${user.profileImage}` : AvaterImg}
                         alt={user.name || "ผู้ใช้"} 
-                        className='w-8 h-8 rounded-full border-2 border-amber-200 flex-shrink-0' 
+                        className='w-8 h-8 rounded-full border-2 border-amber-200 flex-shrink-0 object-cover' 
                       />
                       <span className="truncate">{user.name}</span>
                     </div>

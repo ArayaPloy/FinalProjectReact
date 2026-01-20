@@ -38,7 +38,7 @@ router.post('/register', async (req, res) => {
                 password: hashedPassword,
                 username,
                 roleId: parseInt(roleId),
-                profileImage: '/default-avatar.jpg', // ⭐ Default avatar
+                profileImage: '/default-avatar.jpg', 
                 phone: null, // Optional field
                 lastLogin: null // Will be updated on first login
             },
@@ -84,12 +84,20 @@ router.post('/login', async (req, res) => {
             return res.status(401).send({ message: 'Invalid credentials' });
         }
 
+        // บันทึก lastLogin
+        await prisma.users.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() }
+        });
+
         const token = await generateToken(user.id); // Generate token with user ID
         
+        // ตั้งค่า cookie ให้ปลอดภัย
         res.cookie('token', token, { 
-            httpOnly: false,
-            secure: false, // Ensure this is true for HTTPS
-            sameSite: 'None'
+            httpOnly: true,  // ป้องกัน XSS - JavaScript ไม่สามารถอ่านได้
+            secure: process.env.NODE_ENV === 'production', // HTTPS only ใน production
+            sameSite: 'Lax', // ป้องกัน CSRF - ส่ง cookie เฉพาะ same-site requests
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 วัน (ตรงกับ JWT token Middleware)
         });
 
         // Return user data without password
@@ -103,7 +111,8 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 username: user.username,
                 role: user.userroles.roleName,
-                roleId: user.roleId
+                roleId: user.roleId,
+                profileImage: user.profileImage // เพิ่ม profileImage
             }
         });
     } catch (error) {

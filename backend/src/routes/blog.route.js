@@ -181,7 +181,8 @@ router.get('/:id', async (req, res) => {
                             select: {
                                 id: true,
                                 username: true,
-                                email: true
+                                email: true,
+                                profileImage: true  // เพิ่ม profileImage
                             }
                         }
                     },

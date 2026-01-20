@@ -7,14 +7,7 @@ export const teachersApi = createApi({
     reducerPath: 'teachersApi',
     baseQuery: fetchBaseQuery({
         baseUrl: `${API_BASE_URL}/`,
-        prepareHeaders: (headers, { getState }) => {
-            const token = getState().auth.token;
-            if (token) {
-                headers.set('Authorization', `Bearer ${token}`);
-            }
-            return headers;
-        },
-        credentials: 'include'
+        credentials: 'include' // ส่ง cookie อัตโนมัติ
     }),
     tagTypes: ['Teachers', 'Teacher', 'Departments'],
     endpoints: (builder) => ({

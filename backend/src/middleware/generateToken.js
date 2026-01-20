@@ -29,7 +29,8 @@ const generateToken = async (userId) => {
             roleId: user.roleId
         };
 
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign(payload, JWT_SECRET, { 
+            expiresIn: '7d' }); //Token 7 วัน
         return token;
     } catch (error) {
         console.error('Error generating token:', error);

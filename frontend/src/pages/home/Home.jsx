@@ -63,10 +63,97 @@ const Home = () => {
 
   return (
     <div className='bg-white text-primary container mx-auto mt-4 sm:mt-6' style={{ minWidth: '320px' }}>
+      {/* Sticky CTA Button */}
+      <Link
+        to="/admissions"
+        className="fixed bottom-6 right-6 z-50 px-6 py-3 text-white font-bold text-sm sm:text-base rounded-full bg-gradient-to-r from-amber-600 via-orange-500 to-amber-700 hover:from-amber-700 hover:via-orange-600 hover:to-amber-800 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center gap-2 animate-bounce"
+      >
+        <span>📝</span>
+        <span className="hidden sm:inline">ดูข้อมูลสมัครเรียน</span>
+        <span className="sm:hidden">สมัครเรียน</span>
+      </Link>
+
       <Hero />
+
+      {/* เว็บลิงค์ที่น่าสนใจ - ย้ายมาด้านบน */}
+      <section className="container mx-auto px-4 py-8 sm:py-12">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6 sm:mb-8">
+          บริการออนไลน์และแหล่งเรียนรู้
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Category 1: Student Services */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-3 sm:px-4 py-2 sm:py-3">
+              <h3 className="text-base sm:text-lg font-semibold text-white">บริการนักเรียน</h3>
+            </div>
+            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+              <LinkItem
+                href="/admissions"
+                title="รับสมัครนักเรียนออนไลน์"
+                icon={<UserAddIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
+              />
+              <LinkItem
+                href="https://sgs6.bopp-obec.info/sgss/security/signin.aspx"
+                title="ตรวจสอบผลการเรียน SGS"
+                icon={<AcademicCapIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
+              />
+              <LinkItem
+                href="https://sgs.bopp-obec.info/sgss/Security/SignIn.aspx"
+                title="งานทะเบียน-วัดผล SGS"
+                icon={<ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
+              />
+            </div>
+          </div>
+
+          {/* Category 2: Educational Resources */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-3 sm:px-4 py-2 sm:py-3">
+              <h3 className="text-base sm:text-lg font-semibold text-white">แหล่งเรียนรู้</h3>
+            </div>
+            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+              <LinkItem
+                href="https://qinfo.co/index.html"
+                title="Q-Info เครื่องมือพัฒนาด้านการศึกษา"
+                icon={<LightBulbIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />}
+              />
+              <LinkItem
+                href="https://contentcenter.obec.go.th/"
+                title="OBEC Content Center"
+                icon={<BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />}
+              />
+            </div>
+          </div>
+
+          {/* Category 3: School Information */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-3 sm:px-4 py-2 sm:py-3">
+              <h3 className="text-base sm:text-lg font-semibold text-white">ข้อมูลโรงเรียน</h3>
+            </div>
+            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
+              <LinkItem
+                href="/ita"
+                title="ITA ประเมินคุณธรรมและความโปร่งใส"
+                icon={<ScaleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
+              />
+              <LinkItem
+                href="/student-council"
+                title="คณะกรรมการนักเรียน"
+                icon={<UserGroupIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
+              />
+              <LinkItem
+                href="/all-students"
+                title="ข้อมูลจำนวนนักเรียน"
+                icon={<ChartBarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Blogs limit={6} />
 
-      {/* About Section */}
+      {/* About Section - ย้ายมาหลัง News/Blogs */}
       <section className="py-12 sm:py-16 bg-gradient-to-r from-amber-50 to-amber-100 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center px-4 sm:px-8">
@@ -116,82 +203,6 @@ const Home = () => {
                 />
               </div>
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* เว็บลิงค์ที่น่าสนใจ */}
-      <section className="container mx-auto px-4 py-8 sm:py-12">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6 sm:mb-8">
-          เว็บลิงค์ที่น่าสนใจ
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Category 1: Student Services */}
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="bg-blue-600 px-3 sm:px-4 py-2 sm:py-3">
-              <h3 className="text-base sm:text-lg font-semibold text-white">บริการนักเรียน</h3>
-            </div>
-            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-              <LinkItem
-                href="/admissions"
-                title="รับสมัครนักเรียนออนไลน์"
-                icon={<UserAddIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
-              />
-              <LinkItem
-                href="https://sgs6.bopp-obec.info/sgss/security/signin.aspx"
-                title="ตรวจสอบผลการเรียน SGS"
-                icon={<AcademicCapIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
-              />
-              <LinkItem
-                href="https://sgs.bopp-obec.info/sgss/Security/SignIn.aspx"
-                title="งานทะเบียน-วัดผล SGS"
-                icon={<ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
-              />
-            </div>
-          </div>
-
-          {/* Category 2: Educational Resources */}
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="bg-green-600 px-3 sm:px-4 py-2 sm:py-3">
-              <h3 className="text-base sm:text-lg font-semibold text-white">แหล่งเรียนรู้</h3>
-            </div>
-            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-              <LinkItem
-                href="https://qinfo.co/index.html"
-                title="Q-Info เครื่องมือพัฒนาด้านการศึกษา"
-                icon={<LightBulbIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />}
-              />
-              <LinkItem
-                href="https://contentcenter.obec.go.th/"
-                title="OBEC Content Center"
-                icon={<BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />}
-              />
-            </div>
-          </div>
-
-          {/* Category 3: School Information */}
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="bg-amber-600 px-3 sm:px-4 py-2 sm:py-3">
-              <h3 className="text-base sm:text-lg font-semibold text-white">ข้อมูลโรงเรียน</h3>
-            </div>
-            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-              <LinkItem
-                href="/ita"
-                title="ITA ประเมินคุณธรรมและความโปร่งใส"
-                icon={<ScaleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
-              />
-              <LinkItem
-                href="/student-council"
-                title="คณะกรรมการนักเรียน"
-                icon={<UserGroupIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
-              />
-              <LinkItem
-                href="/all-students"
-                title="ข้อมูลจำนวนนักเรียน"
-                icon={<ChartBarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />}
-              />
-            </div>
           </div>
         </div>
       </section>

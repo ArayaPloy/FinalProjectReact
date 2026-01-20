@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useDeleteBlogMutation, useFetchBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { Link } from "react-router-dom";
-import { formatDate } from "../../../utilis/dateFormater";
+import Swal from 'sweetalert2';
+import { formatDate } from "../../../utils/dateFormater";
 import { MdModeEdit } from "react-icons/md";
 
 const ManagePosts = () => {
@@ -10,12 +11,38 @@ const ManagePosts = () => {
   const [deletePost] = useDeleteBlogMutation(); 
 
   const handleDelete = async (id) => {
-    try {
-      const response = await deletePost(id).unwrap();
-      alert(response.message);
-      refetch(); // ดึงข้อมูลบทความใหม่หลังจากลบ
-    } catch (error) {
-      console.error("ลบบทความไม่สำเร็จ:", error);
+    const result = await Swal.fire({
+      title: 'ยืนยันการลบ',
+      text: 'คุณต้องการลบบทความนี้หรือไม่?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'ลบ',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await deletePost(id).unwrap();
+        Swal.fire({
+          icon: 'success',
+          title: 'ลบสำเร็จ',
+          text: response.message || 'ลบบทความเรียบร้อยแล้ว',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        refetch();
+      } catch (error) {
+        console.error("ลบบทความไม่สำเร็จ:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถลบบทความได้',
+          confirmButtonColor: '#d97706'
+        });
+      }
     }
   };
 

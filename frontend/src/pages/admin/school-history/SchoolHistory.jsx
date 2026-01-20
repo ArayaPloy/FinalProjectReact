@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Swal from 'sweetalert2';
 import {
     useFetchCompleteHistoryQuery,
     useUpdateSchoolInfoMutation,
@@ -7,6 +8,7 @@ import {
     useUpdateTimelineEventMutation,
     useDeleteTimelineEventMutation
 } from '../../../redux/features/about/aboutApi';
+import { formatDate } from '../../../utils/dateFormater';
 
 import { DatePicker, Form, Input, ConfigProvider } from 'antd';
 import moment from 'moment';
@@ -176,13 +178,36 @@ const SchoolHistoryAdmin = () => {
     };
 
     const handleDeleteEvent = async (eventId) => {
-        if (window.confirm('คุณต้องการลบเหตุการณ์นี้หรือไม่?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการลบ',
+            text: 'คุณต้องการลบเหตุการณ์นี้หรือไม่?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'ลบ',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
             try {
                 await deleteTimelineEvent(eventId).unwrap();
-                showNotification('ลบเหตุการณ์เรียบร้อยแล้ว');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ลบสำเร็จ',
+                    text: 'ลบเหตุการณ์เรียบร้อยแล้ว',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 refetch();
             } catch (error) {
-                showNotification('เกิดข้อผิดพลาดในการลบเหตุการณ์', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถลบเหตุการณ์ได้',
+                    confirmButtonColor: '#d97706'
+                });
                 console.error('Error deleting event:', error);
             }
         }
@@ -190,8 +215,10 @@ const SchoolHistoryAdmin = () => {
 
     const startEditingEvent = (event) => {
         setEditingEventId(event.id);
+        // Convert date string to moment object for DatePicker
+        const eventDate = event.date ? moment(event.date, 'YYYY-MM-DD') : null;
         setEventForm({
-            date: event.date ? moment(event.date) : null, // moment can auto-parse ISO dates
+            date: eventDate,
             title: event.title || '',
             description: event.description || ''
         });
@@ -512,7 +539,7 @@ const SchoolHistoryAdmin = () => {
                                             )}
                                             {event.date && (
                                                 <span className="text-gray-600 text-sm">
-                                                    {moment(event.date).format('DD/MM/YYYY')}
+                                                    {formatDate(event.date)}
                                                 </span>
                                             )}
                                         </div>

@@ -609,6 +609,7 @@ model teachers {
   genders                                                           genders                  @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "teachers_ibfk_3")
   users_teachers_updatedByTousers                                   users?                   @relation("teachers_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "teachers_ibfk_4")
   teachersubjects                                                   teachersubjects[]
+  users_profile                                                     users?                   @relation("users_teacherProfile")
 
   @@index([departmentId], map: "departmentId")
   @@index([genderId], map: "genderId")
@@ -659,6 +660,10 @@ model users {
   email                                                         String                   @unique(map: "email") @db.VarChar(255)
   password                                                      String                   @db.VarChar(255)
   roleId                                                        Int
+  phone                                                         String?                  @db.VarChar(20)
+  profileImage                                                  String?                  @db.VarChar(255)
+  lastLogin                                                     DateTime?                @db.Timestamp(0)
+  teacherId                                                     Int?                     @unique(map: "users_teacherId_unique")
   createdAt                                                     DateTime                 @default(now()) @db.Timestamp(0)
   updatedAt                                                     DateTime                 @default(now()) @db.Timestamp(0)
   isDeleted                                                     Boolean?                 @default(false)
@@ -689,6 +694,8 @@ model users {
   students                                                      students[]
   subjects                                                      subjects[]
   superadmin                                                    superadmin?
+  // ✅ Relation กับ teachers (Optional)
+  teacher_profile                                               teachers?                @relation("users_teacherProfile", fields: [teacherId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   teachers_teachers_teacherIdTousers                            teachers?                @relation("teachers_teacherIdTousers")
   teachers_teachers_updatedByTousers                            teachers[]               @relation("teachers_updatedByTousers")
   user_login_logs                                               user_login_logs[]
@@ -697,6 +704,7 @@ model users {
   other_users                                                   users[]                  @relation("usersTousers")
 
   @@index([roleId], map: "roleId")
+  @@index([teacherId], map: "users_teacherId_idx")
   @@index([updatedBy], map: "updatedBy")
 }
 

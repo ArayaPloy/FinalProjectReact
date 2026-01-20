@@ -6,6 +6,7 @@ import authReducer from './features/auth/authSlice';
 import commentApi from './features/comments/commentsApi';
 import { teachersApi } from './features/teachers/teachersApi';
 import { clubsApi } from './features/clubs/clubsApi';
+import { usersApi } from './features/users/usersApi';
 import flagpoleAttendanceApi from './features/attendance/flagpoleAttendanceApi';
 import flagpoleAttendanceReducer from './features/attendance/flagpoleAttendanceSlice';
 import { behaviorScoreApi } from '../services/behaviorScoreApi';
@@ -21,6 +22,7 @@ export const store = configureStore({
     [authApi.reducerPath]: authApi.reducer,
     [teachersApi.reducerPath]: teachersApi.reducer,
     [clubsApi.reducerPath]: clubsApi.reducer,
+    [usersApi.reducerPath]: usersApi.reducer,
     [flagpoleAttendanceApi.reducerPath]: flagpoleAttendanceApi.reducer,
     [behaviorScoreApi.reducerPath]: behaviorScoreApi.reducer,
     [studentsApi.reducerPath]: studentsApi.reducer,
@@ -37,6 +39,7 @@ export const store = configureStore({
       authApi.middleware,
       teachersApi.middleware,
       clubsApi.middleware,
+      usersApi.middleware,
       flagpoleAttendanceApi.middleware,
       behaviorScoreApi.middleware,
       studentsApi.middleware,

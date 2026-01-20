@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useFetchCompleteHistoryQuery } from '../../redux/features/about/aboutApi';
 import { motion } from 'framer-motion';
 import moment from 'moment';
+import { formatDate } from '../../utils/dateFormater';
 
 const About = () => {
   // Set viewport meta tag to prevent zooming issues on mobile
@@ -259,7 +260,7 @@ const About = () => {
                       {event.date && (
                         <span className="text-gray-600 text-xs sm:text-sm flex items-center">
                           <span className="text-amber-500 mr-1">📅</span>
-                          {moment(event.date).format('DD/MM/YYYY')}
+                          {formatDate(event.date)}
                         </span>
                       )}
                     </div>

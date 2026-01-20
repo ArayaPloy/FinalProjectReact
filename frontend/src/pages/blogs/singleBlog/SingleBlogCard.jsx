@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDate } from '../../../utilis/dateFormater';
+import { formatDate } from '../../../utils/dateFormater';
 import { motion } from 'framer-motion';
 import EditorJSHTML from 'editorjs-html';
 

@@ -22,6 +22,7 @@ import StudentBehaviorScore from "../pages/miniPage/StudentBehaviorScore";
 import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
 import Login from "../pages/user/Login";
 import Register from "../pages/user/Register";
+import Profile from "../pages/user/Profile";
 import ProtectedRoute from "../components/ProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import AdminLayout from "../pages/admin/AdminLayout";
@@ -153,6 +154,15 @@ const router = createBrowserRouter([
           <PublicRoute>
             <Register />
           </PublicRoute>
+        )
+      },
+      // Profile (Protected)
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
         )
       },
       // Admin Dashboard

@@ -73,13 +73,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Routes setup
 const authRoutes = require('./src/routes/auth.user');
 const authMeRoutes = require('./src/routes/auth.me');
+const profileRoutes = require('./src/routes/profile.route');
 const blogRoutes = require('./src/routes/blog.route');
 const aboutRoutes = require('./src/routes/about.route');
 const commentRoutes = require('./src/routes/comment.route');
 const teachersRoutes = require('./src/routes/teachers.route');
-// const blogRoutesOld = require('./src/routes/blog.route.old'); // Removed - using MySQL/Prisma now
 const clubsRoutes = require('./src/routes/clubs.route');
 const homeVisitRoutes = require('./src/routes/homevisits.route');
 const flagpoleAttendanceRoutes = require('./src/routes/flagpole-attendance.route');
@@ -88,14 +89,12 @@ const behaviorScoreRoutes = require('./src/routes/behavior-score.route');
 const studentRoutes = require('./src/routes/student.route');
 const academicRoutes = require('./src/routes/academic.route');
 const studentPublicRoutes = require('./src/routes/student-public.route');
-// Routes setup
 
-// app.get('/api/test', isAdmin); // Apply isAdmin middleware to all routes under /api
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', authMeRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/about', aboutRoutes);
-// app.use('/api/blogsOld', blogRoutesOld); // Removed - using MySQL/Prisma now
 app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teachersRoutes);
 app.use('/api/clubs', clubsRoutes);
@@ -140,8 +139,6 @@ app.use((req, res) => {
 });
 
 async function main() {
-  // MongoDB connection (ถ้าจำเป็น - ปิดไว้ก่อนถ้าไม่ใช้)
-  // await mongoose.connect(process.env.MONGODB_URL);
   
   app.get('/', (req, res) => {
     res.json({
@@ -157,7 +154,6 @@ async function main() {
 main()
   .then(() => {
     console.log('✅ Server initialized successfully');
-    // console.log('✅ MongoDB connected'); // ถ้าใช้ MongoDB
   })
   .catch(err => {
     console.error('❌ Server initialization failed:', err);
@@ -171,3 +167,4 @@ app.listen(port, () => {
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
   console.log('========================================');
 });
+

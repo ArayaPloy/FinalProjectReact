@@ -19,12 +19,11 @@ const verifyToken = async (req, res, next) => {
         // Verify user exists and is not deleted
         const user = await prisma.users.findUnique({
             where: { 
-                id: decoded.userId,
-                isDeleted: false 
+                id: decoded.userId
             }
         });
 
-        if (!user) {
+        if (!user || user.isDeleted) {
             return res.status(401).json({ message: 'User not found or deleted' });
         }
 

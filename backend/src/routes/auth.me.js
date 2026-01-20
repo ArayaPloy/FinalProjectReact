@@ -13,8 +13,7 @@ router.get('/me', verifyToken, async (req, res) => {
 
         const user = await prisma.users.findUnique({
             where: { 
-                id: userId,
-                isDeleted: false 
+                id: userId
             },
             include: {
                 userroles: true,
@@ -33,7 +32,8 @@ router.get('/me', verifyToken, async (req, res) => {
             }
         });
 
-        if (!user) {
+        // เช็ค user ว่ามีและไม่ได้ถูกลบ
+        if (!user || user.isDeleted) {
             return res.status(404).json({ message: 'User not found' });
         }
 

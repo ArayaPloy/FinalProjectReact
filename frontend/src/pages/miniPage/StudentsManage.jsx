@@ -1,27 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Trash2, Search, Download, Upload } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Search, Download } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ClassSelect from '../components/common/ClassSelect';
-import api from '../services/api';
-import { attendanceService } from '../services/attendanceService';
+import { 
+    useGetStudentsQuery,
+    useGetClassroomsQuery,
+    useCreateStudentMutation,
+    useUpdateStudentMutation,
+    useDeleteStudentMutation,
+} from '../../services/studentsApi'; // ใช้ RTK Query
 import {
     showSuccess,
     showError,
     showConfirm,
     showDeleteConfirm,
     showLoading,
-    closeAlert,
-} from '../utils/sweetAlertHelper';
+} from '../../utilis/sweetAlertHelper';
 
 const StudentsManage = () => {
-    const [students, setStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
-    const [classList, setClassList] = useState([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
+
+    // RTK Query hooks
+    const { data: studentsData, isLoading, refetch } = useGetStudentsQuery();
+    const { data: classroomsData = [] } = useGetClassroomsQuery();
+    const [createStudent] = useCreateStudentMutation();
+    const [updateStudent] = useUpdateStudentMutation();
+    const [deleteStudent] = useDeleteStudentMutation();
+
+    const students = studentsData?.data || [];
+    const classList = classroomsData;
 
     // Form state
     const [formData, setFormData] = useState({
@@ -34,34 +45,8 @@ const StudentsManage = () => {
     });
 
     useEffect(() => {
-        fetchClasses();
-        fetchStudents();
-    }, []);
-
-    useEffect(() => {
         filterStudents();
     }, [students, selectedClass, searchQuery]);
-
-    const fetchClasses = async () => {
-        try {
-            const data = await attendanceService.getClasses();
-            setClassList(data);
-        } catch (error) {
-            console.error('Error fetching classes:', error);
-        }
-    };
-
-    const fetchStudents = async () => {
-        setLoading(true);
-        try {
-            const response = await api.get('/students');
-            setStudents(response.data.data);
-        } catch (error) {
-            showError('ข้อผิดพลาด', 'ไม่สามารถโหลดรายชื่อนักเรียนได้');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const filterStudents = () => {
         let filtered = students;
@@ -134,18 +119,18 @@ const StudentsManage = () => {
         try {
             if (editingStudent) {
                 // Update
-                await api.put(`/students/${editingStudent.id}`, formData);
+                await updateStudent({ id: editingStudent.id, ...formData }).unwrap();
                 showSuccess('แก้ไขสำเร็จ', 'บันทึกข้อมูลนักเรียนเรียบร้อย');
             } else {
                 // Create
-                await api.post('/students', formData);
+                await createStudent(formData).unwrap();
                 showSuccess('เพิ่มสำเร็จ', 'เพิ่มนักเรียนใหม่เรียบร้อย');
             }
 
-            fetchStudents();
+            refetch();
             handleCloseModal();
         } catch (error) {
-            showError('ข้อผิดพลาด', error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลได้');
+            showError('ข้อผิดพลาด', error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้');
         }
     };
 
@@ -157,30 +142,11 @@ const StudentsManage = () => {
         showLoading('กำลังลบ...', 'กรุณารอสักครู่');
 
         try {
-            await api.delete(`/students/${student.id}`);
+            await deleteStudent(student.id).unwrap();
             showSuccess('ลบสำเร็จ', 'ลบข้อมูลนักเรียนเรียบร้อย');
-            fetchStudents();
+            refetch();
         } catch (error) {
-            showError('ข้อผิดพลาด', error.response?.data?.message || 'ไม่สามารถลบข้อมูลได้');
-        }
-    };
-
-    const handleImportFromSheet = async () => {
-        const result = await showConfirm(
-            'นำเข้านักเรียนจาก Google Sheets',
-            'ระบบจะดึงข้อมูลนักเรียนจาก Google Sheets และนำเข้าสู่ฐานข้อมูล'
-        );
-
-        if (!result.isConfirmed) return;
-
-        showLoading('กำลังนำเข้า...', 'กรุณารอสักครู่');
-
-        try {
-            const result = await attendanceService.importStudentsFromSheet();
-            showSuccess('นำเข้าสำเร็จ!', `นำเข้านักเรียน ${result.imported} คน`);
-            fetchStudents();
-        } catch (error) {
-            showError('ข้อผิดพลาด', error.message);
+            showError('ข้อผิดพลาด', error.data?.message || 'ไม่สามารถลบข้อมูลได้');
         }
     };
 
@@ -218,13 +184,6 @@ const StudentsManage = () => {
                             <p className="text-gray-600 mt-1">เพิ่ม แก้ไข ลบ นักเรียน</p>
                         </div>
                         <div className="flex gap-2">
-                            <button
-                                onClick={handleImportFromSheet}
-                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-semibold transition-colors"
-                            >
-                                <Upload className="w-5 h-5" />
-                                Import จาก Sheet
-                            </button>
                             <button
                                 onClick={handleExport}
                                 disabled={filteredStudents.length === 0}
@@ -270,7 +229,7 @@ const StudentsManage = () => {
 
                 {/* Students Table */}
                 <div className="bg-white rounded-lg shadow-md p-6">
-                    {(studentsLoading || classesLoading) ? (
+                    {isLoading ? (
                         <LoadingSpinner />
                     ) : filteredStudents.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">

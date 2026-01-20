@@ -5,14 +5,7 @@ export const behaviorScoreApi = createApi({
   reducerPath: 'behaviorScoreApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getApiURL('/behavior-scores'),
-    credentials: 'include',
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
+    credentials: 'include', // ส่ง cookie อัตโนมัติ
   }),
   tagTypes: ['BehaviorScores', 'BehaviorHistory', 'BehaviorReports'],
   endpoints: (builder) => ({

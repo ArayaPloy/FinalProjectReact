@@ -95,7 +95,7 @@ const AddPost = () => {
     reader.readAsDataURL(file);
   };
 
-  // อัพโหลดรูปภาพ
+  // อัปโหลดรูปภาพ
   const handleImageUpload = async () => {
     if (!selectedFile) {
       setUploadError("กรุณาเลือกไฟล์รูปภาพก่อน");
@@ -121,14 +121,14 @@ const AddPost = () => {
 
       if (data.success) {
         setCoverImg(data.imageUrl);
-        setMessage("อัพโหลดรูปภาพสำเร็จ! ✅");
+        setMessage("อัปโหลดรูปภาพสำเร็จ! ✅");
         setTimeout(() => setMessage(""), 3000);
       } else {
-        setUploadError(data.message || "เกิดข้อผิดพลาดในการอัพโหลด");
+        setUploadError(data.message || "เกิดข้อผิดพลาดในการอัปโหลด");
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadError("ไม่สามารถอัพโหลดรูปภาพได้ กรุณาลองอีกครั้ง");
+      setUploadError("ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองอีกครั้ง");
     } finally {
       setIsUploading(false);
     }
@@ -257,7 +257,7 @@ const AddPost = () => {
             <div className="space-y-3">
               <label className="font-semibold">ภาพปกบทความ: </label>
               
-              {/* แสดง preview หรือ URL ที่อัพโหลดแล้ว */}
+              {/* แสดง preview หรือ URL ที่อัปโหลดแล้ว */}
               {(imagePreview || coverImg) && (
                 <div className="relative">
                   <img 
@@ -285,7 +285,7 @@ const AddPost = () => {
                   className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
                 />
                 
-                {/* ปุ่มอัพโหลด */}
+                {/* ปุ่มอัปโหลด */}
                 {selectedFile && !coverImg && (
                   <button
                     type="button"
@@ -296,12 +296,12 @@ const AddPost = () => {
                     {isUploading ? (
                       <>
                         <i className="bi bi-arrow-repeat animate-spin"></i>
-                        กำลังอัพโหลด...
+                        กำลังอัปโหลด...
                       </>
                     ) : (
                       <>
                         <i className="bi bi-cloud-upload"></i>
-                        อัพโหลดรูปภาพ
+                        อัปโหลดรูปภาพ
                       </>
                     )}
                   </button>
@@ -315,11 +315,11 @@ const AddPost = () => {
                   </p>
                 )}
                 
-                {/* แสดง URL ที่อัพโหลดสำเร็จ */}
+                {/* แสดง URL ที่อัปโหลดสำเร็จ */}
                 {coverImg && (
                   <p className="text-green-600 text-sm flex items-center gap-1">
                     <i className="bi bi-check-circle-fill"></i>
-                    อัพโหลดสำเร็จ
+                    อัปโหลดสำเร็จ
                   </p>
                 )}
               </div>
@@ -393,7 +393,7 @@ const AddPost = () => {
           disabled={isLoading || !isEditorReady || !coverImg || !categoryId}
           className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !coverImg ? "กรุณาอัพโหลดรูปภาพปก" : !categoryId ? "กรุณาเลือกหมวดหมู่" : "เพิ่มบทความ"}
+          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !coverImg ? "กรุณาอัปโหลดรูปภาพปก" : !categoryId ? "กรุณาเลือกหมวดหมู่" : "เพิ่มบทความ"}
         </button>
       </form>
     </div>

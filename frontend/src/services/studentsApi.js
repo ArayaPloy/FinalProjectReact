@@ -5,14 +5,7 @@ export const studentsApi = createApi({
   reducerPath: 'studentsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getApiURL('/students'),
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: 'include',
+    credentials: 'include', // ส่ง cookie อัตโนมัติ
   }),
   tagTypes: ['Students', 'Classrooms', 'BehaviorScores'],
   endpoints: (builder) => ({
@@ -75,6 +68,44 @@ export const studentsApi = createApi({
       query: (id) => `/${id}`,
       providesTags: (result, error, id) => [{ type: 'Students', id }],
     }),
+
+    /**
+     * สร้างนักเรียนใหม่
+     */
+    createStudent: builder.mutation({
+      query: (studentData) => ({
+        url: '',
+        method: 'POST',
+        body: studentData,
+      }),
+      invalidatesTags: ['Students'],
+    }),
+
+    /**
+     * แก้ไขข้อมูลนักเรียน
+     */
+    updateStudent: builder.mutation({
+      query: ({ id, ...studentData }) => ({
+        url: `/${id}`,
+        method: 'PUT',
+        body: studentData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        'Students',
+        { type: 'Students', id },
+      ],
+    }),
+
+    /**
+     * ลบนักเรียน
+     */
+    deleteStudent: builder.mutation({
+      query: (id) => ({
+        url: `/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Students'],
+    }),
   }),
 });
 
@@ -84,4 +115,7 @@ export const {
   useGetAllStudentsQuery,
   useGetStudentsQuery,
   useGetStudentByIdQuery,
+  useCreateStudentMutation,
+  useUpdateStudentMutation,
+  useDeleteStudentMutation,
 } = studentsApi;

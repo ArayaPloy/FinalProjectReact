@@ -145,8 +145,13 @@ const ManageTeacher = () => {
         try {
             const formDataUpload = new FormData();
             formDataUpload.append('image', selectedFile);
+            
+            // ส่ง path รูปเก่าไปด้วย เพื่อให้ backend ลบรูปเก่า
+            if (formData.imagePath && !formData.imagePath.includes('default-avatar')) {
+                formDataUpload.append('oldImagePath', formData.imagePath);
+            }
 
-            const uploadURL = getApiURL('/upload/image');
+            const uploadURL = getApiURL('/upload/teacher-image'); // เปลี่ยนเป็น endpoint สำหรับรูปครู
 
             const response = await fetch(uploadURL, {
                 method: 'POST',
@@ -164,19 +169,19 @@ const ManageTeacher = () => {
                 Swal.fire({
                     icon: 'success',
                     title: 'สำเร็จ!',
-                    text: 'อัพโหลดรูปภาพสำเร็จ',
+                    text: 'อัปโหลดรูปภาพสำเร็จ',
                     timer: 1500,
                     showConfirmButton: false
                 });
             } else {
-                throw new Error(data.message || 'อัพโหลดไม่สำเร็จ');
+                throw new Error(data.message || 'อัปโหลดไม่สำเร็จ');
             }
         } catch (error) {
             console.error('Upload error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถอัพโหลดรูปภาพได้',
+                text: 'ไม่สามารถอัปโหลดรูปภาพได้',
                 confirmButtonColor: '#3085d6'
             });
         } finally {
@@ -236,7 +241,7 @@ const ManageTeacher = () => {
         resetForm();
     };
 
-    // Handle submit
+    // Handle submit เพิ่มการเช็คก่อน Submit
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -249,6 +254,57 @@ const ManageTeacher = () => {
                 confirmButtonColor: '#3085d6'
             });
             return;
+        }
+
+        let uploadedImagePath = formData.imagePath; // เก็บ path รูปปัจจุบัน
+
+        // ถ้ามีรูปใหม่ ให้อัปโหลดก่อน (ไม่ว่าจะเป็นโหมดเพิ่มหรือแก้ไข)
+        if (selectedFile) {
+            Swal.fire({
+                icon: 'info',
+                title: 'กำลังอัปโหลดรูปภาพ...',
+                text: 'กรุณารอสักครู่',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const formDataUpload = new FormData();
+                formDataUpload.append('image', selectedFile);
+                
+                // ถ้าเป็นโหมดแก้ไข ส่ง path รูปเก่าไปด้วย
+                if (editingTeacher && formData.imagePath && !formData.imagePath.includes('default-avatar')) {
+                    formDataUpload.append('oldImagePath', formData.imagePath);
+                }
+                
+                const uploadURL = getApiURL('/upload/image');
+                const response = await fetch(uploadURL, {
+                    method: 'POST',
+                    body: formDataUpload,
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    uploadedImagePath = data.imageUrl; // เก็บ path รูปอัปเดตใหม่
+                    setFormData(prev => ({
+                        ...prev,
+                        imagePath: data.imageUrl
+                    }));
+                } else {
+                    throw new Error(data.message || 'อัปโหลดไม่สำเร็จ');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองใหม่',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
         }
 
         Swal.fire({
@@ -277,7 +333,7 @@ const ManageTeacher = () => {
                 major: formData.major || '',
                 biography: formData.biography || '',
                 specializations: formData.specializations || '',
-                imagePath: formData.imagePath || '/default-avatar.jpg'
+                imagePath: uploadedImagePath || 'default-avatar.jpg' // ใช้ path ที่อัปโหลดแล้ว
             };
 
             console.log('📤 Sending teacher data:', JSON.stringify(teacherData, null, 2));
@@ -374,7 +430,7 @@ const ManageTeacher = () => {
     // Get image src
     const getImageSrc = (imagePath) => {
         if (!imagePath || imagePath === '' || imagePath === '-') {
-            return '/default-avatar.jpg';
+            return 'default-avatar.jpg';
         }
         return imagePath;
     };
@@ -465,7 +521,7 @@ const ManageTeacher = () => {
                                         alt={teacher.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            e.target.src = '/default-avatar.jpg';
+                                            e.target.src = 'default-avatar.jpg';
                                         }}
                                     />
                                 </div>
@@ -571,14 +627,14 @@ const ManageTeacher = () => {
                                             {/* Preview */}
                                             <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
                                                 <img
-                                                    src={imagePreview || formData.imagePath || '/default-avatar.jpg'}
+                                                    src={imagePreview || formData.imagePath || 'default-avatar.jpg'}
                                                     alt="Preview"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
-                                                        e.target.src = '/default-avatar.jpg';
+                                                        e.target.src = 'default-avatar.jpg';
                                                     }}
                                                 />
-                                                {(imagePreview || formData.imagePath) && formData.imagePath !== '/default-avatar.jpg' && (
+                                                {(selectedFile || (formData.imagePath && formData.imagePath !== 'default-avatar.jpg')) && (
                                                     <button
                                                         type="button"
                                                         onClick={handleRemoveImage}
@@ -598,7 +654,7 @@ const ManageTeacher = () => {
                                             />
 
                                             {/* Upload Button */}
-                                            {selectedFile && !formData.imagePath && (
+                                            {selectedFile && (
                                                 <button
                                                     type="button"
                                                     onClick={handleImageUpload}
@@ -608,12 +664,12 @@ const ManageTeacher = () => {
                                                     {isUploading ? (
                                                         <>
                                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                            กำลังอัพโหลด...
+                                                            กำลังอัปโหลด...
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Upload className="w-4 h-4" />
-                                                            อัพโหลดรูปภาพ
+                                                            อัปโหลดรูปภาพ
                                                         </>
                                                     )}
                                                 </button>
@@ -935,7 +991,7 @@ const ManageTeacher = () => {
                                             alt={viewingTeacher.name}
                                             className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
                                             onError={(e) => {
-                                                e.target.src = '/default-avatar.jpg';
+                                                e.target.src = 'default-avatar.jpg';
                                             }}
                                         />
                                     </div>

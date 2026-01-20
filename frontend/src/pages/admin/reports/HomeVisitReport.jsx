@@ -45,6 +45,20 @@ const HomeVisitReport = () => {
                 credentials: 'include'
             });
 
+            // ตรวจสอบ 401 Unauthorized (Token หมดอายุหรือไม่มี)
+            if (response.status === 401) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเข้าสู่ระบบใหม่',
+                    text: 'Session หมดอายุแล้ว',
+                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'เข้าสู่ระบบ'
+                }).then(() => {
+                    window.location.href = '/login';
+                });
+                return;
+            }
+
             const result = await response.json();
 
             if (result.success) {
@@ -65,12 +79,16 @@ const HomeVisitReport = () => {
             }
         } catch (error) {
             console.error('Error fetching home visits:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถโหลดข้อมูลการเยี่ยมบ้านได้',
-                confirmButtonColor: '#ef4444'
-            });
+            
+            // ไม่แสดง alert ถ้าเป็น 401 (จัดการแล้วข้างบน)
+            if (error.message !== '401') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถโหลดข้อมูลการเยี่ยมบ้านได้',
+                    confirmButtonColor: '#ef4444'
+                });
+            }
         } finally {
             setIsLoading(false);
         }
@@ -207,15 +225,20 @@ const HomeVisitReport = () => {
 
     // Parse JSON fields
     const parseJsonField = (field) => {
-        if (!field) return [];
+        if (!field) return []; // ตรวจสอบค่าว่าง
         try {
             const parsed = typeof field === 'string' ? JSON.parse(field) : field;
-            const result = Array.isArray(parsed) ? parsed : [parsed];
-            // Filter out empty strings and trim whitespace
+            const result = Array.isArray(parsed) ? parsed : [parsed]; // แปลงเป็น Array
+            // กรอง Empty Strings ลบ whitespace
             return result.filter(item => item && typeof item === 'string' && item.trim() !== '');
         } catch {
-            // If not valid JSON, treat as plain text
-            return typeof field === 'string' && field.trim() ? [field.trim()] : [];
+            // If not valid JSON, treat as comma-separated plain text
+            if (typeof field === 'string') {
+                return field.split(',') // Split ด้วย comma
+                    .map(item => item.trim()) // ลบ whitespace
+                    .filter(item => item !== ''); //กรอง empty strings         
+            }
+            return [];
         }
     };
 
@@ -464,7 +487,7 @@ const HomeVisitReport = () => {
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             ผู้ปกครอง
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             วัตถุประสงค์
                                         </th>
                                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -479,7 +502,7 @@ const HomeVisitReport = () => {
                                                 {formatDate(visit.visitDate)}
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <div className="max-w-[11rem]">
+                                                <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
                                                     <p className="truncate">
                                                         {visit.teachers
                                                             ? `${visit.teachers.namePrefix || ''} ${visit.teachers.fullName}`.trim()
@@ -501,7 +524,7 @@ const HomeVisitReport = () => {
                                                 {visit.parentName || '-'}
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-900">
-                                                <div className="max-w-[7rem]">
+                                                <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
                                                     <p className="truncate">
                                                         {parseJsonField(visit.visitPurpose).join(', ') || '-'}
                                                     </p>
@@ -929,7 +952,7 @@ const HomeVisitReport = () => {
                                                         alt={`รูปภาพ ${idx + 1}`}
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                                         onError={(e) => {
-                                                            e.target.src = '/default-image.jpg';
+                                                            e.target.src = '/default-avatar.jpg';
                                                         }}
                                                     />
                                                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">

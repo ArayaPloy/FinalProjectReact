@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Swal from 'sweetalert2';
 import {
     IoChevronBack,
     IoPeople,
@@ -238,18 +239,46 @@ const ManageClubsPosts = () => {
 
     // Delete club
     const handleDeleteClub = async (clubId) => {
-        if (window.confirm('คุณต้องการลบชุมนุมนี้หรือไม่?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการลบ',
+            text: 'คุณต้องการลบชุมนุมนี้หรือไม่?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'ลบ',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true
+        });
+
+        if (result.isConfirmed) {
             try {
-                const result = await deleteClub(clubId);
+                const deleteResult = await deleteClub(clubId);
                 
-                if (result.success) {
-                    showNotification('ลบชุมนุมเรียบร้อยแล้ว');
-                    refetchClubs(); // Refresh the clubs list
+                if (deleteResult.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ลบสำเร็จ',
+                        text: 'ลบชุมนุมเรียบร้อยแล้ว',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    refetchClubs();
                 } else {
-                    showNotification(result.error || 'เกิดข้อผิดพลาดในการลบชุมนุม', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: deleteResult.error || 'เกิดข้อผิดพลาดในการลบชุมนุม',
+                        confirmButtonColor: '#d97706'
+                    });
                 }
             } catch (error) {
-                showNotification('เกิดข้อผิดพลาดในการลบชุมนุม', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการลบชุมนุม',
+                    confirmButtonColor: '#d97706'
+                });
                 console.error('Error deleting club:', error);
             }
         }

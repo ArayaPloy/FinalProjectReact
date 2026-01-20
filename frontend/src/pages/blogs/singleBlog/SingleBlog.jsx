@@ -38,7 +38,7 @@ const SingleBlog = () => {
           <div className="flex flex-col lg:flex-row justify-between items-start md:gap-4 gap-2">
             <div className="lg:w-2/3">
               <SingleBlogCard blog={blog.post} />
-              <CommentCard comments={blog?.comments || []} />
+              <CommentCard comments={blog?.comments || []} postId={id} />
             </div>
             <div className="bg-white lg:w-1/3 w-full">
               <RelatedBlogs key={id} blogId={id} />

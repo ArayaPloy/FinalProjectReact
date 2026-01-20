@@ -6,14 +6,7 @@ export const blogsApi = createApi({
   reducerPath: 'blogsApi',
   baseQuery: fetchBaseQuery({ 
     baseUrl: `${API_BASE_URL}/`,
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token; // Assuming you have an auth slice with a token
-      if (token) { 
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: 'include'
+    credentials: 'include' // ส่ง cookie อัตโนมัติ
   }),
   tagTypes: ['Blogs'],
   endpoints: (builder) => ({

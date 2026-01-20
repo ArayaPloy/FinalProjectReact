@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useFetchBlogByIdQuery, useUpdateBlogMutation, useFetchBlogCategoriesQuery } from "../../../redux/features/blogs/blogsApi";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
+import Swal from 'sweetalert2';
 import EditorJS from '@editorjs/editorjs';
 import List from '@editorjs/list'; 
 import Header from '@editorjs/header';
@@ -137,7 +138,7 @@ const UpdatePosts = () => {
     reader.readAsDataURL(file);
   };
 
-  // อัพโหลดรูปภาพใหม่
+  // อัปโหลดรูปภาพใหม่
   const handleImageUpload = async () => {
     if (!selectedFile) {
       setUploadError("กรุณาเลือกไฟล์รูปภาพก่อน");
@@ -163,16 +164,16 @@ const UpdatePosts = () => {
 
       if (data.success) {
         setCoverImg(data.imageUrl);
-        setSelectedFile(null); // ล้าง selectedFile หลังอัพโหลดสำเร็จ
+        setSelectedFile(null); // ล้าง selectedFile หลังอัปโหลดสำเร็จ
         setImagePreview(""); // ล้าง preview
-        setMessage("อัพโหลดรูปภาพใหม่สำเร็จ! ✅");
+        setMessage("อัปโหลดรูปภาพใหม่สำเร็จ! ✅");
         setTimeout(() => setMessage(""), 3000);
       } else {
-        setUploadError(data.message || "เกิดข้อผิดพลาดในการอัพโหลด");
+        setUploadError(data.message || "เกิดข้อผิดพลาดในการอัปโหลด");
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadError("ไม่สามารถอัพโหลดรูปภาพได้ กรุณาลองอีกครั้ง");
+      setUploadError("ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองอีกครั้ง");
     } finally {
       setIsUploading(false);
     }
@@ -222,12 +223,25 @@ const UpdatePosts = () => {
       
       const response = await PostBlog({ id, ...updatedPost }).unwrap();
       console.log('Update response:', response);
-      alert(response.message);
+      
+      await Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ',
+        text: response.message || 'แก้ไขบทความเรียบร้อยแล้ว',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      
       refetch();
       navigate(`/blogs/${id}`);
     } catch (error) {
       console.error('Error updating post:', error);
-      setMessage("แก้ไขบทความไม่สำเร็จ กรุณาลองอีกครั้ง");
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'แก้ไขบทความไม่สำเร็จ กรุณาลองอีกครั้ง',
+        confirmButtonColor: '#d97706'
+      });
     }
   };
 
@@ -325,12 +339,12 @@ const UpdatePosts = () => {
                           {isUploading ? (
                             <>
                               <i className="bi bi-arrow-repeat animate-spin"></i>
-                              กำลังอัพโหลด...
+                              กำลังอัปโหลด...
                             </>
                           ) : (
                             <>
                               <i className="bi bi-cloud-upload"></i>
-                              อัพโหลดรูปใหม่
+                              อัปโหลดรูปใหม่
                             </>
                           )}
                         </button>
@@ -358,7 +372,7 @@ const UpdatePosts = () => {
                   {hasNewImage && !selectedFile && coverImg && (
                     <p className="text-green-600 text-sm flex items-center gap-1">
                       <i className="bi bi-check-circle-fill"></i>
-                      อัพโหลดรูปใหม่สำเร็จ (กด Submit เพื่อบันทึก)
+                      อัปโหลดรูปใหม่สำเร็จ (กด Submit เพื่อบันทึก)
                     </p>
                   )}
                 </div>
