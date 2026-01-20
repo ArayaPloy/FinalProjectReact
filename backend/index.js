@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       process.env.FRONTEND_URL,
-      // เพิ่ม production domains อื่นๆ ถ้ามี
+      // เพิ่ม production domains อื่นๆ ถ้ามี                                                                  
     ].filter(Boolean) // กรองค่า undefined/null ออก
   : [
       'http://localhost:5173',
