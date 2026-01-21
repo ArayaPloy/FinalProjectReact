@@ -296,8 +296,8 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Update teacher (protected route - admin only)
-router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
+// Update teacher (Public route)
+router.patch('/:id', async (req, res) => {
     try {
         const teacherId = parseInt(req.params.id);
         // Frontend sends { data: {...} }, ส่งข้อมูลซ้อนจึงต้องดึงข้อมูลแยกออกมา req.body.data
