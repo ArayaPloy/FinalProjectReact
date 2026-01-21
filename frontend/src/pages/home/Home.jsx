@@ -15,7 +15,7 @@ import {
   ExternalLinkIcon
 } from '@heroicons/react/outline';
 
-// Move LinkItem เว็บลิงค์ที่น่าสนใจ component definition outside of Home component
+// LinkItem เว็บลิงค์ที่น่าสนใจ 
 const LinkItem = ({ href, title, icon }) => (
   <a
     href={href}
@@ -153,7 +153,7 @@ const Home = () => {
 
       <Blogs limit={6} />
 
-      {/* About Section - ย้ายมาหลัง News/Blogs */}
+      {/* About Section - อยู่หลัง News/Blogs */}
       <section className="py-12 sm:py-16 bg-gradient-to-r from-amber-50 to-amber-100 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center px-4 sm:px-8">
