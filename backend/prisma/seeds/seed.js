@@ -1,7 +1,4 @@
 const { PrismaClient } = require('@prisma/client')
-const fs = require('fs')
-const csv = require('csv-parse')
-const path = require('path')
 const prisma = new PrismaClient()
 
 async function main() {
@@ -168,6 +165,25 @@ ON DUPLICATE KEY UPDATE genderName=VALUES(genderName);
 
       `);
 
+  // Homeroom Classes
+  // className ต้องตรงกับคอลัมน์ classroom ใน student_list_2.csv เพื่อให้ seed_students.js map homeroomClassId ได้
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO homeroom_classes (id, className, homeroomTeacherId, academicYearId, maxStudents, isActive, createdAt, updatedAt) VALUES
+(1, '1/1', 5, 3, 40, 1, NOW(), NOW()),
+(2, '1/2', 3, 3, 40, 1, NOW(), NOW()),
+(3, '2/1', 4, 3, 40, 1, NOW(), NOW()),
+(4, '3/1', 6, 3, 40, 1, NOW(), NOW()),
+(5, '3/2', 7, 3, 40, 1, NOW(), NOW()),
+(6, '4/1', 8, 3, 40, 1, NOW(), NOW()),
+(7, '5/1', 9, 3, 40, 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+  homeroomTeacherId=VALUES(homeroomTeacherId),
+  academicYearId=VALUES(academicYearId),
+  isActive=VALUES(isActive);
+  `);
+
+  console.log('✅ Seeded 7 homeroom classes (1/1, 1/2, 2/1, 3/1, 3/2, 4/1, 5/1)');
+
   // User Roles
   await prisma.$executeRawUnsafe(`
     INSERT INTO userroles (id, roleName, createdAt, updatedAt, deletedAt) VALUES
@@ -229,46 +245,7 @@ ON DUPLICATE KEY UPDATE genderName=VALUES(genderName);
 
   console.log('✅ Imported users, blogs, comments, academic clubs, and home visits from existing database');
 
-  const csvFilePath = path.join(__dirname, 'student_list_2.csv')
-  const fileContent = fs.readFileSync(csvFilePath, 'utf-8')
-
-  // Parse CSV file
-  const records = await new Promise((resolve, reject) => {
-    csv.parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-      bom: true
-    }, (err, records) => {
-      if (err) reject(err)
-      resolve(records)
-    })
-  })
-
-  // console.log(`Found ${records.length} students in CSV file`)
-
-  // Insert students one by one
-  for (const record of records) {
-    try {
-      const student = await prisma.students.create({
-        data: {
-          namePrefix: record.namePrefix,
-          firstName: record.firstName,
-          lastName: record.lastName,
-          classRoom: record.classroom,
-          genderId: parseInt(record.genderId),
-          studentNumber: parseInt(record.studentNumber),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      })
-      // console.log(`Created student: ${student.firstName} ${student.lastName}`)
-    } catch (error) {
-      console.error(`Error creating student ${record.firstName} ${record.lastName}:`, error)
-    }
-  }
-
-  console.log('✅ seed.js complete. Run seed_class_schedules.js separately to seed class schedules.')
+  console.log('✅ seed.js complete. Run seed_students.js to import students with homeroom class mapping.')
 }
 
 // Run the seed function
