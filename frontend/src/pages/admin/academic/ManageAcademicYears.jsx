@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 import {
   useGetAcademicYearsQuery,
   useCreateAcademicYearMutation,
@@ -11,6 +13,9 @@ import {
 import Swal from 'sweetalert2';
 
 const ManageAcademicYears = () => {
+  const currentUser = useSelector(selectCurrentUser);
+  const isAdmin = ['admin', 'super_admin'].includes((currentUser?.role || '').toLowerCase());
+
   const { data: academicYears = [], isLoading, refetch } = useGetAcademicYearsQuery();
   const [createAcademicYear, { isLoading: isCreating }] = useCreateAcademicYearMutation();
   const [updateAcademicYear] = useUpdateAcademicYearMutation();
@@ -281,6 +286,18 @@ const ManageAcademicYears = () => {
       }
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow p-10 text-center max-w-sm">
+          <div className="text-5xl mb-3">🔒</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+          <p className="text-gray-500 text-sm">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
