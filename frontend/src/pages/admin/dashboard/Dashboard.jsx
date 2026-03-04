@@ -1,38 +1,82 @@
 /* eslint-disable react/no-unescaped-entities */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useFetchBlogsQuery } from "../../../redux/features/blogs/blogsApi";
-import { useGetUserQuery } from "../../../redux/features/auth/authApi";
+import { useGetUserStatsQuery, useGetPasswordResetRequestsQuery } from "../../../redux/features/auth/authApi";
 import { useGetCommentsQuery } from "../../../redux/features/comments/commentsApi";
+import Swal from "sweetalert2";
 import BlogsChart from "./BlogsChart";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [query] = useState({ search: '', category: '' });
-  const [hideAlert, setHideAlert] = useState(false); // State สำหรับซ่อนการแจ้งเตือน
+  const [query] = useState({ search: '', category: '', limit: 1000, page: 1 });
+  const [hideAlert, setHideAlert] = useState(false);
+  const [hideResetAlert, setHideResetAlert] = useState(false);
+  const popupShownRef = useRef(false);
   const { data: blogs = [], error, isLoading } = useFetchBlogsQuery(query);
-  const { data: users = [] } = useGetUserQuery();
-  const { data: comments = [] } = useGetCommentsQuery();
   const { user } = useSelector((state) => state.auth);
+  const { data: userStats } = useGetUserStatsQuery();
+  const { data: comments = [] } = useGetCommentsQuery();
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  const { data: resetRequests = [] } = useGetPasswordResetRequestsQuery(undefined, {
+    skip: !isAdmin,
+  });
+  const pendingResetCount = Array.isArray(resetRequests) ? resetRequests.length : 0;
 
   // นับจำนวนผู้ใช้ตามบทบาท
   const roleStats = useMemo(() => {
-    const superAdminCount = users.filter(u => u.role === "super_admin").length;
-    const adminCount = users.filter(u => u.role === "admin").length;
-    const teacherCount = users.filter(u => u.role === "teacher").length;
-    const userCount = users.filter(u => u.role === "user").length; // ผู้ใช้ทั่วไป (default role)
-    
+    const superAdminCount = userStats?.superAdminCount || 0;
+    const adminCount      = userStats?.adminCount      || 0;
+    const teacherCount    = userStats?.teacherCount    || 0;
+    const userCount       = userStats?.userCount       || 0;
+
     return {
       superAdminCount,
       adminCount,
       teacherCount,
-      userCount, 
-      totalAdmins: superAdminCount + adminCount, // รวม superadmin + admin
-      totalUsers: users.length,
-      pendingUsers: userCount // ผู้ใช้ที่รอการอนุมัติ/เปลี่ยนบทบาท
+      userCount,
+      totalAdmins: superAdminCount + adminCount,
+      totalUsers:  userStats?.totalUsers || 0,
+      pendingUsers: userCount
     };
-  }, [users]);
+  }, [userStats]);
+
+  // แสดง SweetAlert2 popup เมื่อเข้าหน้า dashboard และมีรายการรอ
+  useEffect(() => {
+    if (!isAdmin || popupShownRef.current) return;
+    if (isLoading || !userStats) return; // รอให้โหลดข้อมูลเสร็จก่อน
+
+    const newUsers = userStats.userCount || 0;
+    if (pendingResetCount === 0 && newUsers === 0) return;
+
+    popupShownRef.current = true;
+
+    let html = '<ul style="text-align:left;padding-left:1.2em;margin:0">';
+    if (newUsers > 0) {
+      html += `<li>👤 มีผู้ใช้ใหม่ <strong>${newUsers}</strong> คน รอการกำหนดบทบาท</li>`;
+    }
+    if (pendingResetCount > 0) {
+      html += `<li>🔑 มีคำขอรีเซ็ตรหัสผ่าน <strong>${pendingResetCount}</strong> รายการ รอการอนุมัติ</li>`;
+    }
+    html += '</ul>';
+
+    Swal.fire({
+      icon: 'info',
+      title: '🔔 แจ้งเตือนผู้ดูแลระบบ',
+      html,
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#d97706',
+      showCancelButton: true,
+      cancelButtonText: 'จัดการเลย',
+      cancelButtonColor: '#3b82f6',
+      reverseButtons: true,
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        navigate('/dashboard/users');
+      }
+    });
+  }, [isAdmin, isLoading, userStats, pendingResetCount, navigate]);
 
   // คำนวณสถิติบทความ
   const blogStats = useMemo(() => {
@@ -127,7 +171,7 @@ const Dashboard = () => {
                   แดชบอร์ดผู้ดูแลระบบ
                 </h1>
                 <p className="text-amber-100 mt-2">
-                  สวัสดี, <span className="font-semibold text-white">{user.username}</span> 
+                  สวัสดี คุณ <span className="font-semibold text-white">{user.username}</span> 
                   <span className="mx-2">•</span>
                   <span className="text-sm">{new Date().toLocaleDateString('th-TH', { 
                     year: 'numeric', 
@@ -149,8 +193,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Alert/Notification - ผู้ใช้ใหม่รอตรวจสอบ (แสดงเฉพาะ super_admin และ admin) */}
-          {roleStats.pendingUsers > 0 && !hideAlert && (user.role === 'super_admin' || user.role === 'admin') && (
+          {/* Alert: ผู้ใช้ใหม่รอตรวจสอบ */}
+          {roleStats.pendingUsers > 0 && !hideAlert && isAdmin && (
             <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-4 shadow-lg">
               <div className="flex items-start gap-4">
                 <div className="bg-orange-500 p-3 rounded-lg flex-shrink-0">
@@ -175,6 +219,42 @@ const Dashboard = () => {
                     <button
                       onClick={() => setHideAlert(true)}
                       className="bg-white hover:bg-red-50 text-orange-700 hover:text-red-700 border-2 border-orange-300 hover:border-red-300 font-semibold px-4 py-2 rounded-lg transition-all duration-300 flex items-center text-sm"
+                    >
+                      <i className="bi bi-x-circle mr-2"></i>
+                      ปิดการแจ้งเตือน
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Alert: คำขอรีเซ็ตรหัสผ่านรอการอนุมัติ */}
+          {pendingResetCount > 0 && !hideResetAlert && isAdmin && (
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-4 shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-500 p-3 rounded-lg flex-shrink-0">
+                  <i className="bi bi-key-fill text-white text-2xl"></i>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-blue-900 mb-1">
+                    <i className="bi bi-bell-fill mr-2"></i>
+                    มีคำขอรีเซ็ตรหัสผ่านรอการอนุมัติ!
+                  </h3>
+                  <p className="text-blue-800 text-sm mb-3">
+                    มีคำขอรีเซ็ตรหัสผ่าน <span className="font-bold text-lg">{pendingResetCount}</span> รายการ รอให้คุณอนุมัติและสร้างรหัสผ่านชั่วคราว
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => navigate('/dashboard/users')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center text-sm"
+                    >
+                      <i className="bi bi-key-fill mr-2"></i>
+                      จัดการคำขอ
+                    </button>
+                    <button
+                      onClick={() => setHideResetAlert(true)}
+                      className="bg-white hover:bg-red-50 text-blue-700 hover:text-red-700 border-2 border-blue-300 hover:border-red-300 font-semibold px-4 py-2 rounded-lg transition-all duration-300 flex items-center text-sm"
                     >
                       <i className="bi bi-x-circle mr-2"></i>
                       ปิดการแจ้งเตือน
@@ -294,7 +374,7 @@ const Dashboard = () => {
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">
                   <i className="bi bi-pie-chart-fill text-amber-600 mr-2"></i>
-                  การกระจายตัวของผู้ใช้
+                  บทบาทของผู้ใช้
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border-2 border-yellow-200">
@@ -442,29 +522,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Blog Categories Summary */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">
-              <i className="bi bi-grid-fill text-amber-600 mr-2"></i>
-              บทความแยกตามหมวดหมู่
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {Object.entries(blogStats.byCategory).map(([category, count], index) => (
-                <div 
-                  key={index}
-                  className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 text-center hover:shadow-md transition-all duration-300 border-2 border-amber-200 hover:scale-105 cursor-pointer"
-                >
-                  <p className="text-2xl font-bold text-gray-800">{count}</p>
-                  <p className="text-sm text-gray-600 mt-1 truncate" title={category}>{category}</p>
-                </div>
-              ))}
-              {Object.keys(blogStats.byCategory).length === 0 && (
-                <div className="col-span-full text-center text-gray-500 py-8">
-                  ยังไม่มีบทความในระบบ
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
     </div>

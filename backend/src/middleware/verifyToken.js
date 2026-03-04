@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET_KEY;
 
 const verifyToken = async (req, res, next) => {
     try {
+        // รองรับแค่ cookie
         const token = req.cookies.token;
         if (!token) {
             return res.status(401).json({ message: 'Token not found' });

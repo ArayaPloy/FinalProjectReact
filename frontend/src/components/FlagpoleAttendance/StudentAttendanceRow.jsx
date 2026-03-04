@@ -87,7 +87,7 @@ const StudentAttendanceRow = ({ student, statuses, selectedStatus, onStatusChang
                             {/* Student Details */}
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-gray-800 text-base md:text-base leading-tight mb-0.5">
-                                    {student.namePrefix} {student.fullName}
+                                    {student.namePrefix}{student.fullName}
                                 </p>
                                 <p className="text-xs md:text-xs text-gray-500">
                                     รหัส: {student.studentNumber}

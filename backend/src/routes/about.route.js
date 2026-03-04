@@ -146,6 +146,37 @@ router.get('/timeline', async (req, res) => {
     }
 });
 
+// Reorder timeline events (must be before /timeline/:id to avoid route shadowing)
+router.patch('/timeline/reorder', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { timelineIds } = req.body; // Array of timeline IDs in new order
+
+        if (!Array.isArray(timelineIds)) {
+            return res.status(400).json({ message: 'Timeline IDs must be an array' });
+        }
+
+        // Update sortOrder for each timeline event
+        const updatePromises = timelineIds.map((id, index) =>
+            prisma.school_timeline.update({
+                where: { id: parseInt(id) },
+                data: {
+                    sortOrder: index + 1,
+                    updatedBy: req.userId
+                }
+            })
+        );
+
+        await Promise.all(updatePromises);
+
+        res.status(200).json({
+            message: 'Timeline events reordered successfully'
+        });
+    } catch (error) {
+        console.error('Error reordering timeline events:', error);
+        res.status(500).json({ message: 'Failed to reorder timeline events' });
+    }
+});
+
 // Update timeline
 router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -270,37 +301,6 @@ router.get('/complete-history', async (req, res) => {
             message: 'Failed to fetch complete school history',
             error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
         });
-    }
-});
-
-// Reorder timeline events (protected route - admin only)
-router.patch('/timeline/reorder', verifyToken, isAdmin, async (req, res) => {
-    try {
-        const { timelineIds } = req.body; // Array of timeline IDs in new order
-
-        if (!Array.isArray(timelineIds)) {
-            return res.status(400).json({ message: 'Timeline IDs must be an array' });
-        }
-
-        // Update sortOrderorder for each timeline event
-        const updatePromises = timelineIds.map((id, index) =>
-            prisma.schoolTimeline.update({
-                where: { id: parseInt(id) },
-                data: {
-                    sortOrder: index + 1,
-                    updatedBy: req.userId
-                }
-            })
-        );
-
-        await Promise.all(updatePromises);
-
-        res.status(200).json({
-            message: 'Timeline events reordered successfully'
-        });
-    } catch (error) {
-        console.error('Error reordering timeline events:', error);
-        res.status(500).json({ message: 'Failed to reorder timeline events' });
     }
 });
 

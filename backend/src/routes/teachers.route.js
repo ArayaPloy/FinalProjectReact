@@ -16,12 +16,13 @@ router.get('/by-department', async (req, res) => {
             },
             include: {
                 departments_teachers_departmentIdTodepartments: true,
-                genders: true
+                genders: true,
             },
             orderBy: [
                 { departmentId: 'asc' },
                 { position: 'asc' },
-                { fullName: 'asc' }
+                { firstName: 'asc' },
+                { lastName: 'asc' }
             ]
         });
 
@@ -35,7 +36,7 @@ router.get('/by-department', async (req, res) => {
             6: 'health',        // กลุ่มสาระสุขศึกษาฯ
             7: 'art',           // กลุ่มสาระศิลปะ
             8: 'foreign',       // กลุ่มสาระภาษาต่างประเทศ
-            9: 'support',       // ธุระการโรงเรียน
+            9: 'support',       // ธุรการโรงเรียน
             10: 'janitor'       // นักการภารโรง
         };
 
@@ -45,14 +46,14 @@ router.get('/by-department', async (req, res) => {
             if (!acc[deptKey]) {
                 acc[deptKey] = [];
             }
-            acc[deptKey].push({
+                acc[deptKey].push({
                 id: teacher.id,
-                name: teacher.fullName,
+                name: `${teacher.namePrefix || ''}${teacher.firstName || ''}${teacher.lastName ? ' ' + teacher.lastName : ''}`.trim(),
                 namePrefix: teacher.namePrefix,
                 position: teacher.position,
                 level: teacher.level,
                 email: teacher.email || '',
-                phone: teacher.phoneNumber,
+                phone: teacher.phoneNumber || '',
                 address: teacher.address || '',
                 education: teacher.education || '',
                 major: teacher.major || '',
@@ -108,7 +109,8 @@ router.get('/', async (req, res) => {
 
         if (search) {
             whereClause.OR = [
-                { fullName: { contains: search } },
+                { firstName: { contains: search } },
+                { lastName: { contains: search } },
                 { position: { contains: search } },
                 { namePrefix: { contains: search } }
             ];
@@ -119,22 +121,18 @@ router.get('/', async (req, res) => {
             include: {
                 departments_teachers_departmentIdTodepartments: true,
                 genders: true,
-                users_teachers_teacherIdTousers: {
-                    select: {
-                        email: true
-                    }
-                }
             },
             orderBy: [
                 { departmentId: 'asc' },
                 { position: 'asc' },
-                { fullName: 'asc' }
+                { firstName: 'asc' },
+                { lastName: 'asc' }
             ]
         });
 
         const formattedTeachers = teachers.map(teacher => ({
             id: teacher.id,
-            name: teacher.fullName,
+            name: `${teacher.namePrefix || ''}${teacher.firstName || ''}${teacher.lastName ? ' ' + teacher.lastName : ''}`.trim(),
             namePrefix: teacher.namePrefix,
             position: teacher.position,
             level: teacher.level,
@@ -199,7 +197,7 @@ router.get('/:id', async (req, res) => {
 
         const formattedTeacher = {
             id: teacher.id,
-            name: teacher.fullName,
+            name: `${teacher.namePrefix || ''}${teacher.firstName || ''}${teacher.lastName ? ' ' + teacher.lastName : ''}`.trim(),
             namePrefix: teacher.namePrefix,
             position: teacher.position,
             level: teacher.level,
@@ -212,8 +210,8 @@ router.get('/:id', async (req, res) => {
             specializations: teacher.specializations || '',
             nationality: teacher.nationality,
             image: teacher.imagePath || '',
-            department: teacher.department?.name,
-            gender: teacher.gender?.genderName,
+            department: teacher.departments_teachers_departmentIdTodepartments?.name,
+            gender: teacher.genders?.genderName,
             dob: teacher.dob
         };
 
@@ -239,6 +237,8 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             departmentId,
             namePrefix,
             fullName,
+            firstName: firstNameRaw,
+            lastName: lastNameRaw,
             genderId,
             dob,
             nationality,
@@ -254,12 +254,18 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             imagePath
         } = req.body;
 
+        // รองรับทั้งแบบส่ง fullName (รวม) และ firstName+lastName (แยก)
+        const nameParts = (fullName || '').trim().split(/\s+/);
+        const firstName = firstNameRaw || nameParts[0] || '';
+        const lastName = lastNameRaw || nameParts.slice(1).join(' ') || '';
+
         const teacher = await prisma.teachers.create({
             data: {
                 userId: userId || null,
                 departmentId,
                 namePrefix: namePrefix || '',
-                fullName,
+                firstName,
+                lastName,
                 genderId,
                 dob: dob ? new Date(dob) : null,
                 nationality: nationality || 'ไทย',
@@ -331,6 +337,14 @@ router.patch('/:id', async (req, res) => {
         // Convert dob to Date if provided
         if (updates.dob) {
             updates.dob = new Date(updates.dob);
+        }
+
+        // แปลง fullName → firstName + lastName ถ้า frontend ส่งมาแบบรวม
+        if (updates.fullName !== undefined) {
+            const nameParts = (updates.fullName || '').trim().split(/\s+/);
+            updates.firstName = updates.firstName || nameParts[0] || '';
+            updates.lastName = updates.lastName || nameParts.slice(1).join(' ') || '';
+            delete updates.fullName;
         }
 
         const updatedTeacher = await prisma.teachers.update({

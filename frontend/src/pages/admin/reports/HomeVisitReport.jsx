@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import {
     Search, Filter, Calendar, Users, Home, FileText,
     Eye, Trash2, Download, Printer, ChevronLeft, ChevronRight,
@@ -7,8 +8,13 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { getApiURL } from '../../../utils/apiConfig';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
 const HomeVisitReport = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+    const isTeacher = currentUser?.role === 'teacher';
+
     // State Management
     const [homeVisits, setHomeVisits] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +92,8 @@ const HomeVisitReport = () => {
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
                     text: 'ไม่สามารถโหลดข้อมูลการเยี่ยมบ้านได้',
-                    confirmButtonColor: '#ef4444'
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'ตกลง'
                 });
             }
         } finally {
@@ -156,7 +163,8 @@ const HomeVisitReport = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: 'ไม่สามารถโหลดรายละเอียดการเยี่ยมบ้านได้',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
     };
@@ -191,7 +199,8 @@ const HomeVisitReport = () => {
                     icon: 'success',
                     title: 'ลบสำเร็จ!',
                     text: 'ลบรายงานการเยี่ยมบ้านเรียบร้อยแล้ว',
-                    confirmButtonColor: '#10b981'
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: 'ตกลง'
                 });
                 fetchHomeVisits();
             } else {
@@ -203,7 +212,8 @@ const HomeVisitReport = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: 'ไม่สามารถลบข้อมูลได้',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
     };
@@ -214,7 +224,8 @@ const HomeVisitReport = () => {
             icon: 'info',
             title: 'กำลังพัฒนา',
             text: 'ฟีเจอร์ส่งออก PDF กำลังอยู่ระหว่างการพัฒนา',
-            confirmButtonColor: '#3b82f6'
+            confirmButtonColor: '#3b82f6',
+            confirmButtonText: 'ตกลง'
         });
     };
 
@@ -368,19 +379,26 @@ const HomeVisitReport = () => {
                                 />
                             </div>
 
-                            {/* Teacher Filter */}
-                            <select
-                                value={filterTeacher}
-                                onChange={(e) => setFilterTeacher(e.target.value)}
-                                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
-                            >
-                                <option value="">ครูทุกคน</option>
-                                {teachers.map((teacher) => (
-                                    <option key={teacher.id} value={teacher.id}>
-                                        {teacher.namePrefix} {teacher.name}
-                                    </option>
-                                ))}
-                            </select>
+                            {/* Teacher Filter - admin only */}
+                            {isAdmin ? (
+                                <select
+                                    value={filterTeacher}
+                                    onChange={(e) => setFilterTeacher(e.target.value)}
+                                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                                >
+                                    <option value="">ครูทุกคน</option>
+                                    {teachers.map((teacher) => (
+                                        <option key={teacher.id} value={teacher.id}>
+                                            {teacher.namePrefix} {teacher.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div className="px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500 flex items-center gap-2">
+                                    <User className="w-4 h-4" />
+                                    แสดงเฉพาะนักเรียนในห้องของคุณ
+                                </div>
+                            )}
                         </div>
 
                         {/* Date Range Filter */}
@@ -444,13 +462,15 @@ const HomeVisitReport = () => {
                                 <Printer className="w-4 h-4" />
                                 พิมพ์รายงาน
                             </button>
-                            <button
-                                onClick={handleExportPDF}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                            >
-                                <Download className="w-4 h-4" />
-                                ส่งออก PDF
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={handleExportPDF}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    ส่งออก PDF
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -505,7 +525,7 @@ const HomeVisitReport = () => {
                                                 <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
                                                     <p className="truncate">
                                                         {visit.teachers
-                                                            ? `${visit.teachers.namePrefix || ''} ${visit.teachers.fullName}`.trim()
+                                                            ? `${visit.teachers.namePrefix || ''}${visit.teachers.firstName || ''} ${visit.teachers.lastName || ''}`.trim()
                                                             : visit.teacherName || '-'
                                                         }
                                                     </p>
@@ -513,15 +533,18 @@ const HomeVisitReport = () => {
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {visit.students ?
-                                                    `${visit.students.namePrefix || ''} ${visit.students.fullName}` :
+                                                    `${visit.students.namePrefix || ''}${visit.students.firstName || ''} ${visit.students.lastName || ''}`.trim() :
                                                     visit.studentName || '-'
                                                 }
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {visit.students?.classRoom || visit.className || '-'}
+                                                {visit.students?.homeroomClass?.className || visit.className || '-'}
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {visit.parentName || '-'}
+                                                {visit.parentFirstName || visit.parentLastName ?
+                                                    `${visit.parentNamePrefix || ''}${visit.parentFirstName || ''} ${visit.parentLastName || ''}`.trim() :
+                                                    '-'
+                                                }
                                             </td>
                                             <td className="px-4 py-4 text-sm text-gray-900">
                                                 <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
@@ -539,12 +562,14 @@ const HomeVisitReport = () => {
                                                         <Eye className="w-4 h-4" />
                                                         <span>ดู</span>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(visit.id, visit.studentName)}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => handleDelete(visit.id, visit.studentName)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -579,7 +604,7 @@ const HomeVisitReport = () => {
                                             <p className="text-xs text-gray-500">ครูผู้เยี่ยม</p>
                                             <p className="text-sm font-medium text-gray-900">
                                                 {visit.teachers ?
-                                                    `${visit.teachers.namePrefix || ''} ${visit.teachers.fullName}` :
+                                                    `${visit.teachers.namePrefix || ''}${visit.teachers.firstName || ''} ${visit.teachers.lastName || ''}`.trim() :
                                                     visit.teacherName || '-'
                                                 }
                                             </p>
@@ -593,12 +618,12 @@ const HomeVisitReport = () => {
                                             <p className="text-xs text-gray-500">นักเรียน</p>
                                             <p className="text-sm font-medium text-gray-900">
                                                 {visit.students ?
-                                                    `${visit.students.namePrefix || ''} ${visit.students.fullName}` :
+                                                    `${visit.students.namePrefix || ''}${visit.students.firstName || ''} ${visit.students.lastName || ''}`.trim() :
                                                     visit.studentName || '-'
                                                 }
                                             </p>
                                             <p className="text-xs text-gray-600">
-                                                {visit.students?.classRoom || visit.className || '-'}
+                                                {visit.students?.homeroomClass?.className || visit.className || '-'}
                                             </p>
                                         </div>
                                     </div>
@@ -609,7 +634,10 @@ const HomeVisitReport = () => {
                                         <div>
                                             <p className="text-xs text-gray-500">ผู้ปกครอง</p>
                                             <p className="text-sm font-medium text-gray-900">
-                                                {visit.parentName || '-'}
+                                                {visit.parentFirstName || visit.parentLastName ?
+                                                    `${visit.parentNamePrefix || ''}${visit.parentFirstName || ''} ${visit.parentLastName || ''}`.trim() :
+                                                    '-'
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -634,12 +662,14 @@ const HomeVisitReport = () => {
                                             <Eye className="w-4 h-4" />
                                             ดูรายละเอียด
                                         </button>
-                                        <button
-                                            onClick={() => handleDelete(visit.id, visit.studentName)}
-                                            className="inline-flex items-center justify-center px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {isAdmin && (
+                                            <button
+                                                onClick={() => handleDelete(visit.id, visit.studentName)}
+                                                className="inline-flex items-center justify-center px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -756,20 +786,20 @@ const HomeVisitReport = () => {
                                             <p className="text-sm text-blue-600 font-medium">ครูผู้เยี่ยม</p>
                                             <p className="text-base text-gray-900">
                                                 {viewingVisit.teachers ?
-                                                    `${viewingVisit.teachers.namePrefix || ''} ${viewingVisit.teachers.fullName}` :
+                                                    `${viewingVisit.teachers.namePrefix || ''}${viewingVisit.teachers.firstName || ''} ${viewingVisit.teachers.lastName || ''}`.trim() :
                                                     viewingVisit.teacherName || '-'
                                                 }
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-blue-600 font-medium">รหัสนักเรียน</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.studentIdNumber || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.studentNumber || viewingVisit.studentNumber || viewingVisit.studentIdNumber || '-'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-blue-600 font-medium">ชื่อนักเรียน</p>
                                             <p className="text-base text-gray-900">
                                                 {viewingVisit.students ?
-                                                    `${viewingVisit.students.namePrefix || ''} ${viewingVisit.students.fullName}` :
+                                                    `${viewingVisit.students.namePrefix || ''}${viewingVisit.students.firstName || ''} ${viewingVisit.students.lastName || ''}`.trim() :
                                                     viewingVisit.studentName || '-'
                                                 }
                                             </p>
@@ -781,7 +811,7 @@ const HomeVisitReport = () => {
                                         <div>
                                             <p className="text-sm text-blue-600 font-medium">ชั้น</p>
                                             <p className="text-base text-gray-900">
-                                                {viewingVisit.students?.classRoom || viewingVisit.className || '-'}
+                                                {viewingVisit.students?.homeroomClass?.className || viewingVisit.className || '-'}
                                             </p>
                                         </div>
                                     </div>
@@ -796,19 +826,27 @@ const HomeVisitReport = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">ชื่อผู้ปกครอง</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.parentName || '-'}</p>
+                                            <p className="text-base text-gray-900">
+                                                {viewingVisit.parentFirstName || viewingVisit.parentLastName ?
+                                                    `${viewingVisit.parentNamePrefix || ''}${viewingVisit.parentFirstName || ''} ${viewingVisit.parentLastName || ''}`.trim() :
+                                                    (viewingVisit.students?.guardianFirstName || viewingVisit.students?.guardianLastName ?
+                                                        `${viewingVisit.students.guardianNamePrefix || ''}${viewingVisit.students.guardianFirstName || ''} ${viewingVisit.students.guardianLastName || ''}`.trim() :
+                                                        '-'
+                                                    )
+                                                }
+                                            </p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">ความสัมพันธ์</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.relationship || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.guardianRelation || viewingVisit.relationship || '-'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">อาชีพ</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.occupation || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.guardianOccupation || viewingVisit.occupation || '-'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">รายได้ต่อเดือน</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.monthlyIncome || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.guardianMonthlyIncome || viewingVisit.monthlyIncome || '-'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">สถานะครอบครัว</p>
@@ -818,11 +856,11 @@ const HomeVisitReport = () => {
                                         </div>
                                         <div>
                                             <p className="text-sm text-green-600 font-medium">เบอร์โทรศัพท์</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.phoneNumber || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.phoneNumber || viewingVisit.phoneNumber || '-'}</p>
                                         </div>
                                         <div className="md:col-span-2">
                                             <p className="text-sm text-green-600 font-medium">ผู้ติดต่อฉุกเฉิน</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.emergencyContact || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.emergencyContact || viewingVisit.emergencyContact || '-'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -836,34 +874,32 @@ const HomeVisitReport = () => {
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
                                             <p className="text-sm text-purple-600 font-medium">ที่อยู่</p>
-                                            <p className="text-base text-gray-900">{viewingVisit.mainAddress || '-'}</p>
+                                            <p className="text-base text-gray-900">{viewingVisit.students?.address || viewingVisit.mainAddress || '-'}</p>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <p className="text-sm text-purple-600 font-medium">ประเภทบ้าน</p>
                                                 <p className="text-base text-gray-900">
-                                                    {parseJsonField(viewingVisit.houseType).join(', ') || '-'}
+                                                    {viewingVisit.students?.houseType || viewingVisit.houseType || '-'}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-purple-600 font-medium">วัสดุที่ใช้สร้าง</p>
                                                 <p className="text-base text-gray-900">
-                                                    {parseJsonField(viewingVisit.houseMaterial).join(', ') || '-'}
+                                                    {viewingVisit.students?.houseMaterial || viewingVisit.houseMaterial || '-'}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-sm text-purple-600 font-medium">สาธารณูปโภค</p>
                                                 <p className="text-base text-gray-900">
-                                                    {parseJsonField(viewingVisit.utilities).join(', ') || '-'}
+                                                    {viewingVisit.students?.utilities || viewingVisit.utilities || '-'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-purple-600 font-medium">สภาพแวดล้อม</p>
-                                                <p className="text-base text-gray-900">{viewingVisit.environmentCondition || '-'}</p>
-                                            </div>
-                                            <div className="md:col-span-2">
                                                 <p className="text-sm text-purple-600 font-medium">พื้นที่เรียน</p>
-                                                <p className="text-base text-gray-900">{viewingVisit.studyArea || '-'}</p>
+                                                <p className="text-base text-gray-900">
+                                                    {viewingVisit.students?.studyArea || viewingVisit.studyArea || '-'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

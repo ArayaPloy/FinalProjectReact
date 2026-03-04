@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { PrismaClient } = require('@prisma/client');
 const generateToken = require('../middleware/generateToken');
+const verifyToken = require('../middleware/verifyToken');
+const isAdmin = require('../middleware/admin');
 require('dotenv').config();
 
 const prisma = new PrismaClient();
@@ -60,7 +62,7 @@ router.post('/register', async (req, res) => {
 // Login endpoint
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, rememberMe } = req.body;
         
         const user = await prisma.users.findUnique({
             where: { email },
@@ -90,14 +92,15 @@ router.post('/login', async (req, res) => {
             data: { lastLogin: new Date() }
         });
 
-        const token = await generateToken(user.id); // Generate token with user ID
+        const cookieDays = rememberMe ? 30 : 1;
+        const token = await generateToken(user.id, cookieDays); // Generate token with user ID
         
         // ตั้งค่า cookie ให้ปลอดภัย
         res.cookie('token', token, { 
             httpOnly: true,  // ป้องกัน XSS - JavaScript ไม่สามารถอ่านได้
             secure: process.env.NODE_ENV === 'production', // HTTPS only ใน production
             sameSite: 'Lax', // ป้องกัน CSRF - ส่ง cookie เฉพาะ same-site requests
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 วัน (ตรงกับ JWT token Middleware)
+            maxAge: cookieDays * 24 * 60 * 60 * 1000 // 1 วัน หรือ 30 วัน ถ้า rememberMe
         });
 
         // Return user data without password
@@ -112,7 +115,8 @@ router.post('/login', async (req, res) => {
                 username: user.username,
                 role: user.userroles.roleName,
                 roleId: user.roleId,
-                profileImage: user.profileImage // เพิ่ม profileImage
+                profileImage: user.profileImage,
+                mustChangePassword: user.mustChangePassword || false
             }
         });
     } catch (error) {
@@ -127,8 +131,192 @@ router.post('/logout', (req, res) => {
     res.status(200).send({ message: 'Logged out successfully' });
 });
 
-// Get all users
-router.get('/users', async (req, res) => {
+// =============================================
+// PASSWORD RESET SYSTEM
+// =============================================
+
+// POST /forgot-password - ผู้ใช้ส่งคำขอรีเซ็ตรหัสผ่าน
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: 'กรุณาระบุอีเมล' });
+
+        const user = await prisma.users.findUnique({ where: { email } });
+        if (!user || user.isDeleted) {
+            // ตอบ success เสมอ เพื่อป้องกัน user enumeration
+            return res.status(200).json({ message: 'ส่งคำขอสำเร็จ' });
+        }
+
+        // ตรวจสอบว่ามีคำขอ pending อยู่แล้วหรือไม่
+        const existing = await prisma.password_reset_requests.findFirst({
+            where: { userId: user.id, status: 'pending' }
+        });
+        if (existing) {
+            return res.status(200).json({ message: 'มีคำขอรอดำเนินการอยู่แล้ว กรุณารอให้แอดมินดำเนินการ' });
+        }
+
+        await prisma.password_reset_requests.create({
+            data: { userId: user.id, status: 'pending' }
+        });
+
+        res.status(200).json({ message: 'ส่งคำขอสำเร็จ กรุณารอแอดมินดำเนินการ' });
+    } catch (error) {
+        console.error('forgot-password error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+    }
+});
+
+// GET /password-reset-requests - แอดมินดูคำขอทั้งหมด
+router.get('/password-reset-requests', verifyToken, async (req, res) => {
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึง' });
+    }
+    try {
+        const requests = await prisma.password_reset_requests.findMany({
+            where: { status: 'pending' },
+            include: {
+                user: {
+                    select: { id: true, email: true, username: true }
+                }
+            },
+            orderBy: { requestedAt: 'desc' }
+        });
+        res.status(200).json(requests);
+    } catch (error) {
+        console.error('get reset requests error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+    }
+});
+
+// POST /password-reset-requests/:id/approve - แอดมิน approve + สร้างรหัสชั่วคราว
+router.post('/password-reset-requests/:id/approve', verifyToken, async (req, res) => {
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึง' });
+    }
+    try {
+        const { id } = req.params;
+        const request = await prisma.password_reset_requests.findUnique({
+            where: { id: parseInt(id) },
+            include: { user: true }
+        });
+        if (!request || request.status !== 'pending') {
+            return res.status(404).json({ message: 'ไม่พบคำขอหรือดำเนินการแล้ว' });
+        }
+
+        // สร้างรหัสชั่วคราว 8 ตัว (ตัวอักษร+ตัวเลข)
+        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let tempPassword = '';
+        for (let i = 0; i < 8; i++) {
+            tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        const hashedTemp = await bcrypt.hash(tempPassword, 10);
+
+        await prisma.$transaction([
+            prisma.users.update({
+                where: { id: request.userId },
+                data: { password: hashedTemp, mustChangePassword: true }
+            }),
+            prisma.password_reset_requests.update({
+                where: { id: parseInt(id) },
+                data: { status: 'approved', resolvedAt: new Date(), resolvedBy: req.user.id }
+            })
+        ]);
+
+        res.status(200).json({
+            message: 'อนุมัติแล้ว กรุณาแจ้งรหัสชั่วคราวให้ผู้ใช้',
+            email: request.user.email,
+            tempPassword // แสดงให้แอดมินเห็น 1 ครั้งเท่านั้น
+        });
+    } catch (error) {
+        console.error('approve reset error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+    }
+});
+
+// POST /password-reset-requests/:id/reject - แอดมิน reject
+router.post('/password-reset-requests/:id/reject', verifyToken, async (req, res) => {
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึง' });
+    }
+    try {
+        const { id } = req.params;
+        const request = await prisma.password_reset_requests.findUnique({ where: { id: parseInt(id) } });
+        if (!request || request.status !== 'pending') {
+            return res.status(404).json({ message: 'ไม่พบคำขอหรือดำเนินการแล้ว' });
+        }
+        await prisma.password_reset_requests.update({
+            where: { id: parseInt(id) },
+            data: { status: 'rejected', resolvedAt: new Date(), resolvedBy: req.user.id }
+        });
+        res.status(200).json({ message: 'ปฏิเสธคำขอแล้ว' });
+    } catch (error) {
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+    }
+});
+
+// POST /change-password - ผู้ใช้เปลี่ยนรหัสผ่านหลัง login ด้วยรหัสชั่วคราว
+router.post('/change-password', verifyToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' });
+        }
+
+        const user = await prisma.users.findUnique({ where: { id: req.user.id } });
+        if (!user) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(401).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.users.update({
+            where: { id: req.user.id },
+            data: { password: hashed, mustChangePassword: false }
+        });
+
+        res.status(200).json({ message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+    } catch (error) {
+        console.error('change-password error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
+    }
+});
+
+// Get user role counts (Admin + Teacher can access - no personal data exposed)
+router.get('/users/stats', verifyToken, async (req, res) => {
+    const allowed = ['admin', 'super_admin', 'teacher'];
+    if (!allowed.includes(req.user.role)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึง' });
+    }
+    try {
+        // Include both isDeleted:false and isDeleted:null (nullable boolean field)
+        const notDeleted = { OR: [{ isDeleted: false }, { isDeleted: null }] };
+        const [superAdminCount, adminCount, teacherCount, userCount, totalUsers] = await Promise.all([
+            prisma.users.count({ where: { ...notDeleted, userroles: { roleName: 'super_admin' } } }),
+            prisma.users.count({ where: { ...notDeleted, userroles: { roleName: 'admin' } } }),
+            prisma.users.count({ where: { ...notDeleted, userroles: { roleName: 'teacher' } } }),
+            prisma.users.count({ where: { ...notDeleted, userroles: { roleName: 'user' } } }),
+            prisma.users.count({ where: notDeleted })
+        ]);
+
+        res.status(200).json({
+            superAdminCount,
+            adminCount,
+            teacherCount,
+            userCount,
+            totalUsers
+        });
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        res.status(500).json({ message: 'Failed to fetch user stats' });
+    }
+});
+
+// Get all users (Admin only)
+router.get('/users', verifyToken, isAdmin, async (req, res) => {
     try {
         const users = await prisma.users.findMany({
             where: {
@@ -167,8 +355,8 @@ router.get('/users', async (req, res) => {
     }
 });
 
-// Soft delete a user
-router.delete('/users/:id', async (req, res) => {
+// Soft delete a user (Admin only)
+router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = parseInt(id);
@@ -202,7 +390,7 @@ router.delete('/users/:id', async (req, res) => {
 });
 
 // Update user role and username
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { roleId, username } = req.body;
@@ -306,7 +494,7 @@ router.get('/users/:id', async (req, res) => {
             include: {
                 userroles: true,
                 students_students_updatedByTousers: true,
-                teachers_teachers_teacherIdTousers: {
+                teacher_profile: {
                     include: {
                         departments_teachers_departmentIdTodepartments: true,
                         genders: true
@@ -338,8 +526,8 @@ router.get('/users/:id', async (req, res) => {
     }
 });
 
-// Restore deleted user
-router.patch('/users/:id/restore', async (req, res) => {
+// Restore deleted user (Admin only)
+router.patch('/users/:id/restore', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = parseInt(id);

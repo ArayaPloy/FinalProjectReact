@@ -206,7 +206,8 @@ const SchoolHistoryAdmin = () => {
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
                     text: 'ไม่สามารถลบเหตุการณ์ได้',
-                    confirmButtonColor: '#d97706'
+                    confirmButtonColor: '#d97706',
+                    confirmButtonText: 'ตกลง'
                 });
                 console.error('Error deleting event:', error);
             }

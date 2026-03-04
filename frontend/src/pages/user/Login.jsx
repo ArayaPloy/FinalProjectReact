@@ -18,23 +18,37 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    // Manual validation (HTML5 required ใน controlled inputs อาจไม่ทำงานได้เสมอ)
+    if (!email.trim()) {
+      setMessage("กรุณากรอกอีเมล");
+      return;
+    }
+    if (!password.trim()) {
+      setMessage("กรุณากรอกรหัสผ่าน");
+      return;
+    }
+    setMessage("");
+
     const data = {
       email,
       password,
+      rememberMe,
     };
 
     try {
       const response = await loginUser(data).unwrap();
       const { token, user } = response;
       
-      // Set the cookie first
-      document.cookie = `token=${token}; path=/; ${
-        rememberMe ? "max-age=2592000" : ""
-      }`; // 30 days if remember me
-      
-      // Then update the Redux store
+      // Update the Redux store (cookie is managed by backend)
       dispatch(setUser({ user, token }));
       
+      // ถ้า mustChangePassword ให้ redirect ไปเปลี่ยนรหัสผ่านก่อน
+      if (user.mustChangePassword) {
+        navigate("/change-password", { replace: true });
+        return;
+      }
+
       // Use location state for redirect if available
       const from = location.state?.from?.pathname || "/";
       navigate(from, { replace: true });

@@ -40,35 +40,18 @@ const FlagpoleAttendancePage = () => {
   // Academic Year & Semester hooks
   const { 
     data: academicYears = [], 
-    isLoading: isLoadingYears,
-    error: yearsError 
+    isLoading: isLoadingYears
   } = useGetAcademicYearsQuery();
   
   const { 
     data: currentSemester,
-    isLoading: isLoadingCurrentSemester,
-    error: semesterError 
+    isLoading: isLoadingCurrentSemester
   } = useGetCurrentSemesterQuery();
-
-  // Debug: ตรวจสอบข้อมูลที่ดึงมา
-  useEffect(() => {
-    console.log('=== Academic Data Debug ===');
-    console.log('Academic Years:', academicYears);
-    console.log('Academic Years Error:', yearsError);
-    console.log('Current Semester:', currentSemester);
-    console.log('Current Semester Error:', semesterError);
-    console.log('Selected Academic Year:', selectedAcademicYear);
-    console.log('Selected Semester:', selectedSemester);
-    console.log('Is Loading Years:', isLoadingYears);
-    console.log('Is Loading Current Semester:', isLoadingCurrentSemester);
-    console.log('==========================');
-  }, [academicYears, currentSemester, selectedAcademicYear, selectedSemester, isLoadingYears, isLoadingCurrentSemester, yearsError, semesterError]);
 
   // Filter active semesters for selected academic year
   const availableSemesters = useMemo(() => {
     if (!selectedAcademicYear) return [];
     const year = academicYears.find(y => y.id === parseInt(selectedAcademicYear));
-    console.log('Available Semesters for year:', selectedAcademicYear, year?.semesters);
     return year?.semesters || [];
   }, [selectedAcademicYear, academicYears]);
 
@@ -81,7 +64,6 @@ const FlagpoleAttendancePage = () => {
   // Set default academic year and semester from current semester
   useEffect(() => {
     if (currentSemester && !selectedAcademicYear && !selectedSemester) {
-      console.log('Setting default values from currentSemester:', currentSemester);
       // ตรวจสอบว่า academicYearId อยู่ใน currentSemester หรือ academic_years
       const yearId = currentSemester.academicYearId || currentSemester.academic_years?.id;
       if (yearId) {
@@ -244,12 +226,12 @@ const FlagpoleAttendancePage = () => {
 
   const handleSaveAttendance = async () => {
     if (!selectedDate || !selectedClass) {
-      Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกวันที่และห้องเรียน', 'warning');
+      Swal.fire({ icon: 'warning', title: 'ข้อผิดพลาด', text: 'กรุณาเลือกวันที่และห้องเรียน', confirmButtonColor: '#D97706', confirmButtonText: 'ตกลง' });
       return;
     }
 
     if (!selectedSemester) {
-      Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกภาคเรียน', 'warning');
+      Swal.fire({ icon: 'warning', title: 'ข้อผิดพลาด', text: 'กรุณาเลือกภาคเรียน', confirmButtonColor: '#D97706', confirmButtonText: 'ตกลง' });
       return;
     }
 
@@ -266,7 +248,8 @@ const FlagpoleAttendancePage = () => {
           html: `วันที่ที่เลือกไม่อยู่ในช่วงของภาคเรียนที่ ${selectedSemesterObj.semesterNumber}<br>` +
             `(${new Date(selectedSemesterObj.startDate).toLocaleDateString('th-TH')} - ` +
             `${new Date(selectedSemesterObj.endDate).toLocaleDateString('th-TH')})`,
-          confirmButtonColor: '#D97706'
+          confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
         return;
       }
@@ -323,6 +306,7 @@ const FlagpoleAttendancePage = () => {
         title: 'บันทึกสำเร็จ!',
         text: 'บันทึกข้อมูลการเช็คชื่อเรียบร้อยแล้ว',
         confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
 
       // อัพเดท original records หลังบันทึกสำเร็จ
@@ -333,6 +317,7 @@ const FlagpoleAttendancePage = () => {
         title: 'เกิดข้อผิดพลาด',
         text: error.message || 'ไม่สามารถบันทึกข้อมูลได้',
         confirmButtonColor: '#EF4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };

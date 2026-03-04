@@ -4,9 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:dev": "nodemon index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "kill-port 5000 && nodemon index.js",
+    "dev": "kill-port 5000 && nodemon index.js",
+    "killport": "kill-port 5000",
+    "test": "jest --runInBand",
     "seed": "node prisma/seeds/seed.js",
     "seed:students": "node prisma/seeds/seed_students.js"
   },
@@ -38,6 +39,8 @@
     "rimraf": "^6.0.1"
   },
   "devDependencies": {
+    "jest": "^29.6.1",
+    "kill-port": "^2.0.1",
     "prisma": "^6.13.0"
   }
 }

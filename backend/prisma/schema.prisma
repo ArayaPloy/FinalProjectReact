@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model homeroom_classes {
+  id                Int              @id @default(autoincrement())
+  className         String           @unique @db.VarChar(50)
+  homeroomTeacherId Int              @unique
+  academicYearId    Int?
+  maxStudents       Int?             @default(40)
+  room              String?          @db.VarChar(50)
+  floor             Int?
+  building          String?          @db.VarChar(50)
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime         @updatedAt @db.Timestamp(0)
+  deletedAt         DateTime?        @db.Timestamp(0)
+  homeroomTeacher   teachers         @relation(fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroom_classes_ibfk_1")
+  academicYear      academic_years?  @relation(fields: [academicYearId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroom_classes_ibfk_2")
+  students          students[]
+
+  @@index([homeroomTeacherId], map: "homeroomTeacherId")
+  @@index([academicYearId], map: "academicYearId")
+  @@index([isActive], map: "idx_homeroom_classes_active")
+}
+
 model academic_years {
   id                                    Int         @id @default(autoincrement())
   year                                  String      @unique @db.VarChar(20)
@@ -18,9 +40,10 @@ model academic_years {
   updatedAt                             DateTime    @default(now()) @db.Timestamp(0)
   createdBy                             Int?
   updatedBy                             Int?
-  users_academic_years_createdByTousers users?      @relation("academic_years_createdByTousers", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_1")
-  users_academic_years_updatedByTousers users?      @relation("academic_years_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_2")
+  users_academic_years_createdByTousers users?             @relation("academic_years_createdByTousers", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_1")
+  users_academic_years_updatedByTousers users?             @relation("academic_years_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "academic_years_ibfk_2")
   semesters                             semesters[]
+  homeroom_classes                      homeroom_classes[]
 
   @@index([createdBy], map: "createdBy")
   @@index([isActive], map: "idx_academic_years_active")
@@ -87,20 +110,6 @@ model academicclubs {
   @@index([updatedBy], map: "updatedBy")
 }
 
-model admins {
-  id        Int       @id @default(autoincrement())
-  teacherId Int       @unique(map: "teacherId")
-  createdAt DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt DateTime  @default(now()) @db.Timestamp(0)
-  isDeleted Boolean?  @default(false)
-  deletedAt DateTime? @db.Timestamp(0)
-  updatedBy Int?
-  teachers  teachers  @relation(fields: [teacherId], references: [id], onUpdate: Restrict, map: "admins_ibfk_1")
-  users     users?    @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "admins_ibfk_2")
-
-  @@index([updatedBy], map: "updatedBy")
-}
-
 model attendancestatuses {
   id                     Int                      @id @default(autoincrement())
   name                   String                   @unique(map: "name") @db.VarChar(50)
@@ -112,7 +121,6 @@ model attendancestatuses {
   academicclubattendance academicclubattendance[]
   users                  users?                   @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "attendancestatuses_ibfk_1")
   flagpoleattendance     flagpoleattendance[]
-  homeroomattendance     homeroomattendance[]
 
   @@index([updatedBy], map: "updatedBy")
 }
@@ -180,25 +188,33 @@ model blogs {
 }
 
 model classschedules {
-  id          Int         @id @default(autoincrement())
-  class       String      @db.VarChar(50)
-  subjectId   Int?
-  teacherId   Int?
-  dayOfWeekId Int?
-  room        String?     @db.VarChar(50)
-  createdAt   DateTime    @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime    @default(now()) @db.Timestamp(0)
-  deletedAt   DateTime?   @db.Timestamp(0)
-  updatedBy   Int?
-  subjects    subjects?   @relation(fields: [subjectId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_1")
-  teachers    teachers?   @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_2")
-  daysofweek  daysofweek? @relation(fields: [dayOfWeekId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_3")
-  users       users?      @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_4")
+  id           Int         @id @default(autoincrement())
+  class        String      @db.VarChar(50)
+  subjectId    Int?
+  teacherId    Int?
+  dayOfWeekId  Int?
+  periodNumber Int?        // คาบที่ (1-N, lunch จะ auto-insert ระหว่างคาบ 4-5 ใน display)
+  semesterId   Int?        // เชื่อมกับ semester
+  room              String?     @db.VarChar(50)
+  building          String?     @db.VarChar(100)
+  guestTeacherName  String?     @db.VarChar(255)  // ชื่อครูรับเชิญ/ชั่วคราว (ไม่ได้อยู่ในระบบ)
+  subjectCodeRaw    String?     @db.VarChar(20)   // รหัสวิชาดิบจาก CSV (ใช้เมื่อ subjectId ยังไม่ได้ลิงก์)
+  createdAt         DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime    @default(now()) @db.Timestamp(0)
+  deletedAt    DateTime?   @db.Timestamp(0)
+  updatedBy    Int?
+  subjects     subjects?   @relation(fields: [subjectId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_1")
+  teachers     teachers?   @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_2")
+  daysofweek   daysofweek? @relation(fields: [dayOfWeekId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_3")
+  users        users?      @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_4")
+  semesters    semesters?  @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "classschedules_ibfk_5")
 
   @@index([dayOfWeekId], map: "dayOfWeekId")
   @@index([subjectId], map: "subjectId")
   @@index([teacherId], map: "teacherId")
   @@index([updatedBy], map: "updatedBy")
+  @@index([semesterId], map: "semesterId")
+  @@index([class, semesterId], map: "idx_classschedules_class_semester")
 }
 
 model club_categories {
@@ -286,129 +302,47 @@ model flagpoleattendance {
 }
 
 model genders {
-  id         Int          @id @default(autoincrement())
-  genderName String       @unique(map: "genderName") @db.VarChar(20)
-  createdAt  DateTime     @default(now()) @db.Timestamp(0)
-  updatedAt  DateTime     @default(now()) @db.Timestamp(0)
-  deletedAt  DateTime?    @db.Timestamp(0)
+  id         Int       @id @default(autoincrement())
+  genderName String    @unique(map: "genderName") @db.VarChar(20)
+  createdAt  DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime  @default(now()) @db.Timestamp(0)
+  deletedAt  DateTime? @db.Timestamp(0)
   students   students[]
-  superadmin superadmin[]
   teachers   teachers[]
-}
-
-model homeroomattendance {
-  id                                                      Int                @id @default(autoincrement())
-  homeroomTeacherId                                       Int?
-  studentId                                               Int?
-  date                                                    DateTime           @db.Date
-  statusId                                                Int
-  topic                                                   String?            @db.Text
-  summary                                                 String?            @db.Text
-  recorderId                                              Int?
-  createdAt                                               DateTime           @default(now()) @db.Timestamp(0)
-  updatedAt                                               DateTime           @default(now()) @db.Timestamp(0)
-  isDeleted                                               Boolean?           @default(false)
-  deletedAt                                               DateTime?          @db.Timestamp(0)
-  updatedBy                                               Int?
-  semesterId                                              Int?
-  teachers_homeroomattendance_homeroomTeacherIdToteachers teachers?          @relation("homeroomattendance_homeroomTeacherIdToteachers", fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_1")
-  students                                                students?          @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_2")
-  attendancestatuses                                      attendancestatuses @relation(fields: [statusId], references: [id], onUpdate: Restrict, map: "homeroomattendance_ibfk_3")
-  teachers_homeroomattendance_recorderIdToteachers        teachers?          @relation("homeroomattendance_recorderIdToteachers", fields: [recorderId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_4")
-  users                                                   users?             @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_5")
-  semesters                                               semesters?         @relation(fields: [semesterId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroomattendance_ibfk_6")
-
-  @@unique([homeroomTeacherId, studentId, date], map: "HomeroomAttendance_index_0")
-  @@index([recorderId], map: "recorderId")
-  @@index([semesterId], map: "semesterId")
-  @@index([statusId], map: "statusId")
-  @@index([studentId], map: "studentId")
-  @@index([updatedBy], map: "updatedBy")
-}
-
-model homeroomteacherstudent {
-  homeroomTeacherId Int
-  studentId         Int
-  createdAt         DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt         DateTime  @default(now()) @db.Timestamp(0)
-  deletedAt         DateTime? @db.Timestamp(0)
-  teachers          teachers  @relation(fields: [homeroomTeacherId], references: [id], onUpdate: Restrict, map: "homeroomteacherstudent_ibfk_1")
-  students          students  @relation(fields: [studentId], references: [id], onUpdate: Restrict, map: "homeroomteacherstudent_ibfk_2")
-
-  @@id([homeroomTeacherId, studentId])
-  @@index([studentId], map: "studentId")
-}
-
-model homevisit_files {
-  id          Int                       @id @default(autoincrement())
-  homeVisitId Int
-  fileName    String                    @db.VarChar(255)
-  filePath    String                    @db.VarChar(500)
-  fileUrl     String                    @db.VarChar(500)
-  fileSize    Int
-  mimeType    String                    @db.VarChar(100)
-  fileType    homevisit_files_fileType? @default(gallery_image)
-  uploadedAt  DateTime                  @default(now()) @db.Timestamp(0)
-  uploadedBy  Int?
-  isDeleted   Boolean?                  @default(false)
-  deletedAt   DateTime?                 @db.Timestamp(0)
-  users       users?                    @relation(fields: [uploadedBy], references: [id], onUpdate: Restrict, map: "fk_homevisit_files_uploader")
-  homevisits  homevisits                @relation(fields: [homeVisitId], references: [id], onDelete: Cascade, map: "fk_homevisit_files_visit")
-
-  @@index([uploadedBy], map: "fk_homevisit_files_uploader")
-  @@index([isDeleted], map: "idx_homevisit_files_deleted")
-  @@index([fileType], map: "idx_homevisit_files_type")
-  @@index([homeVisitId], map: "idx_homevisit_files_visit")
 }
 
 model homevisits {
   id                    Int               @id @default(autoincrement())
-  teacherId             Int?
-  studentId             Int?
+  teacherId             Int
+  studentId             Int
   updatedBy             Int?
-  visitDate             DateTime?         @db.Date
-  teacherName           String?           @db.VarChar(255)
-  studentIdNumber       String?           @db.VarChar(50)
-  studentName           String?           @db.VarChar(255)
-  studentBirthDate      DateTime?         @db.Date
-  className             String?           @db.VarChar(100)
-  parentName            String?           @db.VarChar(255)
-  relationship          String?           @db.VarChar(100)
-  occupation            String?           @db.VarChar(255)
-  monthlyIncome         String?           @db.VarChar(100)
-  familyStatus          String?           @db.LongText
-  mainAddress           String?           @db.Text
-  phoneNumber           String?           @db.VarChar(10)
-  emergencyContact      String?           @db.VarChar(10)
-  houseType             String?           @db.LongText
-  houseMaterial         String?           @db.LongText
-  utilities             String?           @db.LongText
-  environmentCondition  String?           @db.Text
-  studyArea             String?           @db.VarChar(255)
-  visitPurpose          String?           @db.LongText
+  visitDate             DateTime          @db.Date
+  parentNamePrefix      String?           @db.VarChar(20)
+  parentFirstName       String?           @db.VarChar(100)
+  parentLastName        String?           @db.VarChar(100)
+  familyStatus          String?           @db.Text
+  visitPurpose          String            @db.Text
   studentBehaviorAtHome String?           @db.Text
   parentCooperation     String?           @db.Text
   problems              String?           @db.Text
   recommendations       String?           @db.Text
   followUpPlan          String?           @db.Text
-  summary               String?           @db.Text
+  summary               String            @db.Text
   notes                 String?           @db.Text
   imagePath             String?           @db.VarChar(500)
   imageGallery          String?           @db.LongText
   createdAt             DateTime          @default(now()) @db.Timestamp(0)
-  updatedAt             DateTime          @default(now()) @db.Timestamp(0)
+  updatedAt             DateTime          @updatedAt @db.Timestamp(0)
   isDeleted             Boolean?          @default(false)
   deletedAt             DateTime?         @db.Timestamp(0)
-  homevisit_files       homevisit_files[]
   students              students?         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_homevisits_student")
   teachers              teachers?         @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_homevisits_teacher")
   users                 users?            @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_homevisits_updatedby")
 
   @@index([isDeleted, deletedAt], map: "idx_homevisits_deleted")
   @@index([studentId], map: "idx_homevisits_student")
-  @@index([studentIdNumber], map: "idx_homevisits_student_id_number")
-  @@index([studentName], map: "idx_homevisits_student_name")
   @@index([teacherId], map: "idx_homevisits_teacher")
+  @@index([teacherId, studentId], map: "idx_homevisits_teacher_student")
   @@index([updatedBy], map: "idx_homevisits_updated_by")
   @@index([visitDate], map: "idx_homevisits_visit_date")
 }
@@ -463,8 +397,8 @@ model semesters {
   createdBy                        Int?
   updatedBy                        Int?
   academicclubattendance           academicclubattendance[]
+  classschedules                   classschedules[]
   flagpoleattendance               flagpoleattendance[]
-  homeroomattendance               homeroomattendance[]
   academic_years                   academic_years           @relation(fields: [academicYearId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "semesters_ibfk_1")
   users_semesters_createdByTousers users?                   @relation("semesters_createdByTousers", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_2")
   users_semesters_updatedByTousers users?                   @relation("semesters_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "semesters_ibfk_3")
@@ -500,13 +434,23 @@ model studentbehaviorscores {
 model students {
   id                     Int                      @id @default(autoincrement())
   namePrefix             String?                  @db.VarChar(10)
-  fullName               String                   @db.VarChar(255)
+  firstName              String                   @db.VarChar(100)
+  lastName               String                   @db.VarChar(100)
   genderId               Int
-  classRoom              String                   @db.VarChar(50)
+  homeroomClassId        Int?
   studentNumber          Int?
-  homeroomTeacherId      Int?
-  guardianName           String?                  @db.VarChar(255)
+  guardianFirstName      String?                  @db.VarChar(100)
+  guardianLastName       String?                  @db.VarChar(100)
+  guardianNamePrefix     String?                  @db.VarChar(10)
   guardianRelation       String?                  @db.VarChar(50)
+  guardianOccupation     String?                  @db.VarChar(100)
+  guardianMonthlyIncome  String?                  @db.VarChar(50)
+  emergencyContact       String?                  @db.VarChar(20)
+  address                String?                  @db.Text
+  houseType              String?                  @db.VarChar(100)
+  houseMaterial          String?                  @db.VarChar(200)
+  utilities              String?                  @db.Text
+  studyArea              String?                  @db.VarChar(100)
   createdAt              DateTime?                @default(now()) @db.Timestamp(0)
   updatedAt              DateTime?                @default(now()) @db.Timestamp(0)
   isDeleted              Boolean?                 @default(false)
@@ -520,16 +464,15 @@ model students {
   phoneNumber            String?                  @db.VarChar(50)
   academicclubattendance academicclubattendance[]
   flagpoleattendance     flagpoleattendance[]
-  homeroomattendance     homeroomattendance[]
-  homeroomteacherstudent homeroomteacherstudent[]
   homevisits             homevisits[]
   studentbehaviorscores  studentbehaviorscores[]
   genders                genders                  @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "students_ibfk_2")
-  teachers               teachers?                @relation(fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_3")
-  users                  users?                   @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_4")
+  homeroomClass          homeroom_classes?        @relation(fields: [homeroomClassId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_3")
+  users                  users?                   @relation(fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "students_ibfk_5")
 
   @@index([genderId], map: "genderId")
-  @@index([homeroomTeacherId], map: "homeroomTeacherId")
+  @@index([homeroomClassId], map: "homeroomClassId")
+  @@index([studentNumber], map: "idx_student_number")
   @@index([updatedBy], map: "updatedBy")
 }
 
@@ -552,30 +495,12 @@ model subjects {
   @@index([updatedBy], map: "updatedBy")
 }
 
-model superadmin {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @unique(map: "userId")
-  namePrefix  String?   @db.VarChar(10)
-  fullName    String    @db.VarChar(255)
-  genderId    Int
-  phoneNumber String?   @db.VarChar(10)
-  createdAt   DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime  @default(now()) @db.Timestamp(0)
-  isDeleted   Boolean?  @default(false)
-  deletedAt   DateTime? @db.Timestamp(0)
-  users       users     @relation(fields: [userId], references: [id], onUpdate: Restrict, map: "superadmin_ibfk_1")
-  genders     genders   @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "superadmin_ibfk_2")
-
-  @@index([genderId], map: "genderId")
-}
-
 model teachers {
   id                                                                Int                      @id @default(autoincrement())
-  teacherId                                                         Int?                     @unique(map: "userId")
-  userId                                                            Int?
   departmentId                                                      Int?
   namePrefix                                                        String?                  @db.VarChar(10)
-  fullName                                                          String                   @db.VarChar(255)
+  firstName                                                         String                   @db.VarChar(100)
+  lastName                                                          String                   @db.VarChar(100)
   genderId                                                          Int
   dob                                                               DateTime?                @db.Date
   nationality                                                       String?                  @db.VarChar(50)
@@ -587,7 +512,7 @@ model teachers {
   isDeleted                                                         Boolean?                 @default(false)
   deletedAt                                                         DateTime?                @db.Timestamp(0)
   updatedBy                                                         Int?
-  imagePath                                                         String                   @db.VarChar(100)
+  imagePath                                                         String                   @db.VarChar(500)
   email                                                             String                   @db.VarChar(100)
   address                                                           String                   @db.Text
   education                                                         String                   @db.VarChar(100)
@@ -596,15 +521,10 @@ model teachers {
   specializations                                                   String                   @db.Text
   academicclubattendance                                            academicclubattendance[]
   academicclubs                                                     academicclubs[]
-  admins                                                            admins?
-  classschedules                                                    classschedules[]
-  departments_departments_headTeacherIdToteachers                   departments?             @relation("departments_headTeacherIdToteachers")
-  homeroomattendance_homeroomattendance_homeroomTeacherIdToteachers homeroomattendance[]     @relation("homeroomattendance_homeroomTeacherIdToteachers")
-  homeroomattendance_homeroomattendance_recorderIdToteachers        homeroomattendance[]     @relation("homeroomattendance_recorderIdToteachers")
-  homeroomteacherstudent                                            homeroomteacherstudent[]
-  homevisits                                                        homevisits[]
-  students                                                          students[]
-  users_teachers_teacherIdTousers                                   users?                   @relation("teachers_teacherIdTousers", fields: [teacherId], references: [id], onUpdate: Restrict, map: "teachers_ibfk_1")
+  classschedules                                     classschedules[]
+  departments_departments_headTeacherIdToteachers    departments?             @relation("departments_headTeacherIdToteachers")
+  homeroom_classes                                   homeroom_classes?
+  homevisits                                         homevisits[]
   departments_teachers_departmentIdTodepartments                    departments?             @relation("teachers_departmentIdTodepartments", fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "teachers_ibfk_2")
   genders                                                           genders                  @relation(fields: [genderId], references: [id], onUpdate: Restrict, map: "teachers_ibfk_3")
   users_teachers_updatedByTousers                                   users?                   @relation("teachers_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "teachers_ibfk_4")
@@ -669,11 +589,11 @@ model users {
   isDeleted                                                     Boolean?                 @default(false)
   deletedAt                                                     DateTime?                @db.Timestamp(0)
   updatedBy                                                     Int?
+  mustChangePassword                                            Boolean                  @default(false)
   academic_years_academic_years_createdByTousers                academic_years[]         @relation("academic_years_createdByTousers")
   academic_years_academic_years_updatedByTousers                academic_years[]         @relation("academic_years_updatedByTousers")
   academicclubattendance                                        academicclubattendance[]
   academicclubs                                                 academicclubs[]
-  admins                                                        admins[]
   attendancestatuses                                            attendancestatuses[]
   audit_logs                                                    audit_logs[]
   blog_categories                                               blog_categories[]
@@ -684,8 +604,6 @@ model users {
   comments                                                      comments[]
   flagpoleattendance_flagpoleattendance_recorderIdTousers       flagpoleattendance[]     @relation("flagpoleattendance_recorderIdTousers")
   flagpoleattendance_flagpoleattendance_updatedByTousers        flagpoleattendance[]     @relation("flagpoleattendance_updatedByTousers")
-  homeroomattendance                                            homeroomattendance[]
-  homevisit_files                                               homevisit_files[]
   homevisits                                                    homevisits[]
   semesters_semesters_createdByTousers                          semesters[]              @relation("semesters_createdByTousers")
   semesters_semesters_updatedByTousers                          semesters[]              @relation("semesters_updatedByTousers")
@@ -693,23 +611,31 @@ model users {
   studentbehaviorscores_studentbehaviorscores_updatedByTousers  studentbehaviorscores[]  @relation("studentbehaviorscores_updatedByTousers")
   students                                                      students[]
   subjects                                                      subjects[]
-  superadmin                                                    superadmin?
-  // ✅ Relation กับ teachers (Optional)
   teacher_profile                                               teachers?                @relation("users_teacherProfile", fields: [teacherId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  teachers_teachers_teacherIdTousers                            teachers?                @relation("teachers_teacherIdTousers")
   teachers_teachers_updatedByTousers                            teachers[]               @relation("teachers_updatedByTousers")
   user_login_logs                                               user_login_logs[]
   userroles                                                     userroles                @relation(fields: [roleId], references: [id], onUpdate: Restrict, map: "users_ibfk_1")
   users                                                         users?                   @relation("usersTousers", fields: [updatedBy], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "users_ibfk_2")
   other_users                                                   users[]                  @relation("usersTousers")
+  password_reset_requests                                       password_reset_requests[] @relation("reset_user")
+  password_reset_resolved                                       password_reset_requests[] @relation("reset_resolver")
 
   @@index([roleId], map: "roleId")
   @@index([teacherId], map: "users_teacherId_idx")
   @@index([updatedBy], map: "updatedBy")
 }
 
-enum homevisit_files_fileType {
-  main_image
-  gallery_image
-  document
+model password_reset_requests {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  status      String    @default("pending") @db.VarChar(20)
+  requestedAt DateTime  @default(now()) @db.Timestamp(0)
+  resolvedAt  DateTime? @db.Timestamp(0)
+  resolvedBy  Int?
+  user        users     @relation("reset_user", fields: [userId], references: [id], onDelete: Cascade)
+  resolver    users?    @relation("reset_resolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([resolvedBy])
 }

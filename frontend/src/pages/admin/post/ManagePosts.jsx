@@ -40,7 +40,8 @@ const ManagePosts = () => {
           icon: 'error',
           title: 'เกิดข้อผิดพลาด',
           text: 'ไม่สามารถลบบทความได้',
-          confirmButtonColor: '#d97706'
+          confirmButtonColor: '#d97706',
+          confirmButtonText: 'ตกลง'
         });
       }
     }

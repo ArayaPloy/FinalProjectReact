@@ -80,14 +80,26 @@ const FlagpoleAttendanceReport = () => {
         }
 
         // CSV export ส่งออกข้อมูล **ทั้งหมด** (ไม่ถูกจำกัดด้วย pagination)
-        // ใช้ ="value" เพื่อบังคับให้ Excel แสดงเป็น Text และไม่แปลงค่า
-        const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ'];
+        // ครอบ string ด้วย double quotes เพื่อป้องกัน comma ในชื่อทำให้ column เบี้ยว
+        // ใช้ ="value" สำหรับห้องเรียน เพื่อบังคับให้ Excel แสดงเป็น Text
+        const escapeCSV = (value) => {
+            if (value === null || value === undefined) return '""';
+            const str = String(value);
+            // ถ้ามี comma, double quote หรือ newline ให้ครอบด้วย quotes และ escape double quote ด้วย ""
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return `"${str}"`;
+        };
+
+        const headers = ['วันที่', 'เลขประจำตัว', 'ชื่อ-นามสกุล', 'ห้องเรียน', 'สถานะ', 'ผู้บันทึก'];
         const rows = allRecords.map((record) => [
-            record.date,
-            record.studentNumber,
-            record.studentName,
-            `="${record.classRoom}"`,  // ใช้ ="ม.1/1" บังคับให้แสดงเป็นข้อความ
-            record.status
+            escapeCSV(record.date),
+            record.studentNumber,                   // ตัวเลข ไม่ต้อง quote
+            escapeCSV(record.studentName),          // ชื่อ-นามสกุล ครอบ quotes
+            `="${record.classRoom}"`,               // ใช้ ="ม.1/1" บังคับให้แสดงเป็นข้อความ
+            escapeCSV(record.status),
+            escapeCSV(record.recorder || '-')
         ]);
 
         const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -287,6 +299,9 @@ const FlagpoleAttendanceReport = () => {
                                                 <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
                                                     สถานะ
                                                 </th>
+                                                <th className="px-4 md:px-6 py-3 md:py-4 text-left text-xs md:text-sm font-bold text-gray-600 uppercase tracking-wider">
+                                                    ผู้บันทึก
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -311,6 +326,9 @@ const FlagpoleAttendanceReport = () => {
                                                         >
                                                             {record.status}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-gray-700">
+                                                        {record.recorder || '-'}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -377,6 +395,17 @@ const FlagpoleAttendanceReport = () => {
                                                     <p className="text-xs text-gray-500 mb-0.5">ชื่อ-นามสกุล</p>
                                                     <p className="text-sm font-bold text-gray-800 leading-tight break-words">
                                                         {record.studentName}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Recorder */}
+                                            <div className="flex items-start gap-2">
+                                                <i className="bi bi-person-check text-gray-400 text-base flex-shrink-0 mt-0.5"></i>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs text-gray-500 mb-0.5">ผู้บันทึก</p>
+                                                    <p className="text-sm font-semibold text-gray-700 leading-tight">
+                                                        {record.recorder || '-'}
                                                     </p>
                                                 </div>
                                             </div>

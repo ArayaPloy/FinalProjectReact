@@ -72,6 +72,7 @@ const ManageAcademicYears = () => {
           title: 'สำเร็จ!',
           text: 'อัปเดตปีการศึกษาเรียบร้อย',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
       } else {
         await createAcademicYear(formData).unwrap();
@@ -81,6 +82,7 @@ const ManageAcademicYears = () => {
           title: 'สำเร็จ!',
           text: 'สร้างปีการศึกษาเรียบร้อย',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
       }
 
@@ -92,11 +94,11 @@ const ManageAcademicYears = () => {
         title: 'เกิดข้อผิดพลาด!',
         text: error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
         confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
 
-  // Handle edit
   const handleEdit = (year) => {
     setEditingYear(year);
     setFormData({
@@ -140,6 +142,7 @@ const ManageAcademicYears = () => {
           title: 'สำเร็จ!',
           text: 'ตั้งเป็นปีการศึกษาปัจจุบันและภาคเรียนที่ 1 แล้ว',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
         refetch();
       } catch (error) {
@@ -148,6 +151,7 @@ const ManageAcademicYears = () => {
           title: 'เกิดข้อผิดพลาด!',
           text: error.data?.message || 'ไม่สามารถดำเนินการได้',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
       }
     }
@@ -174,6 +178,7 @@ const ManageAcademicYears = () => {
           title: 'สำเร็จ!',
           text: 'ลบปีการศึกษาและภาคเรียนทั้งหมดแล้ว',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
         refetch();
       } catch (error) {
@@ -195,7 +200,8 @@ const ManageAcademicYears = () => {
           title: 'ไม่สามารถลบได้!',
           html: htmlContent,
           confirmButtonColor: '#D97706',
-          width: '600px'
+          width: '600px',
+          confirmButtonText: 'ตกลง'
         });
       }
     }
@@ -225,6 +231,7 @@ const ManageAcademicYears = () => {
         title: 'สำเร็จ!',
         text: 'อัปเดตภาคเรียนเรียบร้อย',
         confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
 
       resetSemesterForm();
@@ -235,11 +242,11 @@ const ManageAcademicYears = () => {
         title: 'เกิดข้อผิดพลาด!',
         text: error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
         confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
 
-  // Handle set current semester
   const handleSetCurrentSemester = async (semesterId) => {
     const result = await Swal.fire({
       title: 'ยืนยันการเปลี่ยนแปลง',
@@ -260,6 +267,7 @@ const ManageAcademicYears = () => {
           title: 'สำเร็จ!',
           text: 'ตั้งเป็นภาคเรียนปัจจุบันแล้ว',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
         refetch();
       } catch (error) {
@@ -268,6 +276,7 @@ const ManageAcademicYears = () => {
           title: 'เกิดข้อผิดพลาด!',
           text: error.data?.message || 'ไม่สามารถดำเนินการได้',
           confirmButtonColor: '#D97706',
+          confirmButtonText: 'ตกลง'
         });
       }
     }

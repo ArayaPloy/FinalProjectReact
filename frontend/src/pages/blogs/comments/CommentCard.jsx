@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import CommentorIcon from "../../../assets/commentor.png";
-import { formatDate } from "../../../utils/dateFormater";
+import { formatDateTime } from "../../../utils/dateFormater";
 import PostAComment from "./PostAComment";
 import { useSelector } from "react-redux";
 import { 
@@ -58,7 +58,8 @@ const CommentCard = ({ postId }) => {
       Swal.fire({
         icon: 'warning',
         title: 'กรุณากรอกความคิดเห็น',
-        confirmButtonColor: '#3b82f6'
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -85,7 +86,8 @@ const CommentCard = ({ postId }) => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: error.data?.message || 'ไม่สามารถแก้ไขความคิดเห็นได้',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
@@ -122,7 +124,8 @@ const CommentCard = ({ postId }) => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: error.data?.message || 'ไม่สามารถลบความคิดเห็นได้',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
@@ -156,7 +159,7 @@ const CommentCard = ({ postId }) => {
                           {comment?.users?.username}
                         </p>
                         <p className="text-[12px] italic">
-                          {formatDate(comment?.createdAt)}
+                          {formatDateTime(comment?.createdAt)}
                         </p>
                       </div>
                     </div>

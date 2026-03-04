@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { IoClose, IoMenuSharp, IoChevronDown, IoLogOut, IoSettings, IoPerson } from "react-icons/io5";
-import { useLogoutUserMutation } from '../redux/features/auth/authApi';
+import { useLogoutUserMutation, authApi } from '../redux/features/auth/authApi';
+import { usersApi } from '../redux/features/users/usersApi';
 import AvaterImg from "../assets/commentor.png";
 
 const getApiURL = () => import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -67,9 +68,15 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logoutUser().unwrap();
-      dispatch(logout());
     } catch (err) {
+      // ไม่ต้อง throw — แม้ backend fail ก็ต้อง clear state
       console.error("Failed to logout:", err);
+    } finally {
+      // Reset ก่อน dispatch(logout) เพื่อให้ RTK Query data = null
+      // ทันที ป้องกัน AuthProvider อ่าน stale cache แล้ว re-login
+      dispatch(authApi.util.resetApiState());
+      dispatch(usersApi.util.resetApiState());
+      dispatch(logout());
     }
   };
 
@@ -159,7 +166,7 @@ const Navbar = () => {
             <li className='flex gap-3 items-center'>
               <img 
                 src={user?.profileImage ? `${getBaseURL()}${user.profileImage}` : AvaterImg}
-                alt={user.name || "ผู้ใช้"} 
+                alt={user.username || "ผู้ใช้"} 
                 className='w-9 h-9 rounded-full border-2 border-amber-200 flex-shrink-0 object-cover' 
               />
               <div className="relative">
@@ -167,7 +174,7 @@ const Navbar = () => {
                   onClick={() => toggleDropdown('user')}
                   className="flex items-center gap-1.5 text-gray-700 hover:text-primary font-medium text-sm xl:text-base transition-colors"
                 >
-                  <span className="truncate max-w-[120px] xl:max-w-[150px]">{user.name}</span>
+                  <span className="truncate max-w-[120px] xl:max-w-[150px]">{user.username}</span>
                   <motion.div
                     animate={{ rotate: openDropdown === 'user' ? 180 : 0 }}
                     transition={{ duration: 0.3 }}
@@ -335,10 +342,10 @@ const Navbar = () => {
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <img 
                         src={user?.profileImage ? `${getBaseURL()}${user.profileImage}` : AvaterImg}
-                        alt={user.name || "ผู้ใช้"} 
+                        alt={user.username || "ผู้ใช้"} 
                         className='w-8 h-8 rounded-full border-2 border-amber-200 flex-shrink-0 object-cover' 
                       />
-                      <span className="truncate">{user.name}</span>
+                      <span className="truncate">{user.username}</span>
                     </div>
                     <motion.div
                       animate={{ rotate: openDropdown === 'user' ? 180 : 0 }}

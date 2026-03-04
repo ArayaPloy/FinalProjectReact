@@ -82,6 +82,14 @@ export const teachersApi = createApi({
                 { type: 'Teacher', id },
                 'Teachers'
             ],
+            // ✅ อัปเดต Profile cache เมื่ออัปเดตข้อมูลครู
+            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    // Invalidate Profile cache เพื่อให้หน้าโปรไฟล์อัปเดต
+                    dispatch({ type: 'usersApi/invalidateTags', payload: ['Profile'] });
+                } catch {}
+            },
             transformResponse: (response) => {
                 if (response.success) {
                     return response.data;

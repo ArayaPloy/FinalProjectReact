@@ -8,7 +8,7 @@ export const authApi = createApi({
     baseUrl: `${API_BASE_URL}/auth`,
     credentials: "include",
   }),
-  tagTypes: ['User'],
+  tagTypes: ['User', 'PasswordReset'],
   endpoints: (builder) => ({
     registerUser: builder.mutation({
       query: (newUser) => ({
@@ -20,15 +20,19 @@ export const authApi = createApi({
     loginUser: builder.mutation({
       query: (credentials) => ({
         url: "/login",
-        method: "POST",
+        method: "POST",   
         body: credentials,
       }),
+      // ล้าง cache ของ /me ที่อาจเก็บ 401 ค้างไว้ก่อน login
+      // เพื่อบังคับ AuthProvider refetch /me ใหม่หลัง login สำเร็จ
+      invalidatesTags: ['User'],
     }),
     logoutUser: builder.mutation({
       query: () => ({
         url: "/logout",
         method: "POST",
       }),
+      invalidatesTags: ['User'],
     }),
     getCurrentUser: builder.query({
       query: () => ({
@@ -42,6 +46,13 @@ export const authApi = createApi({
     getUser: builder.query({
       query: () => ({
         url: "/users",
+        method: "GET",
+      }),
+      providesTags: ['User'],
+    }),
+    getUserStats: builder.query({
+      query: () => ({
+        url: "/users/stats",
         method: "GET",
       }),
       providesTags: ['User'],
@@ -61,6 +72,24 @@ export const authApi = createApi({
       }),
       refetchOnMount: true,
       invalidatesTags: ["User"],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch({ type: 'usersApi/invalidateTags', payload: ['Profile'] });
+        } catch {}
+      },
+    }),
+    getPasswordResetRequests: builder.query({
+      query: () => ({ url: "/password-reset-requests", method: "GET" }),
+      providesTags: ['PasswordReset'],
+    }),
+    approvePasswordReset: builder.mutation({
+      query: (id) => ({ url: `/password-reset-requests/${id}/approve`, method: "POST" }),
+      invalidatesTags: ['PasswordReset'],
+    }),
+    rejectPasswordReset: builder.mutation({
+      query: (id) => ({ url: `/password-reset-requests/${id}/reject`, method: "POST" }),
+      invalidatesTags: ['PasswordReset'],
     }),
   }),
 });
@@ -71,8 +100,12 @@ export const {
   useLogoutUserMutation,
   useGetCurrentUserQuery,
   useGetUserQuery,
+  useGetUserStatsQuery,
   useDeleteUserMutation,
   useUpdateUserRoleMutation,
+  useGetPasswordResetRequestsQuery,
+  useApprovePasswordResetMutation,
+  useRejectPasswordResetMutation,
 } = authApi;
 
 export default authApi;

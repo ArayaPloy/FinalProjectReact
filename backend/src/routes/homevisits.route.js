@@ -10,6 +10,20 @@ const isAdmin = require('../middleware/admin');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Resolve teacherId linked to the authenticated user (if any)
+const getUserTeacherId = async (userId) => {
+    const user = await prisma.users.findUnique({ where: { id: userId }, select: { teacherId: true } });
+    return user ? user.teacherId : null;
+};
+
+// Authorization helper (pure) - exported for unit testing
+const isTeacherHomeroomMatch = (userRole, userTeacherId, targetHomeroomTeacherId) => {
+    if (!userRole) return false;
+    if (userRole.toLowerCase() !== 'teacher') return false;
+    if (!userTeacherId || !targetHomeroomTeacherId) return false;
+    return parseInt(userTeacherId) === parseInt(targetHomeroomTeacherId);
+};
+
 // Configure multer for file storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -99,13 +113,89 @@ const parseJsonField = (field) => {
     return JSON.stringify(field);
 };
 
-// Get all home visits (admin only)
-router.get('/', verifyToken, isAdmin, async (req, res) => {
+// Get student by studentNumber (for auto-fill)
+router.get('/student/:studentNumber', verifyToken, async (req, res) => {
+    try {
+        const studentNumber = parseInt(req.params.studentNumber);
+
+        if (isNaN(studentNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid student number'
+            });
+        }
+
+        const student = await prisma.students.findFirst({
+            where: {
+                studentNumber: studentNumber,
+                isDeleted: false
+            },
+            include: {
+                genders: { select: { genderName: true } },
+                homeroomClass: {
+                    select: {
+                        className: true,
+                        homeroomTeacherId: true,
+                        homeroomTeacher: {
+                            select: {
+                                id: true,
+                                namePrefix: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        console.log(`[GET /student/${studentNumber}] Found student ID=${student.id}, homeroomClassId=${student.homeroomClassId}`);
+
+        res.status(200).json({
+            success: true,
+            data: student
+        });
+
+    } catch (error) {
+        console.error('Error fetching student:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch student data',
+            error: error.message
+        });
+    }
+});
+
+// Get all home visits (admin or homeroom teacher - limited)
+router.get('/', verifyToken, async (req, res) => {
     try {
         const { page = 1, limit = 10, teacherId, studentId, startDate, endDate, search } = req.query;
         const offset = (page - 1) * limit;
 
         const whereClause = { isDeleted: false };
+
+        // If requester is a teacher, restrict results to students where they are the homeroom teacher
+        if (req.user && req.user.role && req.user.role.toLowerCase() === 'teacher') {
+            const userTeacherId = await getUserTeacherId(req.userId);
+            if (!userTeacherId) {
+                return res.status(403).json({ success: false, message: 'ไม่พบข้อมูลครูของผู้ใช้นี้' });
+            }
+
+            // If a teacherId query param is provided but does not match the current teacher, deny
+            if (teacherId && parseInt(teacherId) !== userTeacherId) {
+                return res.status(403).json({ success: false, message: 'คุณไม่ได้รับอนุญาตให้ดูข้อมูลของครูคนอื่น' });
+            }
+
+            // Restrict to students whose homeroom teacher is the current teacher (via normalized homeroomClass)
+            whereClause.students = { homeroomClass: { homeroomTeacherId: userTeacherId } };
+        }
 
         if (teacherId) whereClause.teacherId = parseInt(teacherId);
         if (studentId) whereClause.studentId = parseInt(studentId);
@@ -117,10 +207,25 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
         }
         if (search) {
             whereClause.OR = [
-                { studentName: { contains: search } },
-                { studentIdNumber: { contains: search } },
-                { parentName: { contains: search } },
-                { teacherName: { contains: search } }
+                { 
+                    students: {
+                        OR: [
+                            { firstName: { contains: search } },
+                            { lastName: { contains: search } },
+                            { studentNumber: { equals: parseInt(search) || undefined } }
+                        ]
+                    }
+                },
+                { 
+                    teachers: {
+                        OR: [
+                            { firstName: { contains: search } },
+                            { lastName: { contains: search } }
+                        ]
+                    }
+                },
+                { parentFirstName: { contains: search } },
+                { parentLastName: { contains: search } }
             ];
         }
 
@@ -128,8 +233,8 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
             prisma.homevisits.findMany({
                 where: whereClause,
                 include: {
-                    teachers: { select: { id: true, fullName: true, namePrefix: true, position: true } },
-                    students: { select: { id: true, fullName: true, namePrefix: true, classRoom: true } }
+                    teachers: { select: { id: true, firstName: true, lastName: true, namePrefix: true, position: true } },
+                    students: { select: { id: true, studentNumber: true, firstName: true, lastName: true, namePrefix: true, address: true, phoneNumber: true, emergencyContact: true, guardianFirstName: true, guardianLastName: true, guardianNamePrefix: true, guardianRelation: true, guardianOccupation: true, guardianMonthlyIncome: true, houseType: true, houseMaterial: true, utilities: true, studyArea: true, homeroomClass: { select: { className: true } } } }
                 },
                 orderBy: { visitDate: 'desc' },
                 skip: offset,
@@ -154,8 +259,8 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get single home visit (admin only)
-router.get('/:id', verifyToken, isAdmin, async (req, res) => {
+// Get single home visit (admin or homeroom teacher)
+router.get('/:id', verifyToken, async (req, res) => {
     try {
         const homeVisitId = parseInt(req.params.id);
 
@@ -175,7 +280,8 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
                 teachers: {
                     select: {
                         id: true,
-                        fullName: true,
+                        firstName: true,
+                        lastName: true,
                         namePrefix: true,
                         position: true,
                         level: true,
@@ -186,10 +292,24 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
                 students: {
                     select: {
                         id: true,
-                        fullName: true,
+                        studentNumber: true,
+                        firstName: true,
+                        lastName: true,
                         namePrefix: true,
-                        classRoom: true,
-                        phoneNumber: true
+                        phoneNumber: true,
+                        homeroomClass: { select: { homeroomTeacherId: true, className: true } },
+                        emergencyContact: true,
+                        address: true,
+                        houseType: true,
+                        houseMaterial: true,
+                        utilities: true,
+                        studyArea: true,
+                        guardianFirstName: true,
+                        guardianLastName: true,
+                        guardianNamePrefix: true,
+                        guardianRelation: true,
+                        guardianOccupation: true,
+                        guardianMonthlyIncome: true
                     }
                 }
             }
@@ -200,6 +320,29 @@ router.get('/:id', verifyToken, isAdmin, async (req, res) => {
                 success: false,
                 message: 'Home visit not found'
             });
+        }
+
+        // Authorization: if requester is a teacher, allow only if they are the homeroom teacher of this student
+        if (req.user && req.user.role && req.user.role.toLowerCase() === 'teacher') {
+            const userTeacherId = await getUserTeacherId(req.userId);
+            if (!userTeacherId) {
+                return res.status(403).json({ success: false, message: 'ไม่พบข้อมูลครูของผู้ใช้นี้' });
+            }
+            if (!homeVisit.students || homeVisit.students.homeroomClass?.homeroomTeacherId !== userTeacherId) {
+                return res.status(403).json({ success: false, message: 'คุณไม่ได้รับอนุญาตให้ดูรายงานของนักเรียนนี้' });
+            }
+        }
+
+        // Build fallback fullName fields so frontend can use `fullName`
+        if (homeVisit.teachers) {
+            const t = homeVisit.teachers;
+            const teacherFullName = `${t.firstName || ''}${t.lastName ? ' ' + t.lastName : ''}`.trim();
+            homeVisit.teachers.fullName = teacherFullName;
+        }
+        if (homeVisit.students) {
+            const s = homeVisit.students;
+            const studentFullName = `${s.firstName || ''}${s.lastName ? ' ' + s.lastName : ''}`.trim();
+            homeVisit.students.fullName = studentFullName;
         }
 
         res.status(200).json({
@@ -237,36 +380,57 @@ router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
         // Handle uploaded images
         const imagePaths = req.files ? req.files.map(f => `/uploads/homevisits/${f.filename}`) : [];
 
+        // Validate required foreign keys
+        if (!body.studentId) {
+            return res.status(400).json({ success: false, message: 'studentId is required' });
+        }
+
+        // Ensure related records exist
+        const studentExists = await prisma.students.findUnique({ where: { id: parseInt(body.studentId) }, include: { homeroomClass: { select: { homeroomTeacherId: true } } } });
+        if (!studentExists) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        // Authorization: Non-admin teachers may only create visits for students where they are the homeroom teacher
+        if (req.user && req.user.role && req.user.role.toLowerCase() === 'teacher') {
+            const userTeacherId = await getUserTeacherId(req.userId);
+            if (!userTeacherId) {
+                return res.status(403).json({ success: false, message: 'ไม่พบข้อมูลครูของผู้ใช้นี้' });
+            }
+            if (studentExists.homeroomClass?.homeroomTeacherId !== userTeacherId) {
+                return res.status(403).json({ success: false, message: 'คุณไม่ได้รับอนุญาตให้บันทึกข้อมูลสำหรับนักเรียนนี้' });
+            }
+
+            // Force teacherId to the authenticated teacher to prevent spoofing
+            body.teacherId = userTeacherId;
+        } else if (req.user && req.user.role && (req.user.role.toLowerCase() === 'admin' || req.user.role.toLowerCase() === 'super_admin')) {
+            // Admin may provide teacherId; if provided, ensure teacher exists
+            if (body.teacherId) {
+                const teacherExists = await prisma.teachers.findUnique({ where: { id: parseInt(body.teacherId) } });
+                if (!teacherExists) {
+                    return res.status(404).json({ success: false, message: 'Teacher not found' });
+                }
+            }
+        } else {
+            return res.status(403).json({ success: false, message: 'คุณไม่ได้รับอนุญาตให้ดำเนินการนี้' });
+        }
+
         const data = {
             teacherId: body.teacherId ? parseInt(body.teacherId) : null,
             studentId: body.studentId ? parseInt(body.studentId) : null,
             updatedBy: req.userId,
             visitDate: body.visitDate ? new Date(body.visitDate) : null,
-            teacherName: body.teacherName || null,
-            studentIdNumber: body.studentIdNumber || null,
-            studentName: body.studentName || null,
-            studentBirthDate: body.studentBirthDate ? new Date(body.studentBirthDate) : null,
-            className: body.className || null,
-            parentName: body.parentName || null,
-            relationship: body.relationship || null,
-            occupation: body.occupation || null,
-            monthlyIncome: body.monthlyIncome || null,
-            familyStatus: jsonField(body.familyStatus),
-            mainAddress: body.mainAddress || null,
-            phoneNumber: body.phoneNumber || null,
-            emergencyContact: body.emergencyContact || null,
-            houseType: jsonField(body.houseType),
-            houseMaterial: jsonField(body.houseMaterial),
-            utilities: jsonField(body.utilities),
-            environmentCondition: body.environmentCondition || null,
-            studyArea: body.studyArea || null,
-            visitPurpose: jsonField(body.visitPurpose),
+            parentNamePrefix: body.parentNamePrefix || null,
+            parentFirstName: body.parentFirstName || null,
+            parentLastName: body.parentLastName || null,
+            familyStatus: body.familyStatus || null,
+            visitPurpose: body.visitPurpose || '',
             studentBehaviorAtHome: body.studentBehaviorAtHome || null,
             parentCooperation: body.parentCooperation || null,
             problems: body.problems || null,
             recommendations: body.recommendations || null,
             followUpPlan: body.followUpPlan || null,
-            summary: body.summary || null,
+            summary: body.summary || '',
             notes: body.notes || null,
             imagePath: imagePaths.length ? imagePaths[0] : null,
             imageGallery: imagePaths.length > 1 ? JSON.stringify(imagePaths.slice(1)) : null,
@@ -308,6 +472,19 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
         }
 
         const updates = { ...req.body };
+
+        // Authorization: Non-admin teachers may only update visits for students where they are the homeroom teacher
+        if (req.user && req.user.role && req.user.role.toLowerCase() === 'teacher') {
+            const userTeacherId = await getUserTeacherId(req.userId);
+            if (!userTeacherId) {
+                return res.status(403).json({ success: false, message: 'ไม่พบข้อมูลครูของผู้ใช้นี้' });
+            }
+            // Fetch related student to verify homeroom
+            const hv = await prisma.homevisits.findUnique({ where: { id: homeVisitId }, include: { students: { include: { homeroomClass: { select: { homeroomTeacherId: true } } } } } });
+            if (!hv || !hv.students || hv.students.homeroomClass?.homeroomTeacherId !== userTeacherId) {
+                return res.status(403).json({ success: false, message: 'คุณไม่ได้รับอนุญาตให้แก้ไขรายงานของนักเรียนนี้' });
+            }
+        }
 
         // Process uploaded images
         let newImagePaths = [];
@@ -428,7 +605,8 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
                 teachers: {
                     select: {
                         id: true,
-                        fullName: true,
+                        firstName: true,
+                        lastName: true,
                         namePrefix: true,
                         position: true
                     }
@@ -436,9 +614,10 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
                 students: {
                     select: {
                         id: true,
-                        fullName: true,
+                        firstName: true,
+                        lastName: true,
                         namePrefix: true,
-                        classRoom: true
+                        homeroomClass: { select: { className: true } }
                     }
                 }
             }
@@ -620,4 +799,8 @@ router.get('/stats/overview', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
+// Export router and auth helpers together
 module.exports = router;
+module.exports.authHelpers = {
+    isTeacherHomeroomMatch
+};

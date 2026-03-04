@@ -17,15 +17,17 @@ router.get('/me', verifyToken, async (req, res) => {
             },
             include: {
                 userroles: true,
-                students_students_updatedByTousers: true,
-                teachers_teachers_teacherIdTousers: {
-                    include: {
+                teacher_profile: {
+                    select: {
+                        id: true,
+                        namePrefix: true,
+                        firstName: true,
+                        lastName: true,
+                        position: true,
+                        level: true,
+                        phoneNumber: true,
+                        email: true,
                         departments_teachers_departmentIdTodepartments: true,
-                        genders: true
-                    }
-                },
-                superadmin: {
-                    include: {
                         genders: true
                     }
                 }
@@ -47,9 +49,14 @@ router.get('/me', verifyToken, async (req, res) => {
                 username: user.username,
                 role: user.userroles.roleName,
                 roleId: user.roleId,
-                student: user.students_students_updatedByTousers,
-                teacher: user.teachers_teachers_teacherIdTousers,
-                superAdmin: user.superadmin
+                teacherId: user.teacherId,
+                profileImage: user.profileImage || null,
+                mustChangePassword: user.mustChangePassword || false,
+                teacher: user.teacher_profile,
+                teacher_profile: user.teacher_profile ? {
+                    ...user.teacher_profile,
+                    fullName: `${user.teacher_profile.namePrefix || ''}${user.teacher_profile.firstName || ''}${user.teacher_profile.lastName ? ' ' + user.teacher_profile.lastName : ''}`.trim()
+                } : null
             }
         });
     } catch (error) {

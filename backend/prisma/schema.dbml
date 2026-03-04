@@ -1,0 +1,542 @@
+// Database Schema for EduWeb Project
+// Generated from Prisma Schema
+// Use this on https://dbdiagram.io/
+
+Table homeroom_classes {
+  id int [pk, increment]
+  className varchar(50) [unique, not null]
+  homeroomTeacherId int [unique, not null, ref: > teachers.id]
+  academicYearId int [ref: > academic_years.id]
+  maxStudents int [default: 40]
+  room varchar(50)
+  floor int
+  building varchar(50)
+  isActive boolean [default: true]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+  deletedAt timestamp
+  
+  indexes {
+    homeroomTeacherId
+    academicYearId
+    isActive [name: 'idx_homeroom_classes_active']
+  }
+}
+
+Table academic_years {
+  id int [pk, increment]
+  year varchar(20) [unique, not null]
+  startDate date [not null]
+  endDate date [not null]
+  isCurrent boolean [default: false]
+  isActive boolean [default: true]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy int [ref: > users.id]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    createdBy
+    isActive [name: 'idx_academic_years_active']
+    isCurrent [name: 'idx_academic_years_current']
+    updatedBy
+  }
+}
+
+Table academicclubattendance {
+  id int [pk, increment]
+  clubId int [ref: > academicclubs.id]
+  date date
+  studentId int [ref: > students.id]
+  statusId int [not null, ref: > attendancestatuses.id]
+  summary text
+  imagePath varchar(255)
+  recorderId int [ref: > teachers.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  semesterId int [ref: > semesters.id]
+  
+  indexes {
+    clubId
+    recorderId
+    semesterId
+    statusId
+    studentId
+    updatedBy
+  }
+}
+
+Table academicclubs {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  description text
+  maxMembers int
+  teacherId int [ref: > teachers.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  category varchar(100) [not null]
+  categoryId int [ref: > club_categories.id]
+  icon varchar(50) [not null]
+  registrationDeadline date [not null]
+  isActive boolean [default: true]
+  meetingDay varchar(20)
+  meetingTime varchar(20)
+  location varchar(100)
+  requirements text
+  
+  indexes {
+    categoryId
+    teacherId
+    updatedBy
+  }
+}
+
+Table attendancestatuses {
+  id int [pk, increment]
+  name varchar(50) [unique, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    updatedBy
+  }
+}
+
+Table audit_logs {
+  id int [pk, increment]
+  userId int [ref: > users.id]
+  tableName varchar(100) [not null]
+  recordId int [not null]
+  action varchar(20) [not null]
+  oldValues longtext
+  newValues longtext
+  ipAddress varchar(45)
+  userAgent text
+  createdAt timestamp [default: `now()`]
+  
+  indexes {
+    (tableName, recordId) [name: 'idx_audit_table_record']
+    action [name: 'idx_audit_action']
+    createdAt [name: 'idx_audit_created']
+    userId [name: 'idx_audit_user']
+  }
+}
+
+Table blog_categories {
+  id int [pk, increment]
+  name varchar(100) [unique, not null]
+  slug varchar(100) [unique, not null]
+  description text
+  icon varchar(50)
+  sortOrder int [default: 0]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    isDeleted [name: 'idx_blog_categories_deleted']
+    updatedBy
+  }
+}
+
+Table blogs {
+  id int [pk, increment]
+  title varchar(255) [not null]
+  description text
+  coverImg varchar(255)
+  content longtext
+  category varchar(100)
+  categoryId int [ref: > blog_categories.id]
+  author int [ref: > users.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    author
+    categoryId
+    updatedBy
+  }
+}
+
+Table classschedules {
+  id int [pk, increment]
+  class varchar(50) [not null]
+  subjectId int [ref: > subjects.id]
+  teacherId int [ref: > teachers.id]
+  dayOfWeekId int [ref: > daysofweek.id]
+  room varchar(50)
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    dayOfWeekId
+    subjectId
+    teacherId
+    updatedBy
+  }
+}
+
+Table club_categories {
+  id int [pk, increment]
+  name varchar(100) [unique, not null]
+  slug varchar(100) [unique, not null]
+  description text
+  icon varchar(50)
+  sortOrder int [default: 0]
+  relatedDepartmentId int [ref: > departments.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    isDeleted [name: 'idx_club_categories_deleted']
+    relatedDepartmentId
+    updatedBy
+  }
+}
+
+Table comments {
+  id int [pk, increment]
+  comment text [not null]
+  userId int [not null, ref: > users.id]
+  postId int [not null, ref: > blogs.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  
+  indexes {
+    postId
+    userId
+  }
+}
+
+Table daysofweek {
+  id int [pk, increment]
+  name varchar(20) [unique, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+}
+
+Table departments {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  headTeacherId int [unique, ref: > teachers.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+}
+
+Table flagpoleattendance {
+  id int [pk, increment]
+  studentId int [ref: > students.id]
+  date date
+  statusId int [not null, ref: > attendancestatuses.id]
+  recorderId int [ref: > users.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  semesterId int [ref: > semesters.id]
+  
+  indexes {
+    (date, semesterId) [name: 'idx_flagpole_date_semester']
+    recorderId
+    semesterId
+    statusId
+    studentId
+    updatedBy
+  }
+}
+
+Table genders {
+  id int [pk, increment]
+  genderName varchar(20) [unique, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+}
+
+Table homevisits {
+  id int [pk, increment]
+  teacherId int [not null, ref: > teachers.id]
+  studentId int [not null, ref: > students.id]
+  updatedBy int [ref: > users.id]
+  visitDate date [not null]
+  parentNamePrefix varchar(20)
+  parentFirstName varchar(100)
+  parentLastName varchar(100)
+  familyStatus text
+  visitPurpose text [not null]
+  studentBehaviorAtHome text
+  parentCooperation text
+  problems text
+  recommendations text
+  followUpPlan text
+  summary text [not null]
+  notes text
+  imagePath varchar(500)
+  imageGallery longtext
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  
+  indexes {
+    (isDeleted, deletedAt) [name: 'idx_homevisits_deleted']
+    studentId [name: 'idx_homevisits_student']
+    teacherId [name: 'idx_homevisits_teacher']
+    (teacherId, studentId) [name: 'idx_homevisits_teacher_student']
+    updatedBy [name: 'idx_homevisits_updated_by']
+    visitDate [name: 'idx_homevisits_visit_date']
+  }
+}
+
+Table school_info {
+  id int [pk, increment]
+  name varchar(255) [not null, default: "โรงเรียนท่าบ่อพิทยาคม"]
+  location text
+  foundedDate varchar(50)
+  currentDirector varchar(255)
+  education_level varchar(255)
+  department varchar(255)
+  description text
+  heroImage varchar(500)
+  director_image varchar(500)
+  director_quote text
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy int [not null]
+  updatedBy int [not null]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  deletedBy int
+}
+
+Table school_timeline {
+  id int [pk, increment]
+  year int [not null]
+  date varchar(50)
+  title varchar(255) [not null]
+  description text
+  sortOrder int [default: 0]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy int [not null]
+  updatedBy int [not null]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  deletedBy int
+}
+
+Table semesters {
+  id int [pk, increment]
+  academicYearId int [not null, ref: > academic_years.id]
+  semesterNumber tinyint [not null]
+  startDate date [not null]
+  endDate date [not null]
+  isCurrent boolean [default: false]
+  isActive boolean [default: true]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  createdBy int [ref: > users.id]
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    (academicYearId, semesterNumber) [unique, name: 'unique_semester_per_year']
+    academicYearId
+    createdBy
+    isActive [name: 'idx_semesters_active']
+    isCurrent [name: 'idx_semesters_current']
+    updatedBy
+  }
+}
+
+Table studentbehaviorscores {
+  id int [pk, increment]
+  studentId int [ref: > students.id]
+  score int [not null]
+  comments text
+  recorderId int [ref: > users.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    recorderId
+    studentId
+    updatedBy
+  }
+}
+
+Table students {
+  id int [pk, increment]
+  namePrefix varchar(10)
+  firstName varchar(100) [not null]
+  lastName varchar(100) [not null]
+  genderId int [not null, ref: > genders.id]
+  classRoom varchar(50) [not null]
+  homeroomClassId int [ref: > homeroom_classes.id]
+  studentNumber int
+  homeroomTeacherId int [ref: > teachers.id]
+  guardianFirstName varchar(100)
+  guardianLastName varchar(100)
+  guardianRelation varchar(50)
+  guardianOccupation varchar(100)
+  guardianMonthlyIncome varchar(50)
+  emergencyContact varchar(20)
+  address text
+  houseType varchar(100)
+  houseMaterial varchar(200)
+  utilities text
+  studyArea varchar(100)
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  dob date
+  nationality varchar(50)
+  weight int
+  height int
+  disease varchar(50)
+  phoneNumber varchar(50)
+  
+  indexes {
+    genderId
+    homeroomClassId
+    homeroomTeacherId
+    studentNumber [name: 'idx_student_number']
+    updatedBy
+  }
+}
+
+Table subjects {
+  id int [pk, increment]
+  codeSubject varchar(10) [unique, not null]
+  name varchar(100) [not null]
+  description text
+  departmentId int [ref: > departments.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    departmentId
+    updatedBy
+  }
+}
+
+Table teachers {
+  id int [pk, increment]
+  teacherId int [unique, ref: > users.id]
+  userId int
+  departmentId int [ref: > departments.id]
+  namePrefix varchar(10)
+  firstName varchar(100) [not null]
+  lastName varchar(100) [not null]
+  genderId int [not null, ref: > genders.id]
+  dob date
+  nationality varchar(50)
+  position varchar(50)
+  level varchar(50)
+  phoneNumber varchar(10)
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  imagePath varchar(500) [not null]
+  email varchar(100) [not null]
+  address text [not null]
+  education varchar(100) [not null]
+  major varchar(100) [not null]
+  biography text [not null]
+  specializations text [not null]
+  
+  indexes {
+    departmentId
+    genderId
+    updatedBy
+  }
+}
+
+Table teachersubjects {
+  teacherId int [pk, ref: > teachers.id]
+  subjectId int [pk, ref: > subjects.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+  
+  indexes {
+    subjectId
+  }
+}
+
+Table user_login_logs {
+  id int [pk, increment]
+  userId int [not null, ref: > users.id]
+  action varchar(20) [not null]
+  ipAddress varchar(45)
+  userAgent text
+  loginAt timestamp [default: `now()`]
+  logoutAt timestamp
+  sessionToken varchar(255)
+  
+  indexes {
+    loginAt [name: 'idx_login_time']
+    userId [name: 'idx_login_user']
+    (userId, loginAt) [name: 'idx_user_login_time']
+  }
+}
+
+Table userroles {
+  id int [pk, increment]
+  roleName varchar(50) [unique, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  deletedAt timestamp
+}
+
+Table users {
+  id int [pk, increment]
+  username varchar(255) [unique, not null]
+  email varchar(255) [unique, not null]
+  password varchar(255) [not null]
+  roleId int [not null, ref: > userroles.id]
+  phone varchar(20)
+  profileImage varchar(255)
+  lastLogin timestamp
+  teacherId int [unique, ref: > teachers.id]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp [default: `now()`]
+  isDeleted boolean [default: false]
+  deletedAt timestamp
+  updatedBy int [ref: > users.id]
+  
+  indexes {
+    roleId
+    teacherId [name: 'users_teacherId_idx']
+    updatedBy
+  }
+}

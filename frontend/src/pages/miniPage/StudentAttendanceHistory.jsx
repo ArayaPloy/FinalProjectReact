@@ -40,7 +40,8 @@ const StudentAttendanceHistory = () => {
       Swal.fire({
         icon: 'warning',
         title: 'กรุณากรอกรหัสนักเรียน',
-        confirmButtonColor: '#D97706'
+        confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -65,9 +66,9 @@ const StudentAttendanceHistory = () => {
         icon: 'error',
         title: 'ไม่พบข้อมูล',
         text: error.data?.message || 'ไม่พบข้อมูลนักเรียนในระบบ',
-        confirmButtonColor: '#D97706'
+        confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง'
       });
-      setStudentData(null);
     }
   };
 

@@ -33,8 +33,9 @@ router.get('/flagpole-attendance/:studentNumber', async (req, res) => {
         id: true,
         studentNumber: true,
         namePrefix: true,
-        fullName: true,
-        classRoom: true
+        firstName: true,
+        lastName: true,
+        homeroomClass: { select: { className: true } }
       }
     });
 
@@ -110,8 +111,8 @@ router.get('/flagpole-attendance/:studentNumber', async (req, res) => {
         student: {
           studentNumber: student.studentNumber,
           namePrefix: student.namePrefix,
-          fullName: student.fullName,
-          classRoom: student.classRoom
+          fullName: `${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
+          classRoom: student.homeroomClass?.className || ''
         },
         records: formattedRecords,
         statistics: statistics,
@@ -147,8 +148,9 @@ router.get('/behavior-score/:studentNumber', async (req, res) => {
         id: true,
         studentNumber: true,
         namePrefix: true,
-        fullName: true,
-        classRoom: true
+        firstName: true,
+        lastName: true,
+        homeroomClass: { select: { className: true } }
       }
     });
 
@@ -206,8 +208,8 @@ router.get('/behavior-score/:studentNumber', async (req, res) => {
         student: {
           studentNumber: student.studentNumber,
           namePrefix: student.namePrefix,
-          fullName: student.fullName,
-          classRoom: student.classRoom
+          fullName: `${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
+          classRoom: student.homeroomClass?.className || ''
         },
         currentScore: runningTotal,
         history: historyWithRunningTotal,

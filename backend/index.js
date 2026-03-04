@@ -6,6 +6,20 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
+// ─── Global crash protection ───────────────────────────────────────────────
+// ป้องกัน process crash จาก unhandled errors/rejections
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception (server kept alive):', err.message);
+  console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Promise Rejection (server kept alive):');
+  console.error('Promise:', promise);
+  console.error('Reason:', reason);
+});
+// ─────────────────────────────────────────────────────────────────────────
+
 // Middleware setup
 app.use(express.json());
 app.use(cookieParser());
@@ -89,6 +103,8 @@ const behaviorScoreRoutes = require('./src/routes/behavior-score.route');
 const studentRoutes = require('./src/routes/student.route');
 const academicRoutes = require('./src/routes/academic.route');
 const studentPublicRoutes = require('./src/routes/student-public.route');
+const classroomsRoutes = require('./src/routes/classrooms.route');
+const classSchedulesRoutes = require('./src/routes/classschedules.route');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', authMeRoutes);
@@ -105,6 +121,11 @@ app.use('/api/behavior-scores', behaviorScoreRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api', academicRoutes);
 app.use('/api/students/public', studentPublicRoutes);
+app.use('/api/classrooms', classroomsRoutes);
+app.use('/api/schedules', classSchedulesRoutes);
+
+const subjectsRoutes = require('./src/routes/subjects.route');
+app.use('/api/subjects', subjectsRoutes);
 
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 
@@ -130,6 +151,17 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Health check route (must be before 404 handler)
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'School Website API Server',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({
@@ -139,16 +171,7 @@ app.use((req, res) => {
 });
 
 async function main() {
-  
-  app.get('/', (req, res) => {
-    res.json({
-      success: true,
-      message: 'School Website API Server',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      timestamp: new Date().toISOString()
-    });
-  });
+  // Server initialization (routes registered above)
 }
 
 main()
@@ -160,11 +183,49 @@ main()
     process.exit(1);
   });
 
-app.listen(port, () => {
-  console.log('========================================');
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
-  console.log('========================================');
-});
+const startServer = (tryPort) => {
+  const server = app.listen(tryPort, '0.0.0.0', () => {
+    console.log('========================================');
+    console.log(`🚀 Server running on port ${tryPort}`);
+    console.log(`🔗 http://localhost:${tryPort}`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+    console.log('========================================');
+  });
+
+  // Graceful shutdown — ทำให้ nodemon restart ได้สะอาด ไม่ค้าง port
+  const shutdown = (signal) => {
+    console.log(`\n🛑 Received ${signal}. Closing server...`);
+    // closeAllConnections() force-closes keep-alive connections (Node 18+)
+    if (typeof server.closeAllConnections === 'function') {
+      server.closeAllConnections();
+    }
+    server.close(() => {
+      console.log('✅ Server closed.');
+      process.exit(0);
+    });
+    // Fallback: force exit after 3 seconds if connections hang
+    setTimeout(() => {
+      console.warn('⚠️  Force exit after timeout.');
+      process.exit(1);
+    }, 3000).unref();
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      // ไม่วนหา port ถัดไป แต่ exit ให้ nodemon restart ใหม่
+      console.error(`❌ Port ${tryPort} is already in use.`);
+      console.error(`   Run: npx kill-port ${tryPort}  แล้วลองใหม่อีกครั้ง`);
+      process.exit(1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+startServer(port);
 

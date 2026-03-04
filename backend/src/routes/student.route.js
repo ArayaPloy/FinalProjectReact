@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const verifyToken = require('../middleware/verifyToken');
 
 /**
  * GET /api/students/classrooms
@@ -9,25 +10,14 @@ const prisma = new PrismaClient();
  */
 router.get('/classrooms', async (req, res) => {
   try {
-    // ดึง classRoom ที่ไม่ซ้ำกัน
-    const classRooms = await prisma.students.findMany({
-      where: {
-        isDeleted: false,
-        classRoom: {
-          not: null
-        }
-      },
-      select: {
-        classRoom: true
-      },
-      distinct: ['classRoom'],
-      orderBy: {
-        classRoom: 'asc'
-      }
+    // ดึง className จาก homeroom_classes (normalized)
+    const classrooms = await prisma.homeroom_classes.findMany({
+      where: { isActive: true },
+      select: { className: true },
+      orderBy: { className: 'asc' }
     });
 
-    // แปลงเป็น array ของ string
-    const classRoomList = classRooms.map(item => item.classRoom);
+    const classRoomList = classrooms.map(c => c.className);
 
     res.json({
       success: true,
@@ -60,13 +50,14 @@ router.get('/with-scores', async (req, res) => {
 
     // Filter by classroom (ถ้าไม่ใช่ "ทั้งหมด")
     if (classRoom && classRoom !== 'ทั้งหมด') {
-      whereClause.classRoom = classRoom;
+      whereClause.homeroomClass = { className: classRoom };
     }
 
     // เพิ่มเงื่อนไขค้นหา (ชื่อ, รหัสนักเรียน)
     if (search) {
       whereClause.OR = [
-        { fullName: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
         { studentNumber: parseInt(search) || undefined }
       ].filter(Boolean);
     }
@@ -76,10 +67,11 @@ router.get('/with-scores', async (req, res) => {
       where: whereClause,
       select: {
         id: true,
-        fullName: true,
-        classRoom: true,
+        firstName: true,
+        lastName: true,
         studentNumber: true,
-        namePrefix: true
+        namePrefix: true,
+        homeroomClass: { select: { className: true } }
       },
       orderBy: {
         studentNumber: 'asc'
@@ -107,8 +99,8 @@ router.get('/with-scores', async (req, res) => {
         return {
           id: student.id,
           studentId: student.studentNumber?.toString().padStart(5, '0') || '',
-          fullName: `${student.namePrefix || ''}${student.fullName}`,
-          classRoom: student.classRoom,
+          fullName: `${student.namePrefix || ''}${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
+          classRoom: student.homeroomClass?.className || '',
           currentScore: currentScore
         };
       })
@@ -143,13 +135,14 @@ router.get('/all', async (req, res) => {
 
     // Filter by classroom (optional)
     if (classRoom) {
-      whereClause.classRoom = classRoom;
+      whereClause.homeroomClass = { className: classRoom };
     }
 
     // Filter by search (optional)
     if (search) {
       whereClause.OR = [
-        { fullName: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
         { studentNumber: parseInt(search) || undefined }
       ].filter(Boolean);
     }
@@ -159,15 +152,18 @@ router.get('/all', async (req, res) => {
       select: {
         id: true,
         namePrefix: true,
-        fullName: true,
-        classRoom: true,
+        firstName: true,
+        lastName: true,
         studentNumber: true,
         genderId: true,
-        guardianName: true,
+        guardianFirstName: true,
+        guardianLastName: true,
+        guardianNamePrefix: true,
         guardianRelation: true,
         phoneNumber: true,
         createdAt: true,
         updatedAt: true,
+        homeroomClass: { select: { className: true } },
         genders: {
           select: {
             genderName: true
@@ -175,14 +171,19 @@ router.get('/all', async (req, res) => {
         }
       },
       orderBy: [
-        { classRoom: 'asc' },
+        { homeroomClass: { className: 'asc' } },
         { studentNumber: 'asc' }
       ]
     });
 
     res.json({
       success: true,
-      data: students,
+      data: students.map(s => ({
+        ...s,
+        fullName: `${s.namePrefix || ''}${s.firstName || ''}${s.lastName ? ' ' + s.lastName : ''}`.trim(),
+        guardianName: `${s.guardianNamePrefix || ''}${s.guardianFirstName || ''}${s.guardianLastName ? ' ' + s.guardianLastName : ''}`.trim(),
+        classRoom: s.homeroomClass?.className || ''
+      })),
       total: students.length
     });
 
@@ -210,13 +211,14 @@ router.get('/', async (req, res) => {
 
     // Filter by classroom
     if (classRoom) {
-      whereClause.classRoom = classRoom;
+      whereClause.homeroomClass = { className: classRoom };
     }
 
     // Filter by search
     if (search) {
       whereClause.OR = [
-        { fullName: { contains: search } },
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
         { studentNumber: parseInt(search) || undefined }
       ].filter(Boolean);
     }
@@ -226,13 +228,16 @@ router.get('/', async (req, res) => {
       select: {
         id: true,
         namePrefix: true,
-        fullName: true,
-        classRoom: true,
+        firstName: true,
+        lastName: true,
         studentNumber: true,
         genderId: true,
-        guardianName: true,
+        guardianFirstName: true,
+        guardianLastName: true,
+        guardianNamePrefix: true,
         guardianRelation: true,
         phoneNumber: true,
+        homeroomClass: { select: { className: true } },
         genders: {
           select: {
             genderName: true
@@ -240,14 +245,19 @@ router.get('/', async (req, res) => {
         }
       },
       orderBy: [
-        { classRoom: 'asc' },
+        { homeroomClass: { className: 'asc' } },
         { studentNumber: 'asc' }
       ]
     });
 
     res.json({
       success: true,
-      data: students,
+      data: students.map(s => ({
+        ...s,
+        fullName: `${s.namePrefix || ''}${s.firstName || ''}${s.lastName ? ' ' + s.lastName : ''}`.trim(),
+        guardianName: `${s.guardianNamePrefix || ''}${s.guardianFirstName || ''}${s.guardianLastName ? ' ' + s.guardianLastName : ''}`.trim(),
+        classRoom: s.homeroomClass?.className || ''
+      })),
       total: students.length
     });
 
@@ -275,11 +285,11 @@ router.get('/:id', async (req, res) => {
       },
       include: {
         genders: true,
-        teachers: {
-          select: {
-            id: true,
-            fullName: true,
-            namePrefix: true
+        homeroomClass: {
+          include: {
+            homeroomTeacher: {
+              select: { id: true, namePrefix: true, firstName: true, lastName: true }
+            }
           }
         }
       }
@@ -307,4 +317,58 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/students/:id
+ * อัปเดตข้อมูลนักเรียน (ใช้สำหรับการอัปเดตจากฟอร์มการเยี่ยมบ้าน)
+ */
+router.patch('/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body || {};
+
+    // Only allow a safe subset of fields to be updated from this endpoint
+    const allowed = [
+      'address', 'phoneNumber', 'emergencyContact',
+      'houseType', 'houseMaterial', 'utilities', 'studyArea',
+      'guardianFirstName', 'guardianLastName', 'guardianRelation', 'guardianOccupation', 'guardianMonthlyIncome', 'guardianNamePrefix',
+      'namePrefix', 'firstName', 'lastName', 'dob'
+    ];
+
+    const data = {};
+    allowed.forEach((f) => {
+      if (Object.prototype.hasOwnProperty.call(updates, f)) {
+        const val = updates[f];
+        if (val === '') {
+          data[f] = null;
+        } else if (Array.isArray(val)) {
+          // Store array as comma-separated string for backward compatibility
+          data[f] = val.map(v => (v || '').toString().trim()).filter(Boolean).join(', ');
+        } else {
+          data[f] = val;
+        }
+      }
+    });
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid fields to update' });
+    }
+
+    const studentId = parseInt(id);
+    const existing = await prisma.students.findUnique({ where: { id: studentId } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    console.info(`[PATCH /api/students/${studentId}] user=${req.userId} fields=${Object.keys(data).join(',')}`);
+    const updated = await prisma.students.update({ where: { id: studentId }, data });
+
+    console.info(`[PATCH /api/students/${studentId}] success`);
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Error updating student:', error.stack || error);
+    res.status(500).json({ success: false, message: 'Failed to update student', error: error.message });
+  }
+});
+
 module.exports = router;
+

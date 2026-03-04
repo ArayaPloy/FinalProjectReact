@@ -118,7 +118,7 @@ const ManageClubsPosts = () => {
             teachersByDepartment[department].forEach(teacher => {
                 teachers.push({
                     id: teacher.id,
-                    name: `${teacher.namePrefix || ''} ${teacher.name}`.trim(),
+                    name: teacher.name,
                     department: department,
                     position: teacher.position,
                     level: teacher.level
@@ -269,7 +269,8 @@ const ManageClubsPosts = () => {
                         icon: 'error',
                         title: 'เกิดข้อผิดพลาด',
                         text: deleteResult.error || 'เกิดข้อผิดพลาดในการลบชุมนุม',
-                        confirmButtonColor: '#d97706'
+                        confirmButtonColor: '#d97706',
+                        confirmButtonText: 'ตกลง'
                     });
                 }
             } catch (error) {
@@ -277,7 +278,8 @@ const ManageClubsPosts = () => {
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
                     text: 'เกิดข้อผิดพลาดในการลบชุมนุม',
-                    confirmButtonColor: '#d97706'
+                    confirmButtonColor: '#d97706',
+                    confirmButtonText: 'ตกลง'
                 });
                 console.error('Error deleting club:', error);
             }
@@ -444,10 +446,12 @@ const ManageClubsPosts = () => {
                                 
                                 <button
                                     onClick={() => setShowAddClub(!showAddClub)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                                    className={showAddClub
+                                        ? 'bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2'}
                                     disabled={isCreating}
                                 >
-                                    <IoAdd />
+                                    {!showAddClub && <IoAdd />}
                                     <span>{showAddClub ? 'ยกเลิก' : 'เพิ่มชุมนุม'}</span>
                                 </button>
                             </div>
@@ -746,7 +750,7 @@ const ManageClubsPosts = () => {
                                                             <div className="flex justify-between">
                                                                 <span className="text-gray-500">ครูที่ปรึกษา:</span>
                                                                 <span className="text-gray-700 font-medium">
-                                                                    {club.teacher.namePrefix} {club.teacher.name}
+                                                                    {club.teacher.name}
                                                                 </span>
                                                             </div>
                                                         )}

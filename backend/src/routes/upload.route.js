@@ -107,8 +107,8 @@ const teacherStorage = multer.diskStorage({
     const nameWithoutExt = path.basename(file.originalname, path.extname(file.originalname));
     let safeName = nameWithoutExt.replace(/[^a-zA-Z0-9ก-๙]/g, '_');
     
-    if (safeName.length > 50) {
-      safeName = safeName.substring(0, 50);
+    if (safeName.length > 20) {
+      safeName = safeName.substring(0, 20);
     }
     
     if (!safeName || safeName.match(/^_+$/)) {

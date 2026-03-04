@@ -240,7 +240,8 @@ const UpdatePosts = () => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: 'แก้ไขบทความไม่สำเร็จ กรุณาลองอีกครั้ง',
-        confirmButtonColor: '#d97706'
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'ตกลง'
       });
     }
   };

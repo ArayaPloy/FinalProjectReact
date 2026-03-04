@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { FileText, History, TrendingUp, TrendingDown, Edit2, Save, X, Calendar, Filter, Download, Eye, Clock, User, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, History, TrendingUp, TrendingDown, Edit2, Save, X, Filter, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { 
     useGetBehaviorReportsHistoryQuery,
@@ -13,6 +13,7 @@ import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
 const ReportBehaviorScore = () => {
     const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
     const [activeTab, setActiveTab] = useState('history');
     const [selectedClass, setSelectedClass] = useState('ทั้งหมด');
     const [searchStudent, setSearchStudent] = useState(''); // สำหรับ History tab
@@ -20,9 +21,6 @@ const ReportBehaviorScore = () => {
     const [reportPeriod, setReportPeriod] = useState('week');
     const [editingRecord, setEditingRecord] = useState(null);
     const [editForm, setEditForm] = useState({ score: 0, comments: '' });
-    const [showLogModal, setShowLogModal] = useState(false);
-    const [selectedRecordLogs, setSelectedRecordLogs] = useState([]);
-    
     // Sorting state for summary table
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
@@ -61,11 +59,6 @@ const ReportBehaviorScore = () => {
     // Get filtered records
     const filteredRecords = useMemo(() => {
         const data = historyData?.data || [];
-        console.log('History Data:', historyData);
-        console.log('Filtered Records:', data);
-        console.log('Selected Class:', selectedClass);
-        console.log('Search Student:', searchStudent);
-        console.log('Date Range:', dateRange);
         return data;
     }, [historyData, selectedClass, searchStudent, dateRange]);
 
@@ -198,6 +191,8 @@ const ReportBehaviorScore = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด!',
                 text: error.data?.message || 'ไม่สามารถแก้ไขข้อมูลได้',
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
     };
@@ -248,13 +243,10 @@ const ReportBehaviorScore = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด!',
                 text: error.data?.message || 'ไม่สามารถลบข้อมูลได้',
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
-    };
-
-    const handleViewLogs = (record) => {
-        setSelectedRecordLogs(record.updateLogs || []);
-        setShowLogModal(true);
     };
 
     const formatDate = (dateString) => {
@@ -269,21 +261,41 @@ const ReportBehaviorScore = () => {
     };
 
     const exportToExcel = () => {
-        Swal.fire({
-            icon: 'info',
-            title: 'กำลังพัฒนา',
-            text: 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา',
-            confirmButtonText: 'ตกลง'
-        });
-    };
+        if (!allRecords || allRecords.length === 0) {
+            Swal.fire({ icon: 'error', title: 'ไม่มีข้อมูล', text: 'ไม่มีข้อมูลให้ส่งออก', confirmButtonText: 'ตกลง' });
+            return;
+        }
 
-    const exportToPDF = () => {
-        Swal.fire({
-            icon: 'info',
-            title: 'กำลังพัฒนา',
-            text: 'ฟีเจอร์นี้อยู่ระหว่างการพัฒนา',
-            confirmButtonText: 'ตกลง'
-        });
+        const escapeCSV = (value) => {
+            if (value === null || value === undefined) return '""';
+            const str = String(value);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return `"${str}"`;
+        };
+
+        const headers = ['วันที่', 'รหัส', 'ชื่อ-สกุล', 'ห้อง', 'คะแนน', 'คะแนนรวม', 'รายละเอียด', 'ผู้บันทึก'];
+        const rows = allRecords.map((record) => [
+            escapeCSV(formatDate(record.createdAt)),
+            record.studentCode,
+            escapeCSV(record.studentName),
+            `="${record.classRoom}"`,
+            record.score > 0 ? `+${record.score}` : record.score,
+            record.currentTotal,
+            escapeCSV(record.comments || ''),
+            escapeCSV(record.recorderName || '-')
+        ]);
+
+        const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const today = new Date().toISOString().split('T')[0];
+        link.download = `behavior_score_report_${today}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        Swal.fire({ icon: 'success', title: 'ส่งออกสำเร็จ', text: 'ดาวน์โหลดไฟล์รายงานเรียบร้อย', timer: 2000, showConfirmButton: false });
     };
 
     return (
@@ -433,17 +445,11 @@ const ReportBehaviorScore = () => {
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <button
                             onClick={exportToExcel}
-                            className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-base touch-manipulation transition-colors"
+                            disabled={allRecords.length === 0}
+                            className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-base touch-manipulation transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download className="w-5 h-5 flex-shrink-0" />
                             <span>ส่งออก Excel</span>
-                        </button>
-                        <button
-                            onClick={exportToPDF}
-                            className="flex items-center justify-center gap-2 px-4 min-h-[48px] bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-base touch-manipulation transition-colors"
-                        >
-                            <Download className="w-5 h-5 flex-shrink-0" />
-                            <span>ส่งออก PDF</span>
                         </button>
                     </div>
                 </div>               
@@ -490,12 +496,12 @@ const ReportBehaviorScore = () => {
                                                     <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">คะแนนรวม</th>
                                                     <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">รายละเอียด</th>
                                                     <th className="px-3 py-3 text-left text-sm font-semibold whitespace-nowrap">ผู้บันทึก</th>
-                                                    <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">จัดการ</th>
+                                                    {isAdmin && <th className="px-3 py-3 text-center text-sm font-semibold whitespace-nowrap">จัดการ</th>}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {paginatedRecords.map((record) => (
-                                                editingRecord === record.id ? (
+                                                isAdmin && editingRecord === record.id ? (
                                                     <tr key={record.id} className="border-b bg-blue-50">
                                                         <td colSpan="9" className="px-4 md:px-6 py-4 md:py-5">
                                                             <div className="space-y-4">
@@ -588,6 +594,7 @@ const ReportBehaviorScore = () => {
                                                                 {record.recorderName}
                                                             </div>
                                                         </td>
+                                                        {isAdmin && (
                                                         <td className="px-3 py-3">
                                                             <div className="flex items-center justify-center gap-2">
                                                                 <button
@@ -606,15 +613,9 @@ const ReportBehaviorScore = () => {
                                                                 >
                                                                     <Trash2 className="w-5 h-5 flex-shrink-0" />
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => handleViewLogs(record)}
-                                                                    className="min-h-[36px] min-w-[36px] flex items-center justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors touch-manipulation"
-                                                                    title="ดูประวัติการแก้ไข"
-                                                                >
-                                                                    <Clock className="w-5 h-5 flex-shrink-0" />
-                                                                </button>
                                                             </div>
                                                         </td>
+                                                        )}
                                                     </tr>
                                                 )
                                             ))}
@@ -630,7 +631,7 @@ const ReportBehaviorScore = () => {
                                             key={record.id}
                                             className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
                                         >
-                                            {editingRecord === record.id ? (
+                                            {isAdmin && editingRecord === record.id ? (
                                                 <div className="space-y-4">
                                                     <div className="space-y-3">
                                                         <div>
@@ -752,8 +753,9 @@ const ReportBehaviorScore = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Action Buttons */}
-                                                    <div className="grid grid-cols-3 gap-2 pt-3 border-t-2 border-gray-300">
+                                                    {/* Action Buttons - admin only */}
+                                                    {isAdmin && (
+                                                    <div className="grid grid-cols-2 gap-2 pt-3 border-t-2 border-gray-300">
                                                         <button
                                                             onClick={() => handleEdit(record)}
                                                             className="min-h-[48px] flex flex-col items-center justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation"
@@ -770,14 +772,8 @@ const ReportBehaviorScore = () => {
                                                             <Trash2 className="w-5 h-5 flex-shrink-0 mb-1" />
                                                             <span className="text-xs font-semibold">ลบ</span>
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleViewLogs(record)}
-                                                            className="min-h-[48px] flex flex-col items-center justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors touch-manipulation"
-                                                        >
-                                                            <Clock className="w-5 h-5 flex-shrink-0 mb-1" />
-                                                            <span className="text-xs font-semibold">ประวัติ</span>
-                                                        </button>
                                                     </div>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
@@ -1114,82 +1110,6 @@ const ReportBehaviorScore = () => {
                     </div>
                 )}
 
-                {/* Log Modal */}
-                {showLogModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:flex md:items-center md:justify-center md:p-4">
-                        <div className="bg-white h-full md:h-auto md:rounded-xl shadow-xl w-full max-w-full md:max-w-2xl overflow-hidden flex flex-col">
-                            <div className="bg-purple-600 text-white p-4 sm:p-5 flex items-center justify-between flex-shrink-0 sticky top-0 z-10">
-                                <h3 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
-                                    <Clock className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-                                    <span className="truncate">ประวัติการแก้ไข</span>
-                                </h3>
-                                <button
-                                    onClick={() => setShowLogModal(false)}
-                                    className="min-h-[48px] min-w-[48px] flex items-center justify-center text-white hover:bg-purple-700 rounded-lg transition-colors touch-manipulation flex-shrink-0"
-                                >
-                                    <X className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-                                </button>
-                            </div>
-
-                            <div className="p-4 sm:p-5 md:p-6 overflow-y-auto flex-1">
-                                {selectedRecordLogs.length === 0 ? (
-                                    <div className="text-center py-12 md:py-16">
-                                        <Clock className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-base sm:text-lg text-gray-600 font-medium">ยังไม่มีประวัติการแก้ไข</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3 sm:space-y-4">
-                                        {selectedRecordLogs.map((log, index) => (
-                                            <div key={index} className="border-2 border-gray-200 rounded-xl p-4 sm:p-5 bg-gray-50">
-                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 pb-3 border-b-2 border-gray-300">
-                                                    <div className="flex items-center gap-2">
-                                                        <User className="w-5 h-5 text-purple-600 flex-shrink-0" />
-                                                        <span className="font-bold text-gray-800 text-base sm:text-lg">{log.updatedBy}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm sm:text-base text-gray-600">
-                                                        <i className="bi bi-calendar-event flex-shrink-0"></i>
-                                                        <span>{formatDate(log.updatedAt)}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-3 sm:space-y-4">
-                                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                                        <div>
-                                                            <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">คะแนนเดิม</div>
-                                                            <div className={`text-lg sm:text-xl font-bold px-3 py-2 rounded-lg text-center ${log.changes.oldScore > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                                {log.changes.oldScore > 0 ? '+' : ''}{log.changes.oldScore}
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">คะแนนใหม่</div>
-                                                            <div className={`text-lg sm:text-xl font-bold px-3 py-2 rounded-lg text-center ${log.changes.newScore > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                                {log.changes.newScore > 0 ? '+' : ''}{log.changes.newScore}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">รายละเอียดเดิม</div>
-                                                        <div className="text-sm sm:text-base text-gray-700 bg-white p-3 rounded-lg border border-gray-300 leading-relaxed">
-                                                            {log.changes.oldComments}
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-semibold">รายละเอียดใหม่</div>
-                                                        <div className="text-sm sm:text-base text-gray-700 bg-white p-3 rounded-lg border border-gray-300 leading-relaxed">
-                                                            {log.changes.newComments}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -38,20 +38,13 @@ router.get('/attendance-statuses', verifyToken, async (req, res) => {
 // Get all unique classrooms
 router.get('/students/classrooms', verifyToken, async (req, res) => {
   try {
-    const classrooms = await prisma.students.findMany({
-      select: {
-        classRoom: true
-      },
-      distinct: ['classRoom'],
-      where: {
-        isDeleted: false
-      },
-      orderBy: {
-        classRoom: 'asc'
-      }
+    const classrooms = await prisma.homeroom_classes.findMany({
+      where: { isActive: true },
+      select: { className: true },
+      orderBy: { className: 'asc' }
     });
     
-    const classRoomList = classrooms.map(c => c.classRoom);
+    const classRoomList = classrooms.map(c => c.className);
     res.json({ success: true, data: classRoomList });
   } catch (error) {
     console.error('Error fetching classrooms:', error);
@@ -69,24 +62,30 @@ router.get('/students', verifyToken, async (req, res) => {
 
     const students = await prisma.students.findMany({
       where: {
-        classRoom,
+        homeroomClass: { className: classRoom },
         isDeleted: false
       },
       orderBy: [
         { studentNumber: 'asc' },
-        { fullName: 'asc' }
+        { firstName: 'asc' }
       ],
       select: {
         id: true,
         studentNumber: true,
         namePrefix: true,
-        fullName: true,
-        classRoom: true,
+        firstName: true,
+        lastName: true,
+        homeroomClass: { select: { className: true } },
         genders: true
       }
     });
 
-    res.json({ success: true, data: students });
+    const studentsWithFullName = students.map(s => ({
+      ...s,
+      fullName: `${s.firstName || ''}${s.lastName ? ' ' + s.lastName : ''}`.trim()
+    }));
+
+    res.json({ success: true, data: studentsWithFullName });
   } catch (error) {
     console.error('Error fetching students:', error);
     res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลนักเรียนได้' });
@@ -105,7 +104,7 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
       where: {
         date: new Date(date),
         students: {
-          classRoom,
+          homeroomClass: { className: classRoom },
           isDeleted: false
         }
       },
@@ -114,8 +113,10 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
           select: {
             id: true,
             studentNumber: true,
-            fullName: true,
-            classRoom: true
+            namePrefix: true,
+            firstName: true,
+            lastName: true,
+            homeroomClass: { select: { className: true } }
           }
         },
         attendancestatuses: true,
@@ -127,7 +128,15 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
       }
     });
 
-    res.json({ success: true, data: attendance });
+    const formattedAttendance = attendance.map(a => ({
+      ...a,
+      students: a.students ? {
+        ...a.students,
+        fullName: `${a.students.firstName || ''}${a.students.lastName ? ' ' + a.students.lastName : ''}`.trim()
+      } : null
+    }));
+
+    res.json({ success: true, data: formattedAttendance });
   } catch (error) {
     console.error('Error fetching attendance:', error);
     res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลการเช็คชื่อได้' });
@@ -172,7 +181,7 @@ router.post('/flagpole-attendance', verifyToken, async (req, res) => {
         where: {
           date: new Date(date),
           students: {
-            classRoom
+            homeroomClass: { className: classRoom }
           }
         }
       });
@@ -235,7 +244,7 @@ router.get('/flagpole-attendance/statistics', verifyToken, async (req, res) => {
 
     // ถ้าระบุห้องเรียน ให้กรองตามห้อง
     if (classRoom && classRoom !== 'all') {
-      whereCondition.students.classRoom = classRoom;
+      whereCondition.students.homeroomClass = { className: classRoom };
     }
 
     const statistics = await prisma.flagpoleattendance.groupBy({
@@ -293,7 +302,7 @@ router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
 
     // ถ้าระบุห้องเรียน ให้กรองตามห้อง
     if (classRoom && classRoom !== 'all') {
-      whereCondition.students.classRoom = classRoom;
+      whereCondition.students.homeroomClass = { className: classRoom };
     }
 
     // ดึงข้อมูลทั้งหมดพร้อม relation
@@ -304,15 +313,25 @@ router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
           select: {
             id: true,
             studentNumber: true,
-            fullName: true,
-            classRoom: true
+            namePrefix: true,
+            firstName: true,
+            lastName: true,
+            homeroomClass: { select: { className: true } }
           }
         },
-        attendancestatuses: true
+        attendancestatuses: true,
+        users_flagpoleattendance_recorderIdTousers: {
+          select: {
+            username: true,
+            teacher_profile: {
+              select: { namePrefix: true, firstName: true, lastName: true }
+            }
+          }
+        }
       },
       orderBy: [
         { date: 'asc' },
-        { students: { classRoom: 'asc' } },
+        { students: { homeroomClass: { className: 'asc' } } },
         { students: { studentNumber: 'asc' } }
       ]
     });
@@ -371,13 +390,26 @@ router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
       data: {
         chartData,       // สำหรับกราฟแท่ง
         totalStats,      // สำหรับกราฟวงกลม
-        records: attendanceRecords.map(r => ({
-          date: r.date.toISOString().split('T')[0],
-          studentNumber: r.students.studentNumber,
-          studentName: r.students.fullName,
-          classRoom: r.students.classRoom,
-          status: translationMap[r.attendancestatuses.name] || r.attendancestatuses.name
-        }))  // สำหรับตาราง + CSV Export
+        records: attendanceRecords.map(r => {
+          const recorder = r.users_flagpoleattendance_recorderIdTousers;
+          let recorderName = '-';
+          if (recorder) {
+            const t = recorder.teacher_profile;
+            if (t) {
+              recorderName = `${t.namePrefix || ''}${t.firstName || ''}${t.lastName ? ' ' + t.lastName : ''}`.trim();
+            } else {
+              recorderName = recorder.username;
+            }
+          }
+          return {
+            date: r.date.toISOString().split('T')[0],
+            studentNumber: r.students.studentNumber,
+            studentName: `${r.students.namePrefix || ''}${r.students.firstName || ''}${r.students.lastName ? ' ' + r.students.lastName : ''}`.trim(),
+            classRoom: r.students.homeroomClass?.className || '',
+            status: translationMap[r.attendancestatuses.name] || r.attendancestatuses.name,
+            recorder: recorderName
+          };
+        })  // สำหรับตาราง + CSV Export
       }
     });
   } catch (error) {

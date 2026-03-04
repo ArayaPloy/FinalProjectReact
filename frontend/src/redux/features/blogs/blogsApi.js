@@ -16,7 +16,8 @@ export const blogsApi = createApi({
     }),
 
     fetchBlogs: builder.query({
-      query: ({ search = '', category = '', location='' }) => `blogs?search=${search}&category=${category}&location=${location}`,
+      query: ({ search = '', category = '', location = '', limit = 10, page = 1 }) => 
+        `blogs?search=${search}&category=${category}&location=${location}&limit=${limit}&page=${page}`,
       providesTags: ['Blogs'],
     }),
 

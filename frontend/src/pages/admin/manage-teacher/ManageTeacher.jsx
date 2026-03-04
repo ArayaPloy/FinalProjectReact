@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 import {
     useFetchTeachersByDepartmentQuery,
     useCreateTeacherMutation,
@@ -8,9 +10,12 @@ import {
 } from '../../../redux/features/teachers/teachersApi';
 import Swal from 'sweetalert2';
 import { Edit2, Trash2, Plus, X, Upload, Search, Eye, UserPlus } from 'lucide-react';
-import { getApiURL } from '../../../utils/apiConfig';
+import { getApiURL, getBackendURL } from '../../../utils/apiConfig';
 
 const ManageTeacher = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = ['admin', 'super_admin'].includes((currentUser?.role || '').toLowerCase());
+
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDepartment, setFilterDepartment] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,7 +117,8 @@ const ManageTeacher = () => {
                 icon: 'warning',
                 title: 'ไฟล์ไม่ถูกต้อง',
                 text: 'กรุณาเลือกไฟล์รูปภาพ (JPEG, PNG, WEBP)',
-                confirmButtonColor: '#3085d6'
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'ตกลง'
             });
             return;
         }
@@ -122,7 +128,8 @@ const ManageTeacher = () => {
                 icon: 'warning',
                 title: 'ไฟล์ใหญ่เกินไป',
                 text: 'กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB',
-                confirmButtonColor: '#3085d6'
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'ตกลง'
             });
             return;
         }
@@ -182,7 +189,8 @@ const ManageTeacher = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: 'ไม่สามารถอัปโหลดรูปภาพได้',
-                confirmButtonColor: '#3085d6'
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'ตกลง'
             });
         } finally {
             setIsUploading(false);
@@ -251,7 +259,8 @@ const ManageTeacher = () => {
                 icon: 'warning',
                 title: 'ข้อมูลไม่ครบ',
                 text: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน',
-                confirmButtonColor: '#3085d6'
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'ตกลง'
             });
             return;
         }
@@ -279,7 +288,7 @@ const ManageTeacher = () => {
                     formDataUpload.append('oldImagePath', formData.imagePath);
                 }
                 
-                const uploadURL = getApiURL('/upload/image');
+                const uploadURL = getApiURL('/upload/teacher-image');
                 const response = await fetch(uploadURL, {
                     method: 'POST',
                     body: formDataUpload,
@@ -301,7 +310,8 @@ const ManageTeacher = () => {
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
                     text: 'ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองใหม่',
-                    confirmButtonColor: '#3085d6'
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }
@@ -351,7 +361,8 @@ const ManageTeacher = () => {
                     icon: 'success',
                     title: 'สำเร็จ!',
                     text: 'แก้ไขข้อมูลบุคลากรสำเร็จ',
-                    confirmButtonColor: '#10b981'
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: 'ตกลง'
                 });
             } else {
                 const result = await createTeacher(teacherData).unwrap();
@@ -362,7 +373,8 @@ const ManageTeacher = () => {
                     icon: 'success',
                     title: 'สำเร็จ!',
                     text: 'เพิ่มบุคลากรสำเร็จ',
-                    confirmButtonColor: '#10b981'
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: 'ตกลง'
                 });
             }
 
@@ -378,7 +390,8 @@ const ManageTeacher = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: error.data?.message || error.message || 'ไม่สามารถบันทึกข้อมูลได้',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
     };
@@ -387,7 +400,7 @@ const ManageTeacher = () => {
     const handleDelete = async (teacher) => {
         const result = await Swal.fire({
             title: 'ยืนยันการลบ?',
-            html: `คุณต้องการลบข้อมูลของ<br/><strong>${teacher.namePrefix || ''} ${teacher.name}</strong><br/>ใช่หรือไม่?`,
+            html: `คุณต้องการลบข้อมูลของ<br/><strong>${teacher.name}</strong><br/>ใช่หรือไม่?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -406,7 +419,8 @@ const ManageTeacher = () => {
                 icon: 'success',
                 title: 'ลบสำเร็จ!',
                 text: 'ลบข้อมูลบุคลากรเรียบร้อยแล้ว',
-                confirmButtonColor: '#10b981'
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'ตกลง'
             });
 
             refetch();
@@ -416,7 +430,8 @@ const ManageTeacher = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: 'ไม่สามารถลบข้อมูลได้',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง'
             });
         }
     };
@@ -430,8 +445,14 @@ const ManageTeacher = () => {
     // Get image src
     const getImageSrc = (imagePath) => {
         if (!imagePath || imagePath === '' || imagePath === '-') {
-            return 'default-avatar.jpg';
+            return '/default-avatar.jpg';
         }
+        if (imagePath.startsWith('http')) return imagePath;
+        // Uploaded files (in backend /uploads/) need backend URL prefix
+        if (imagePath.includes('/uploads/') || imagePath.startsWith('uploads/')) {
+            return `${getBackendURL()}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+        }
+        // Static assets (e.g. /images/) are served by the frontend
         return imagePath;
     };
 
@@ -480,7 +501,8 @@ const ManageTeacher = () => {
                             </select>
                         </div>
 
-                        {/* Add Button */}
+                        {/* Add Button - admin only */}
+                        {isAdmin && (
                         <button
                             onClick={() => openModal()}
                             className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm shadow-sm"
@@ -488,6 +510,7 @@ const ManageTeacher = () => {
                             <UserPlus className="w-5 h-5" />
                             <span className="whitespace-nowrap">เพิ่มบุคลากร</span>
                         </button>
+                        )}
                     </div>
 
                     {/* Results count */}
@@ -521,7 +544,8 @@ const ManageTeacher = () => {
                                         alt={teacher.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            e.target.src = 'default-avatar.jpg';
+                                            e.target.onerror = null;
+                                            e.target.src = '/default-avatar.jpg';
                                         }}
                                     />
                                 </div>
@@ -529,7 +553,7 @@ const ManageTeacher = () => {
                                 {/* Content */}
                                 <div className="p-4">
                                     <h3 className="font-semibold text-lg text-gray-900 mb-1 line-clamp-1">
-                                        {teacher.namePrefix && `${teacher.namePrefix} `}{teacher.name}
+                                        {teacher.name}
                                     </h3>
                                     <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                                         {teacher.position}
@@ -551,6 +575,8 @@ const ManageTeacher = () => {
                                             <Eye className="w-4 h-4" />
                                             <span>ดู</span>
                                         </button>
+                                        {isAdmin && (
+                                        <>
                                         <button
                                             onClick={() => openModal(teacher)}
                                             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
@@ -564,6 +590,8 @@ const ManageTeacher = () => {
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
+                                        </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -585,7 +613,7 @@ const ManageTeacher = () => {
                                 ? 'ลองเปลี่ยนคำค้นหาหรือตัวกรอง'
                                 : 'เริ่มต้นโดยการเพิ่มบุคลากรคนแรก'}
                         </p>
-                        {!searchTerm && !filterDepartment && (
+                        {!searchTerm && !filterDepartment && isAdmin && (
                             <button
                                 onClick={() => openModal()}
                                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
@@ -991,7 +1019,8 @@ const ManageTeacher = () => {
                                             alt={viewingTeacher.name}
                                             className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
                                             onError={(e) => {
-                                                e.target.src = 'default-avatar.jpg';
+                                                e.target.onerror = null;
+                                                e.target.src = '/default-avatar.jpg';
                                             }}
                                         />
                                     </div>
@@ -1000,7 +1029,6 @@ const ManageTeacher = () => {
                                     <div className="flex-1 space-y-4">
                                         <div>
                                             <h3 className="text-lg font-semibold text-gray-900">
-                                                {viewingTeacher.namePrefix && `${viewingTeacher.namePrefix} `}
                                                 {viewingTeacher.name}
                                             </h3>
                                             {viewingTeacher.position && (
@@ -1069,6 +1097,7 @@ const ManageTeacher = () => {
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+                                    {isAdmin && (
                                     <button
                                         onClick={() => {
                                             setIsViewModalOpen(false);
@@ -1079,6 +1108,7 @@ const ManageTeacher = () => {
                                         <Edit2 className="w-4 h-4" />
                                         แก้ไขข้อมูล
                                     </button>
+                                    )}
                                     <button
                                         onClick={() => setIsViewModalOpen(false)}
                                         className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"

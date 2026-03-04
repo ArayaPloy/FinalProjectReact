@@ -1,0 +1,7 @@
+========================================
+🚀 Server running on port 5001
+🔗 http://localhost:5001
+📝 Environment: development
+🌐 Frontend URL: Not set
+========================================
+✅ Server initialized successfully

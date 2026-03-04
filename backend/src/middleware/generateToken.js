@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET_KEY;
 
 // Example function to generate JWT token
-const generateToken = async (userId) => {
+const generateToken = async (userId, expiryDays = 7) => {
     try {
         const user = await prisma.users.findUnique({
             where: { 
@@ -30,7 +30,7 @@ const generateToken = async (userId) => {
         };
 
         const token = jwt.sign(payload, JWT_SECRET, { 
-            expiresIn: '7d' }); //Token 7 วัน
+            expiresIn: `${expiryDays}d` }); // Token expiry ตาม rememberMe
         return token;
     } catch (error) {
         console.error('Error generating token:', error);

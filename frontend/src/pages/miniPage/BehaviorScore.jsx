@@ -299,6 +299,7 @@ const BehaviorScorePage = () => {
                 title: 'ยกเลิกแล้ว',
                 text: 'ออกจากโหมดบันทึกกลุ่มเรียบร้อย',
                 confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง',
                 timer: 2000,
                 timerProgressBar: true,
                 showConfirmButton: false
@@ -363,7 +364,8 @@ const BehaviorScorePage = () => {
                     icon: 'warning',
                     title: 'ไม่มีข้อมูลที่ต้องบันทึก',
                     text: 'กรุณาเลือกคะแนนสำหรับนักเรียนอย่างน้อย 1 คน',
-                    confirmButtonColor: '#D97706', // Amber theme
+                    confirmButtonColor: '#D97706',
+                    confirmButtonText: 'ตกลง'
                 });
                 return;
             }

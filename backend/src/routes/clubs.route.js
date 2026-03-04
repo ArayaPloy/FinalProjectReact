@@ -62,7 +62,7 @@ router.get('/', async (req, res) => {
                 ac.createdAt,
                 ac.updatedAt,
                 t.id as teacher_id,
-                t.fullName as teacher_fullName,
+                CONCAT(IFNULL(NULLIF(t.namePrefix,''),''), IFNULL(t.firstName,''), IF(t.lastName IS NOT NULL AND t.lastName != '', CONCAT(' ', t.lastName), '')) as teacher_fullName,
                 t.namePrefix as teacher_namePrefix,
                 t.position as teacher_position,
                 t.level as teacher_level
@@ -162,7 +162,7 @@ router.get('/:id', async (req, res) => {
                 ac.createdAt,
                 ac.updatedAt,
                 t.id as teacher_id,
-                t.fullName as teacher_fullName,
+                CONCAT(IFNULL(NULLIF(t.namePrefix,''),''), IFNULL(t.firstName,''), IF(t.lastName IS NOT NULL AND t.lastName != '', CONCAT(' ', t.lastName), '')) as teacher_fullName,
                 t.namePrefix as teacher_namePrefix,
                 t.position as teacher_position,
                 t.level as teacher_level,
@@ -305,7 +305,7 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 
         // Get the created club
         const createdClub = await prisma.$queryRaw`
-            SELECT ac.*, t.fullName as teacher_fullName, t.namePrefix as teacher_namePrefix
+            SELECT ac.*, CONCAT(IFNULL(NULLIF(t.namePrefix,''),''), IFNULL(t.firstName,''), IF(t.lastName IS NOT NULL AND t.lastName != '', CONCAT(' ', t.lastName), '')) as teacher_fullName, t.namePrefix as teacher_namePrefix
             FROM academicclubs ac
             LEFT JOIN teachers t ON ac.teacherId = t.id
             WHERE ac.id = LAST_INSERT_ID()
@@ -441,7 +441,7 @@ router.patch('/:id', verifyToken, isAdmin, async (req, res) => {
 
         // Get updated club
         const updatedClub = await prisma.$queryRaw`
-            SELECT ac.*, t.fullName as teacher_fullName, t.namePrefix as teacher_namePrefix
+            SELECT ac.*, CONCAT(IFNULL(NULLIF(t.namePrefix,''),''), IFNULL(t.firstName,''), IF(t.lastName IS NOT NULL AND t.lastName != '', CONCAT(' ', t.lastName), '')) as teacher_fullName, t.namePrefix as teacher_namePrefix
             FROM academicclubs ac
             LEFT JOIN teachers t ON ac.teacherId = t.id
             WHERE ac.id = ${clubId}

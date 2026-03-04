@@ -57,9 +57,10 @@ router.post('/', async (req, res) => {
           include: {
             students: {
               select: {
-                fullName: true,
-                classRoom: true,
-                namePrefix: true
+                firstName: true,
+                lastName: true,
+                namePrefix: true,
+                homeroomClass: { select: { className: true } }
               }
             },
             users_studentbehaviorscores_recorderIdTousers: {
@@ -103,10 +104,11 @@ router.get('/history/:studentId', async (req, res) => {
       where: { id: parseInt(studentId) },
       select: {
         id: true,
-        fullName: true,
+        firstName: true,
+        lastName: true,
         namePrefix: true,
-        classRoom: true,
-        studentNumber: true
+        studentNumber: true,
+        homeroomClass: { select: { className: true } }
       }
     });
 
@@ -155,8 +157,8 @@ router.get('/history/:studentId', async (req, res) => {
       data: {
         student: {
           id: student.id,
-          fullName: `${student.namePrefix || ''}${student.fullName}`,
-          classRoom: student.classRoom,
+          fullName: `${student.namePrefix || ''}${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
+          classRoom: student.homeroomClass?.className || '',
           studentCode: student.studentNumber?.toString().padStart(5, '0') || '',
           currentScore: runningTotal
         },
@@ -229,9 +231,10 @@ router.get('/reports/history', async (req, res) => {
         students: {
           select: {
             id: true,
-            fullName: true,
+            firstName: true,
+            lastName: true,
             namePrefix: true,
-            classRoom: true,
+            homeroomClass: { select: { className: true } },
             studentNumber: true
           }
         },
@@ -252,14 +255,14 @@ router.get('/reports/history', async (req, res) => {
     
     // Filter by classroom
     if (classRoom && classRoom !== 'ทั้งหมด') {
-      filteredRecords = filteredRecords.filter(r => r.students?.classRoom === classRoom);
+      filteredRecords = filteredRecords.filter(r => r.students?.homeroomClass?.className === classRoom);
     }
 
     // Filter by search (ชื่อนักเรียน หรือ รหัสนักเรียน)
     if (search && search.trim()) {
       const searchTerm = search.trim().toLowerCase();
       filteredRecords = filteredRecords.filter(r => {
-        const fullName = `${r.students?.namePrefix || ''}${r.students?.fullName || ''}`.toLowerCase();
+        const fullName = `${r.students?.namePrefix || ''}${r.students?.firstName || ''}${r.students?.lastName ? ' ' + r.students.lastName : ''}`.trim().toLowerCase();
         const studentCode = r.students?.studentNumber?.toString() || '';
         return fullName.includes(searchTerm) || studentCode.includes(searchTerm);
       });
@@ -291,8 +294,7 @@ router.get('/reports/history', async (req, res) => {
               users: {
                 select: {
                   id: true,
-                  username: true,
-                  fullName: true
+                  username: true
                 }
               }
             },
@@ -318,7 +320,7 @@ router.get('/reports/history', async (req, res) => {
           }
 
           return {
-            updatedBy: log.users?.fullName || log.users?.username || 'ไม่ระบุ',
+            updatedBy: log.users?.username || 'ไม่ระบุ',
             updatedAt: log.createdAt,
             changes: {
               oldScore: oldValues.score || 0,
@@ -333,8 +335,8 @@ router.get('/reports/history', async (req, res) => {
           id: record.id,
           studentId: record.students?.id,
           studentCode: record.students?.studentNumber?.toString().padStart(5, '0') || '',
-          studentName: `${record.students?.namePrefix || ''}${record.students?.fullName || ''}`,
-          classRoom: record.students?.classRoom || '',
+          studentName: `${record.students?.namePrefix || ''}${record.students?.firstName || ''}${record.students?.lastName ? ' ' + record.students.lastName : ''}`.trim(),
+          classRoom: record.students?.homeroomClass?.className || '',
           score: record.score,
           currentTotal: currentTotal,
           comments: record.comments,
@@ -404,17 +406,18 @@ router.get('/reports/summary', async (req, res) => {
     // ดึงข้อมูลนักเรียน
     let studentWhere = { isDeleted: false };
     if (classRoom && classRoom !== 'ทั้งหมด') {
-      studentWhere.classRoom = classRoom;
+      studentWhere.homeroomClass = { className: classRoom };
     }
 
     const students = await prisma.students.findMany({
       where: studentWhere,
       select: {
         id: true,
-        fullName: true,
+        firstName: true,
+        lastName: true,
         namePrefix: true,
-        classRoom: true,
-        studentNumber: true
+        studentNumber: true,
+        homeroomClass: { select: { className: true } }
       }
     });
 
@@ -423,7 +426,7 @@ router.get('/reports/summary', async (req, res) => {
     if (search && search.trim()) {
       const searchTerm = search.trim().toLowerCase();
       filteredStudents = students.filter(student => {
-        const fullName = `${student.namePrefix || ''}${student.fullName || ''}`.toLowerCase();
+        const fullName = `${student.namePrefix || ''}${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim().toLowerCase();
         const studentCode = student.studentNumber?.toString() || '';
         return fullName.includes(searchTerm) || studentCode.includes(searchTerm);
       });
@@ -463,8 +466,8 @@ router.get('/reports/summary', async (req, res) => {
         return {
           studentId: student.id,
           studentCode: student.studentNumber?.toString().padStart(5, '0') || '',
-          studentName: `${student.namePrefix || ''}${student.fullName}`,
-          classRoom: student.classRoom,
+          studentName: `${student.namePrefix || ''}${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
+          classRoom: student.homeroomClass?.className || '',
           currentScore: totalScore,
           periodAdjustment: periodAdjustment,
           addedPoints: addedPoints,
@@ -550,8 +553,9 @@ router.put('/:id', async (req, res) => {
       include: {
         students: {
           select: {
-            fullName: true,
-            classRoom: true
+            firstName: true,
+            lastName: true,
+            homeroomClass: { select: { className: true } }
           }
         }
       }

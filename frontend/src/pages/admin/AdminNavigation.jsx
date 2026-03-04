@@ -187,6 +187,21 @@ const AdminNavigation = () => {
           </li>
           <li>
             <NavLink
+              to="/dashboard/manage-classrooms"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `flex items-center gap-3 p-3 min-h-[48px] rounded-lg transition-colors touch-manipulation ${isActive
+                  ? "bg-indigo-50 text-indigo-700 font-semibold"
+                  : "text-gray-700 hover:bg-gray-100"
+                }`
+              }
+            >
+              <span className="text-lg sm:text-xl flex-shrink-0">🏫</span>
+              <span className="text-sm sm:text-base">จัดการห้องเรียน</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
               to="/dashboard/manage-schedule"
               onClick={closeMenu}
               className={({ isActive }) =>

@@ -480,7 +480,7 @@ const AcademicClubs = () => {
                                             </div>
                                             {club.teacher && (
                                                 <div className="text-gray-700 font-medium text-right">
-                                                    {club.teacher.namePrefix} {club.teacher.name}
+                                                    {club.teacher.name}
                                                 </div>
                                             )}
                                         </div>
@@ -669,7 +669,7 @@ const AcademicClubs = () => {
 
                                     {selectedClub.teacher && (
                                         <p className="text-gray-700 text-sm md:text-base mb-1">
-                                            <span className="font-medium">ครูที่ปรึกษา:</span> {selectedClub.teacher.namePrefix} {selectedClub.teacher.name}
+                                            <span className="font-medium">ครูที่ปรึกษา:</span> {selectedClub.teacher.name}
                                         </p>
                                     )}
 

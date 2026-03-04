@@ -1,0 +1,13 @@
+{
+  "watch": ["index.js", "src/"],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/",
+    "uploads/",
+    "logs/",
+    "prisma/migrations/",
+    "backups/",
+    "*.test.js"
+  ],
+  "delay": 500
+}

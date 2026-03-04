@@ -1,15 +1,28 @@
 // บุคลากรและเจ้าหน้าที่ - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { IoChevronBack, IoCall, IoMail, IoClose, IoSchool, IoBook, IoLocation, IoPersonOutline } from 'react-icons/io5';
 import { useFetchTeachersByDepartmentQuery, useFetchDepartmentsQuery } from '../../redux/features/teachers/teachersApi';
+import { getBackendURL } from '../../utils/apiConfig';
 
 const FacultyStaff = () => {
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('administration');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isGlobalSearch, setIsGlobalSearch] = useState(false);
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Apply URL search param on mount (?search=name)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const searchParam = params.get('search');
+        if (searchParam) {
+            setSearchTerm(searchParam);
+            setIsGlobalSearch(true);
+        }
+    }, [location.search]);
 
     // Fetch data from API
     const {
@@ -62,17 +75,29 @@ const FacultyStaff = () => {
         health: 'กลุ่มสาระสุขศึกษาฯ',
         art: 'กลุ่มสาระศิลปะ',
         foreign: 'กลุ่มสาระภาษาต่างประเทศ',
-        support: 'ธุระการโรงเรียน',
+        support: 'ธุรการโรงเรียน',
         janitor: 'นักการภารโรง'
     };
 
     // Filter staff based on search term
-    const currentStaff = teachersByDepartment[activeTab] || [];
-    const filteredStaff = currentStaff.filter(staff =>
-        staff.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        staff.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        staff.namePrefix?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // When coming from a URL ?search= param, search across ALL departments
+    const allStaff = isGlobalSearch
+        ? Object.values(teachersByDepartment).flat()
+        : teachersByDepartment[activeTab] || [];
+
+    const filterFn = (staff) => {
+        if (!searchTerm) return true;
+        const q = searchTerm.toLowerCase();
+        return (
+            staff.name?.toLowerCase().includes(q) ||
+            staff.position?.toLowerCase().includes(q) ||
+            staff.namePrefix?.toLowerCase().includes(q) ||
+            staff.firstName?.toLowerCase().includes(q) ||
+            staff.lastName?.toLowerCase().includes(q)
+        );
+    };
+
+    const filteredStaff = allStaff.filter(filterFn);
 
     // Function to handle staff member click
     const handleStaffClick = (staff) => {
@@ -131,10 +156,16 @@ const FacultyStaff = () => {
             return cleanImagePath;
         }
 
-        // If path already starts with /, it's correct - use as is
-        // If not, add / to make it absolute path from public folder
+        // Uploaded files (in backend /uploads/) need backend URL prefix
+        if (cleanImagePath.includes('/uploads/') || cleanImagePath.startsWith('uploads/')) {
+            const finalPath = cleanImagePath.startsWith('/') ? cleanImagePath : `/${cleanImagePath}`;
+            const backendURL = getBackendURL();
+            console.log('✅ Final image path (backend):', backendURL + finalPath);
+            return backendURL + finalPath;
+        }
+
+        // Static assets (e.g. /images/) are served by the frontend
         const finalPath = cleanImagePath.startsWith('/') ? cleanImagePath : `/${cleanImagePath}`;
-        
         console.log('✅ Final image path:', finalPath);
         return finalPath;
     };
@@ -230,6 +261,7 @@ const FacultyStaff = () => {
                                             onClick={() => {
                                                 setActiveTab(tabId);
                                                 setSearchTerm(''); // Reset search when changing tabs
+                                                setIsGlobalSearch(false);
                                             }}
                                             className={`w-full text-left px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm relative ${activeTab === tabId
                                                 ? 'bg-amber-100 text-amber-800 font-medium'
@@ -295,7 +327,7 @@ const FacultyStaff = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 leading-tight mb-1">
-                                                    {staff.namePrefix && `${staff.namePrefix} `}{staff.name}
+                                                    {staff.name}
                                                 </h3>
                                                 <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">
                                                     {staff.position}
@@ -376,7 +408,6 @@ const FacultyStaff = () => {
                                             <div>
                                                 <h4 className="text-base sm:text-lg font-semibold text-gray-800">ชื่อ-สกุล</h4>
                                                 <p className="text-gray-700 text-sm sm:text-base">
-                                                    {selectedStaff.namePrefix && `${selectedStaff.namePrefix} `}
                                                     {selectedStaff.name}
                                                 </p>
                                             </div>

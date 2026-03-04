@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   const csvFilePath = path.join(__dirname, 'student_list_2.csv')
-  const fileContent = fs.readFileSync(csvFilePath, 'utf-8')
+  const fileContent = fs.readFileSync(csvFilePath, 'utf-8').replace(/^\uFEFF/, '')
 
   // Parse CSV file
   const records = await new Promise((resolve, reject) => {
@@ -23,6 +23,16 @@ async function main() {
 
   console.log(`📋 พบข้อมูลนักเรียนทั้งหมด ${records.length} คน\n`)
 
+  // โหลด classrooms ทั้งหมด เพื่อ map className → id
+  const allClassrooms = await prisma.homeroom_classes.findMany({
+    select: { id: true, className: true }
+  })
+  const classroomMap = {}
+  for (const c of allClassrooms) {
+    classroomMap[c.className] = c.id
+  }
+  console.log(`🏫 พบห้องเรียนทั้งหมด ${allClassrooms.length} ห้อง\n`)
+
   let successCount = 0
   let skipCount = 0
   let errorCount = 0
@@ -32,6 +42,12 @@ async function main() {
     try {
       const studentNumber = parseInt(record.studentNumber)
 
+      // หา homeroomClassId จากชื่อห้อง
+      const homeroomClassId = record.classroom ? (classroomMap[record.classroom] || null) : null
+      if (record.classroom && !homeroomClassId) {
+        console.warn(`⚠️  ไม่พบห้อง "${record.classroom}" สำหรับ ${record.firstName} ${record.lastName}`)
+      }
+
       // ตรวจสอบว่า studentNumber มีอยู่แล้วหรือไม่
       const existingStudent = await prisma.students.findFirst({
         where: {
@@ -40,8 +56,20 @@ async function main() {
         }
       })
 
+      const fullName = `${record.firstName} ${record.lastName}`.trim()
+
       if (existingStudent) {
-        console.log(`⏭️  ข้าม: ${record.fullName} (รหัส ${studentNumber} มีอยู่แล้ว)`)
+        // อัปเดตข้อมูลรวมถึง homeroomClassId
+        await prisma.students.update({
+          where: { id: existingStudent.id },
+          data: {
+            namePrefix: record.namePrefix || null,
+            nationality: record.nationality || null,
+            homeroomClassId: homeroomClassId,
+            updatedAt: new Date()
+          }
+        })
+        console.log(`🔄 อัปเดต: ${fullName} (รหัส ${studentNumber}) ห้อง: ${record.classroom || '-'}`)
         skipCount++
         continue
       }
@@ -49,15 +77,17 @@ async function main() {
       const student = await prisma.students.create({
         data: {
           studentNumber: studentNumber,
-          namePrefix: record.namePrefix,
-          fullName: record.fullName,
-          classRoom: record.classroom,
+          namePrefix: record.namePrefix || null,
+          firstName: record.firstName,
+          lastName: record.lastName,
           genderId: parseInt(record.genderId),
+          nationality: record.nationality || null,
+          homeroomClassId: homeroomClassId,
           createdAt: new Date(),
           updatedAt: new Date()
         }
       })
-      console.log(`✅ เพิ่มสำเร็จ: ${student.fullName} (รหัส ${studentNumber})`)
+      console.log(`✅ เพิ่มสำเร็จ: ${student.firstName} ${student.lastName} (รหัส ${studentNumber})`)
       successCount++
     } catch (error) {
       console.error(`❌ เกิดข้อผิดพลาด ${record.fullName}:`, error.message)

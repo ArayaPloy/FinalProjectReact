@@ -4,17 +4,16 @@ import {
   useDeleteUserMutation,
   useGetUserQuery,
 } from "../../../redux/features/auth/authApi";
-import { MdModeEdit, MdDelete, MdWarning, MdAdminPanelSettings } from "react-icons/md";
+import { MdModeEdit, MdDelete, MdWarning, MdAdminPanelSettings, MdLockReset } from "react-icons/md";
 import { FiUsers, FiUserCheck, FiUserX } from "react-icons/fi";
 import UpdateUserModal from "./UpdateUserModal";
+import PasswordResetRequests from "./PasswordResetRequests";
 
 const ManageUser = () => {
+  const [activeTab, setActiveTab] = useState("users");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  
-  const { data: users = [], error, isLoading, refetch } = useGetUserQuery();
-  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
   // ดึงข้อมูลผู้ใช้ปัจจุบันจาก Redux store
   const currentUser = useSelector((state) => state.auth.user);
@@ -24,8 +23,14 @@ const ManageUser = () => {
     ? currentUser?.role?.roleName || currentUser?.role?.name || 'user'
     : currentUser?.role || 'user';
 
-  console.log('Current User:', currentUser);
-  console.log('Current User Role:', currentUserRole);
+  // ตรวจสอบว่าผู้ใช้เป็น admin หรือ super_admin หรือไม่
+  const isAuthorized = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  
+  // Skip API call ถ้าไม่มีสิทธิ์
+  const { data: users = [], error, isLoading, refetch } = useGetUserQuery(undefined, {
+    skip: !isAuthorized
+  });
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
   const handleDelete = async (userId) => {
     try {
@@ -123,6 +128,18 @@ const ManageUser = () => {
     );
   }
 
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow p-10 text-center max-w-sm">
+          <div className="text-5xl mb-3">🔒</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+          <p className="text-gray-500 text-sm">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen">
@@ -139,9 +156,9 @@ const ManageUser = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Header */}
+        {/* Header + Tabs */}
         <div className="bg-white px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-2xl font-semibold text-gray-800 flex items-center">
                 <FiUsers className="mr-3 text-indigo-600" />
@@ -150,9 +167,39 @@ const ManageUser = () => {
               <p className="text-gray-600 mt-1">ทั้งหมด {users.length} คน</p>
             </div>
           </div>
+          {/* Tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === "users"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <FiUsers className="text-base" />
+              รายชื่อผู้ใช้
+            </button>
+            <button
+              onClick={() => setActiveTab("reset")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === "reset"
+                  ? "bg-amber-600 text-white shadow"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <MdLockReset className="text-base" />
+              คำขอรีเซ็ตรหัสผ่าน
+            </button>
+          </div>
         </div>
 
-        {/* Table */}
+        {/* Tab Content */}
+        {activeTab === "reset" ? (
+          <div className="p-6">
+            <PasswordResetRequests />
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -226,6 +273,7 @@ const ManageUser = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

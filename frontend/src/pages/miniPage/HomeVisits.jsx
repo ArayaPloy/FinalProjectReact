@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { 
@@ -30,6 +30,9 @@ const HomeVisits = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [previewImage, setPreviewImage] = useState(null);
+    const [userRole, setUserRole] = useState('');
+    const [userTeacherId, setUserTeacherId] = useState(null);
+    const [isStudentAllowed, setIsStudentAllowed] = useState(true);
     
     // Form data state - ตรงกับ backend schema
     const [formData, setFormData] = useState({
@@ -37,32 +40,47 @@ const HomeVisits = () => {
         teacherId: null,
         studentId: null,
         
-        // Basic Info
-        studentIdNumber: '',
-        studentName: '',
+        // Basic Info - Student (auto-filled from database)
+        studentNumber: '',
+        studentFirstName: '',
+        studentLastName: '',
+        studentNamePrefix: '',
         className: '',
-        teacherName: '',
-        visitDate: new Date().toISOString().split('T')[0],
         studentBirthDate: '',
+        genderName: '',
         
-        // Parent Info
-        parentName: '',
-        relationship: '',
-        occupation: '',
-        monthlyIncome: '',
-        familyStatus: '',
+        // Teacher Info (auto-filled)
+        teacherFirstName: '',
+        teacherLastName: '',
+        teacherNamePrefix: '',
+        
+        // Guardian Info (from student table, auto-filled)
+        guardianFirstName: '',
+        guardianLastName: '',
+        guardianNamePrefix: '',
+        guardianRelation: '',
+        guardianOccupation: '',
+        guardianMonthlyIncome: '',
+        
+        // Address & House (from student table, auto-filled)
+        address: '',
         phoneNumber: '',
         emergencyContact: '',
-        
-        // Address & House
-        mainAddress: '',
         houseType: '',
-        houseOwnership: '',
-        houseCondition: '',
         houseMaterial: '',
         utilities: '',
-        environmentCondition: '',
         studyArea: '',
+        // Option to persist updated student data back to students table
+        updateStudent: false,
+        
+        // Visit Info
+        visitDate: new Date().toISOString().split('T')[0],
+        
+        // Parent Info (specific to this visit - may differ from guardian)
+        parentNamePrefix: '',
+        parentFirstName: '',
+        parentLastName: '',
+        familyStatus: '',
         
         // Visit Details
         visitPurpose: '',
@@ -78,18 +96,56 @@ const HomeVisits = () => {
     // API hooks
     const { data: teachersByDepartment = {}, isLoading: teachersLoading } = useFetchTeachersByDepartmentQuery();
 
-    // Flatten teachers
+    // Fetch current user info to determine role and linked teacherId
+    useEffect(() => {
+        const fetchMe = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/me', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const u = data.user || {};
+                    if (u.role) setUserRole(u.role);
+                    // ใช้ teacherId โดยตรงจาก users table (users.teacherId = teachers.id)
+                    if (u.teacherId) {
+                        setUserTeacherId(u.teacherId);
+                    } else {
+                        // fallback: ดึงจาก teacher relation
+                        const t = u.teacher;
+                        if (Array.isArray(t) && t.length > 0) setUserTeacherId(t[0].id);
+                        else if (t && t.id) setUserTeacherId(t.id);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching current user:', err);
+            }
+        };
+        fetchMe();
+    }, []);
+
+    // Ensure formData.teacherId is set for teacher users (lock the field)
+    useEffect(() => {
+        if (userRole && userRole.toLowerCase() === 'teacher' && userTeacherId) {
+            setFormData(prev => ({ ...prev, teacherId: userTeacherId }));
+        }
+    }, [userRole, userTeacherId]);
+
+    // Flatten teachers - updated for firstName/lastName
     const allTeachers = [];
     Object.keys(teachersByDepartment).forEach(department => {
         teachersByDepartment[department].forEach(teacher => {
+            // API returns `name` (constructed) and `namePrefix`; prefer `name` when available
+            const apiFull = teacher.name || teacher.fullName || '';
             allTeachers.push({
                 id: teacher.id,
-                name: `${teacher.namePrefix || ''} ${teacher.name}`.trim(),
+                namePrefix: teacher.namePrefix || '',
+                firstName: teacher.firstName || '',
+                lastName: teacher.lastName || '',
+                fullName: apiFull || `${teacher.namePrefix || ''}${teacher.firstName || ''}${teacher.lastName ? ' ' + teacher.lastName : ''}`.trim(),
                 department: department
             });
         });
     });
-    allTeachers.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    allTeachers.sort((a, b) => a.fullName.localeCompare(b.fullName, 'th'));
 
     // Steps configuration
     const steps = [
@@ -104,14 +160,173 @@ const HomeVisits = () => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    // Helper to toggle multi-choice fields stored as comma-separated strings
+    const parseMulti = (value) => {
+        if (!value && value !== 0) return [];
+        if (Array.isArray(value)) return value.map(v => (v || '').toString().trim()).filter(Boolean);
+        return value.toString().split(/,\s*/).map(v => v.trim()).filter(Boolean);
+    };
+
+    const toggleMultiChoice = (field, option) => {
+        const current = parseMulti(formData[field]);
+        let newValues;
+        if (current.includes(option)) {
+            newValues = current.filter(v => v !== option);
+        } else {
+            newValues = [...current, option];
+        }
+        handleInputChange(field, newValues.join(', '));
+    };
+
+    // Handle student number input - auto-fill student data
+    const handleStudentNumberChange = async (studentNumber) => {
+        handleInputChange('studentNumber', studentNumber);
+        
+        if (studentNumber && studentNumber.length === 5) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/homevisits/student/${studentNumber}`, {
+                    credentials: 'include',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('[DEBUG] Student API response:', JSON.stringify(result, null, 2));
+                    
+                    if (result.success && result.data) {
+                        const student = result.data;
+
+                        // If current user is a teacher, ensure they are homeroom teacher for this student
+                        if (userRole && userRole.toLowerCase() === 'teacher') {
+                            const htId = student.homeroomClass?.homeroomTeacherId || null;
+                            if (!htId || userTeacherId !== htId) {
+                                setIsStudentAllowed(false);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'คุณไม่ได้รับอนุญาต',
+                                    text: 'คุณไม่สามารถบันทึกการเยี่ยมบ้านสำหรับนักเรียนคนนี้ เนื่องจากไม่ใช่นักเรียนที่คุณเป็นครูประจำชั้น',
+                                    confirmButtonColor: '#D97706',
+                                    confirmButtonText: 'ตกลง'
+                                });
+                                return;
+                            }
+                            // allowed
+                            setIsStudentAllowed(true);
+                        }
+
+                        // helper: parse a full name into prefix/first/last
+                        const parseNameParts = (fullName) => {
+                            const prefixes = ['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.'];
+                            if (!fullName || typeof fullName !== 'string') return { prefix: '', first: '', last: '' };
+                            const parts = fullName.trim().split(/\s+/);
+                            let prefix = '';
+                            if (parts.length && prefixes.includes(parts[0])) {
+                                prefix = parts.shift();
+                            }
+                            if (parts.length === 0) return { prefix, first: '', last: '' };
+                            if (parts.length === 1) return { prefix, first: parts[0], last: '' };
+                            return { prefix, first: parts[0], last: parts.slice(1).join(' ') };
+                        };
+
+                        // Parse guardian fallback if split fields are not present
+                        let gPrefix = student.guardianNamePrefix || student.guardianPrefix || student.parentNamePrefix || '';
+                        let gFirst = student.guardianFirstName || '';
+                        let gLast = student.guardianLastName || '';
+                        if (!gFirst && !gLast && student.guardianName) {
+                            const parsed = parseNameParts(student.guardianName);
+                            gPrefix = gPrefix || parsed.prefix;
+                            gFirst = parsed.first;
+                            gLast = parsed.last;
+                        }
+
+                        // Teacher full name fallback
+                        let teacherFull = '';
+                        if (student.homeroomClass?.homeroomTeacher) {
+                            const ht = student.homeroomClass.homeroomTeacher;
+                            teacherFull = ht.name || ht.fullName || `${ht.namePrefix || ''}${ht.firstName || ''}${ht.lastName ? ' ' + ht.lastName : ''}`.trim();
+                        }
+
+                        // Auto-fill student data
+                        setFormData(prev => ({
+                            ...prev,
+                            studentId: student.id,
+                            studentFirstName: student.firstName || '',
+                            studentLastName: student.lastName || '',
+                            studentNamePrefix: student.namePrefix || '',
+                            studentBirthDate: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
+                            className: student.homeroomClass?.className || '',
+                            genderName: student.genders?.genderName || '',
+
+                            // Guardian info (use split fields or parsed fallback)
+                            guardianFirstName: gFirst || '',
+                            guardianLastName: gLast || '',
+                            guardianNamePrefix: gPrefix || '',
+                            guardianRelation: student.guardianRelation || '',
+                            guardianOccupation: '',
+                            guardianMonthlyIncome: student.guardianMonthlyIncome || '',
+
+                            // Parent info for this visit — pre-fill จาก guardian ถ้ามี
+                            parentNamePrefix: gPrefix || '',
+                            parentFirstName: gFirst || '',
+                            parentLastName: gLast || '',
+
+                            // Address & contact
+                            address: student.address || '',
+                            phoneNumber: student.phoneNumber || '',
+                            emergencyContact: student.emergencyContact || '',
+
+                            // House info (accept array from API or comma-separated string)
+                            houseType: Array.isArray(student.houseType) ? student.houseType.join(', ') : (student.houseType || ''),
+                            houseMaterial: Array.isArray(student.houseMaterial) ? student.houseMaterial.join(', ') : (student.houseMaterial || ''),
+                            utilities: Array.isArray(student.utilities) ? student.utilities.join(', ') : (student.utilities || ''),
+                            studyArea: Array.isArray(student.studyArea) ? student.studyArea.join(', ') : (student.studyArea || ''),
+
+                            // Teacher info — ดึงจาก homeroomClass.homeroomTeacher (path ที่ถูกต้อง)
+                            teacherId: student.homeroomClass?.homeroomTeacher?.id || null,
+                            teacherFirstName: student.homeroomClass?.homeroomTeacher?.firstName || '',
+                            teacherLastName: student.homeroomClass?.homeroomTeacher?.lastName || '',
+                            teacherNamePrefix: student.homeroomClass?.homeroomTeacher?.namePrefix || '',
+                            teacherFullName: teacherFull || ''
+                        }));
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'พบข้อมูลนักเรียน',
+                            text: `${student.namePrefix || ''} ${student.firstName} ${student.lastName}`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                } else if (response.status === 404) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่พบข้อมูล',
+                        text: 'ไม่พบรหัสนักเรียนนี้ในระบบ',
+                        confirmButtonColor: '#D97706',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching student:', error);
+            }
+        }
+    };
+
     // Handle teacher selection with ID
-    const handleTeacherChange = (teacherName) => {
-        const teacher = allTeachers.find(t => t.name === teacherName);
-        setFormData(prev => ({
-            ...prev,
-            teacherName: teacherName,
-            teacherId: teacher ? teacher.id : null
-        }));
+    const handleTeacherChange = (teacherId) => {
+        const teacher = allTeachers.find(t => t.id === parseInt(teacherId));
+        if (teacher) {
+            setFormData(prev => ({
+                ...prev,
+                teacherId: teacher.id,
+                teacherFirstName: teacher.firstName || teacher.fullName || '',
+                teacherLastName: teacher.lastName || '',
+                teacherNamePrefix: teacher.namePrefix || '',
+                teacherFullName: teacher.fullName || teacher.namePrefix && teacher.firstName ? `${teacher.namePrefix}${teacher.firstName}${teacher.lastName ? ' ' + teacher.lastName : ''}` : (teacher.fullName || '')
+            }));
+        }
     };
 
     // File upload handlers
@@ -123,7 +338,8 @@ const HomeVisits = () => {
                     icon: 'error',
                     title: 'ไฟล์ไม่ถูกต้อง',
                     text: 'กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, GIF)',
-                    confirmButtonColor: '#D97706'
+                    confirmButtonColor: '#D97706',
+                    confirmButtonText: 'ตกลง'
                 });
                 return false;
             }
@@ -132,7 +348,8 @@ const HomeVisits = () => {
                     icon: 'error',
                     title: 'ไฟล์ใหญ่เกินไป',
                     text: 'ขนาดไฟล์ต้องไม่เกิน 2MB',
-                    confirmButtonColor: '#D97706'
+                    confirmButtonColor: '#D97706',
+                    confirmButtonText: 'ตกลง'
                 });
                 return false;
             }
@@ -144,7 +361,8 @@ const HomeVisits = () => {
                 icon: 'warning',
                 title: 'เกินจำนวนที่กำหนด',
                 text: 'อัปโหลดได้สูงสุด 5 ไฟล์',
-                confirmButtonColor: '#D97706'
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง'
             });
             return;
         }
@@ -169,8 +387,8 @@ const HomeVisits = () => {
     // Validation
     const validateStep = (step) => {
         const requiredFields = {
-            0: ['studentIdNumber', 'studentName', 'className', 'teacherName', 'visitDate', 'studentBirthDate', 'parentName', 'relationship', 'occupation'],
-            1: ['mainAddress'],
+            0: ['studentNumber', 'studentFirstName', 'studentLastName', 'visitDate', 'parentFirstName', 'parentLastName', 'studentId'],
+            1: ['address'],
             2: ['visitPurpose', 'summary']
         };
 
@@ -182,7 +400,8 @@ const HomeVisits = () => {
                 icon: 'warning',
                 title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
                 text: 'โปรดระบุข้อมูลที่จำเป็นทั้งหมด',
-                confirmButtonColor: '#D97706'
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง'
             });
             return false;
         }
@@ -202,18 +421,122 @@ const HomeVisits = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Submit - เหมือน backend เดิม
+    // Submit - updated for new schema
     const handleSubmit = async () => {
         if (!validateStep(2)) return;
+
+        // Explicit frontend check for required relation ids
+        if (!formData.studentId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบ',
+                text: 'กรุณาระบุรหัสนักเรียนให้ถูกต้องก่อนบันทึก',
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        // Check if student has homeroom teacher assigned
+        // Admin/Super_admin สามารถบันทึกได้โดยไม่ต้องมีครูประจำชั้น (teacherId จะเป็น null)
+        const isAdminRole = userRole && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'super_admin');
+        if (!formData.teacherId && !isAdminRole) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ยังไม่มีครูประจำชั้น',
+                text: 'นักเรียนคนนี้ยังไม่ได้กำหนดครูประจำชั้น กรุณาติดต่อผู้ดูแลระบบเพื่อกำหนดครูประจำชั้นก่อนบันทึกการเยี่ยมบ้าน',
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        // UI-level guard: if current user is a teacher but student is not allowed, block submit
+        if (userRole && userRole.toLowerCase() === 'teacher' && !isStudentAllowed) {
+            Swal.fire({
+                icon: 'error',
+                title: 'คุณไม่ได้รับอนุญาต',
+                text: 'คุณไม่สามารถบันทึกการเยี่ยมบ้านสำหรับนักเรียนคนนี้',
+                confirmButtonColor: '#D97706',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
 
         try {
             setIsSubmitting(true);
             setUploadProgress(0);
 
+            // Update the student record first (persist canonical student data)
+            if (formData.studentId) {
+                try {
+                    const studentUpdate = {
+                        address: formData.address,
+                        phoneNumber: formData.phoneNumber,
+                        emergencyContact: formData.emergencyContact,
+                        houseType: formData.houseType,
+                        houseMaterial: formData.houseMaterial,
+                        utilities: formData.utilities,
+                        studyArea: formData.studyArea,
+                        guardianFirstName: formData.guardianFirstName,
+                        guardianLastName: formData.guardianLastName,
+                        guardianNamePrefix: formData.guardianNamePrefix,
+                        guardianRelation: formData.guardianRelation,
+                        guardianOccupation: formData.guardianOccupation,
+                        guardianMonthlyIncome: formData.guardianMonthlyIncome
+                    };
+
+                    const patchResp = await fetch(`http://localhost:5000/api/students/${formData.studentId}`, {
+                        method: 'PATCH',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+                        },
+                        body: JSON.stringify(studentUpdate)
+                    });
+
+                    if (!patchResp.ok) {
+                        const err = await patchResp.json().catch(() => ({}));
+                        throw new Error(err.message || `Failed to update student: HTTP ${patchResp.status}`);
+                    }
+                } catch (err) {
+                    setIsSubmitting(false);
+                    setUploadProgress(0);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่สามารถอัปเดตข้อมูลนักเรียน',
+                        text: err.message || 'เกิดข้อผิดพลาดระหว่างการอัปเดตข้อมูลนักเรียน',
+                        confirmButtonColor: '#EF4444',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    return;
+                }
+            }
+
             const uploadFormData = new FormData();
 
-            // Add all form data
-            Object.entries(formData).forEach(([key, value]) => {
+            // Add only visit-specific data (not duplicate student data)
+            const visitData = {
+                teacherId: formData.teacherId,
+                studentId: formData.studentId,
+                visitDate: formData.visitDate,
+                parentNamePrefix: formData.parentNamePrefix,
+                parentFirstName: formData.parentFirstName,
+                parentLastName: formData.parentLastName,
+                familyStatus: formData.familyStatus,
+                visitPurpose: formData.visitPurpose,
+                studentBehaviorAtHome: formData.studentBehaviorAtHome,
+                parentCooperation: formData.parentCooperation,
+                problems: formData.problems,
+                recommendations: formData.recommendations,
+                followUpPlan: formData.followUpPlan,
+                summary: formData.summary,
+                notes: formData.notes
+            };
+
+            // Add non-null/non-empty values
+            Object.entries(visitData).forEach(([key, value]) => {
                 if (value !== null && value !== undefined && value !== '') {
                     uploadFormData.append(key, value);
                 }
@@ -265,7 +588,8 @@ const HomeVisits = () => {
                     title: 'บันทึกสำเร็จ!',
                     text: 'บันทึกข้อมูลการเยี่ยมบ้านเรียบร้อยแล้ว',
                     confirmButtonColor: '#D97706',
-                    timer: 2000
+                    timer: 2000,
+                    showConfirmButton: false
                 });
 
                 // ไม่มี auto-reset - ให้ผู้ใช้เลือกเองในหน้า success
@@ -288,7 +612,8 @@ const HomeVisits = () => {
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
                 text: errorMessage,
-                confirmButtonColor: '#EF4444'
+                confirmButtonColor: '#EF4444',
+                confirmButtonText: 'ตกลง'
             });
             console.error('Error submitting form:', error);
         }
@@ -309,27 +634,34 @@ const HomeVisits = () => {
                 setFormData({
                     teacherId: null,
                     studentId: null,
-                    studentIdNumber: '',
-                    studentName: '',
+                    studentNumber: '',
+                    studentFirstName: '',
+                    studentLastName: '',
+                    studentNamePrefix: '',
                     className: '',
-                    teacherName: '',
-                    visitDate: new Date().toISOString().split('T')[0],
                     studentBirthDate: '',
-                    parentName: '',
-                    relationship: '',
-                    occupation: '',
-                    monthlyIncome: '',
-                    familyStatus: '',
+                    genderName: '',
+                    teacherFirstName: '',
+                    teacherLastName: '',
+                    teacherNamePrefix: '',
+                    guardianFirstName: '',
+                    guardianLastName: '',
+                    guardianNamePrefix: '',
+                    guardianRelation: '',
+                    guardianOccupation: '',
+                    guardianMonthlyIncome: '',
+                    address: '',
                     phoneNumber: '',
                     emergencyContact: '',
-                    mainAddress: '',
                     houseType: '',
-                    houseOwnership: '',
-                    houseCondition: '',
                     houseMaterial: '',
                     utilities: '',
-                    environmentCondition: '',
                     studyArea: '',
+                    visitDate: new Date().toISOString().split('T')[0],
+                    parentNamePrefix: '',
+                    parentFirstName: '',
+                    parentLastName: '',
+                    familyStatus: '',
                     visitPurpose: '',
                     studentBehaviorAtHome: '',
                     parentCooperation: '',
@@ -337,7 +669,8 @@ const HomeVisits = () => {
                     recommendations: '',
                     followUpPlan: '',
                     summary: '',
-                    notes: ''
+                    notes: '',
+                    updateStudent: false
                 });
                 setFileList([]);
                 setCurrentStep(0);
@@ -363,89 +696,107 @@ const HomeVisits = () => {
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Student Number */}
-                            <div>
+                            {/* Student Number - with Auto-fill */}
+                            <div className="col-span-full">
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <i className="bi bi-person-badge text-amber-600"></i>
                                     รหัสนักเรียน <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
-                                    value={formData.studentIdNumber}
-                                    onChange={(e) => handleInputChange('studentIdNumber', e.target.value)}
+                                    value={formData.studentNumber}
+                                    onChange={(e) => handleStudentNumberChange(e.target.value)}
                                     placeholder="เช่น 10001, 10018, 10100"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
+                                    maxLength="5"
+                                    className="w-full px-4 py-3 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                                     required
                                 />
-                            </div>
-
-                            {/* Student Name (ชื่อ-นามสกุล พร้อมคำนำหน้า) */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-person text-amber-600"></i>
-                                    ชื่อ-นามสกุล (พร้อมคำนำหน้า) <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.studentName}
-                                    onChange={(e) => handleInputChange('studentName', e.target.value)}
-                                    placeholder="เช่น เด็กชาย สมชาย ใจดี, นางสาว สมหญิง ใจงาม"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 transition-all"
-                                    required
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    📝 กรอกชื่อเต็มพร้อมคำนำหน้า เช่น "เด็กชาย สมชาย ใจดี" หรือ "นางสาว สมหญิง รักดี"
+                                <p className="text-xs text-amber-600 mt-1 font-medium">
+                                    💡 ระบบจะดึงข้อมูลนักเรียนอัตโนมัติเมื่อกรอกรหัสนักเรียนครบ 5 หลัก
                                 </p>
                             </div>
 
-                            {/* Class */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-door-open text-amber-600"></i>
-                                    ห้องเรียน <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={formData.className}
-                                    onChange={(e) => handleInputChange('className', e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    required
-                                >
-                                    <option value="">-- เลือกห้องเรียน --</option>
-                                    {['ม.1/1', 'ม.1/2', 'ม.1/3', 'ม.2/1', 'ม.2/2', 'ม.2/3', 'ม.3/1', 'ม.3/2', 'ม.3/3', 'ม.4/1', 'ม.4/2', 'ม.5/1', 'ม.5/2', 'ม.6/1', 'ม.6/2'].map(cls => (
-                                        <option key={cls} value={cls}>{cls}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Teacher */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-person-workspace text-amber-600"></i>
-                                    ครูที่ปรึกษา <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={formData.teacherName}
-                                    onChange={(e) => handleTeacherChange(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    required
-                                    disabled={teachersLoading}
-                                >
-                                    <option value="">-- เลือกครูที่ปรึกษา --</option>
-                                    {allTeachers.map(teacher => (
-                                        <option key={teacher.id} value={teacher.name}>
-                                            {teacher.name} ({teacher.department})
-                                        </option>
-                                    ))}
-                                </select>
-                                {formData.teacherId && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                        ✓ เลือกครูแล้ว (ID: {formData.teacherId})
+                            {/* Auto-filled Student Info - Read-only Display */}
+                            {formData.studentId && (
+                                <div className="col-span-full p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+                                    <p className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5" />
+                                        ข้อมูลนักเรียน (จากระบบ)
                                     </p>
-                                )}
-                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                        <div>
+                                            <span className="text-gray-600">ชื่อ-นามสกุล:</span>
+                                            <span className="ml-2 font-medium text-gray-800">
+                                                {(() => {
+                                                    const prefix = formData.studentNamePrefix || '';
+                                                    const firstName = formData.studentFirstName || '';
+                                                    const lastName = formData.studentLastName || '';
+                                                    // prefix ติดชิดชื่อ ไม่มีเว้นวรรค เช่น นายเกรียงศักดิ์ ยะสุนทร
+                                                    const fullName = `${prefix}${firstName}${lastName ? ' ' + lastName : ''}`.trim();
+                                                    return fullName || '-';
+                                                })()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">ห้องเรียน:</span>
+                                            <span className="ml-2 font-medium text-gray-800">{formData.className || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">วันเกิด:</span>
+                                            <span className="ml-2 font-medium text-gray-800">
+                                                {formData.studentBirthDate ? new Date(formData.studentBirthDate).toLocaleDateString('th-TH') : <span className="text-amber-600">ยังไม่ระบุ</span>}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">ครูประจำชั้น:</span>
+                                            <span className="ml-2 font-medium text-gray-800">
+                                                {formData.teacherFullName || `${formData.teacherNamePrefix || ''}${formData.teacherFirstName || ''}${formData.teacherLastName ? ' ' + formData.teacherLastName : ''}`.trim() || <span className="text-amber-600">ยังไม่ระบุ</span>}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">ชื่อผู้ปกครอง:</span>
+                                            <span className="ml-2 font-medium text-gray-800">
+                                                {(() => {
+                                                    const pfx = formData.guardianNamePrefix || '';
+                                                        const first = formData.guardianFirstName || '';
+                                                        const last = formData.guardianLastName || '';
+                                                        const fullGuardian = `${pfx ? pfx + ' ' : ''}${first}${last ? ' ' + last : ''}`.trim();
+                                                        return fullGuardian || <span className="text-amber-600">ยังไม่ระบุ</span>;
+                                                })()}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">เบอร์ติดต่อผู้ปกครอง:</span>
+                                            <span className="ml-2 font-medium text-gray-800">{formData.phoneNumber || '-'}</span>
+                                        </div>
+                                    </div>
+                                    {!formData.teacherId && (userRole.toLowerCase() !== 'admin' && userRole.toLowerCase() !== 'super_admin') && (
+                                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-xs text-red-700 flex items-center gap-1">
+                                                <i className="bi bi-exclamation-circle-fill"></i>
+                                                <strong>ไม่มีครูประจำชั้น:</strong> นักเรียนคนนี้ยังไม่ได้กำหนดครูประจำชั้น กรุณาติดต่อผู้ดูแลระบบเพื่อกำหนดครูประจำชั้นก่อนบันทึกการเยี่ยมบ้าน
+                                            </p>
+                                        </div>
+                                    )}
+                                    {!formData.teacherId && (userRole.toLowerCase() === 'admin' || userRole.toLowerCase() === 'super_admin') && (
+                                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <p className="text-xs text-blue-700 flex items-center gap-1">
+                                                <i className="bi bi-info-circle-fill"></i>
+                                                <strong>หมายเหตุ (แอดมิน):</strong> นักเรียนไม่มีครูประจำชั้น ระบบจะบันทึกชื่อแอดมินเป็นผู้บันทึกแทน
+                                            </p>
+                                        </div>
+                                    )}
+                                    {formData.teacherId && (!formData.studentBirthDate || !formData.guardianFirstName) && (
+                                        <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+                                            <i className="bi bi-exclamation-triangle"></i>
+                                            บางข้อมูลยังไม่ครบ — กรุณากรอกในฟอร์มด้านล่างและบันทึก ระบบจะอัปเดตข้อมูลนักเรียนให้อัตโนมัติ
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Visit Date */}
-                            <div>
+                            <div className="col-span-full">
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <Calendar className="w-4 h-4 text-amber-600" />
                                     วันที่เยี่ยม <span className="text-red-500">*</span>
@@ -457,24 +808,61 @@ const HomeVisits = () => {
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                                     required
                                 />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    💡 ครูที่เยี่ยม: ครูประจำชั้นของนักเรียนจะถูกบันทึกโดยอัตโนมัติ
+                                </p>
                             </div>
 
-                            {/* Student Birth Date */}
+                            {/* Visiting Teacher (readonly for teacher role, selectable for admin/staff) */}
+                            <div className="col-span-full">
+                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    ครูผู้เยี่ยม
+                                </label>
+                                {userRole && userRole.toLowerCase() === 'teacher' ? (
+                                    <input
+                                        type="text"
+                                        value={formData.teacherFullName || (() => {
+                                            const t = allTeachers.find(x => x.id === userTeacherId);
+                                            return t ? t.fullName : '';
+                                        })()}
+                                        readOnly
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-700"
+                                    />
+                                ) : (
+                                    <select
+                                        value={formData.teacherId || ''}
+                                        onChange={(e) => handleTeacherChange(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                                    >
+                                        <option value="">-- เลือกครูผู้เยี่ยม --</option>
+                                        {allTeachers.map(t => (
+                                            <option key={t.id} value={t.id}>{t.fullName}</option>
+                                        ))}
+                                    </select>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">* หากเป็นครูระบบจะบันทึกชื่อครูที่เยี่ยมโดยอัตโนมัติ</p>
+                            </div>
+
+                            {/* Parent Name Prefix */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <Calendar className="w-4 h-4 text-amber-600" />
-                                    วันเกิดนักเรียน <span className="text-red-500">*</span>
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    คำนำหน้าชื่อผู้ปกครอง
                                 </label>
-                                <input
-                                    type="date"
-                                    value={formData.studentBirthDate}
-                                    onChange={(e) => handleInputChange('studentBirthDate', e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                                    required
-                                />
+                                <select
+                                    value={formData.parentNamePrefix}
+                                    onChange={(e) => handleInputChange('parentNamePrefix', e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                                >
+                                    <option value="">-- เลือก --</option>
+                                    <option value="นาย">นาย</option>
+                                    <option value="นาง">นาง</option>
+                                    <option value="นางสาว">นางสาว</option>
+                                </select>
                             </div>
 
-                            {/* Parent Name */}
+                            {/* Parent First Name */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <Users className="w-4 h-4 text-amber-600" />
@@ -482,40 +870,89 @@ const HomeVisits = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    value={formData.parentName}
-                                    onChange={(e) => handleInputChange('parentName', e.target.value)}
-                                    placeholder="กรอกชื่อผู้ปกครอง"
+                                    value={formData.parentFirstName}
+                                    onChange={(e) => handleInputChange('parentFirstName', e.target.value)}
+                                    placeholder="ชื่อ"
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                                     required
                                 />
                             </div>
 
-                            {/* Relationship */}
+                            {/* Parent Last Name */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-people text-amber-600"></i>
-                                    ความสัมพันธ์ <span className="text-red-500">*</span>
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    นามสกุลผู้ปกครอง <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.parentLastName}
+                                    onChange={(e) => handleInputChange('parentLastName', e.target.value)}
+                                    placeholder="นามสกุล"
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    💡 ผู้ปกครองที่มาพบในครั้งนี้ อาจแตกต่างจากผู้ปกครองหลักในระบบ
+                                </p>
+                            </div>
+                            {/* Guardian Relation */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    ความสัมพันธ์กับผู้ปกครอง
                                 </label>
                                 <select
-                                    value={formData.relationship}
-                                    onChange={(e) => handleInputChange('relationship', e.target.value)}
+                                    value={formData.guardianRelation || ''}
+                                    onChange={(e) => handleInputChange('guardianRelation', e.target.value)}
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    required
                                 >
-                                    <option value="">-- เลือกความสัมพันธ์ --</option>
+                                    <option value="">-- เลือก --</option>
                                     <option value="บิดา">บิดา</option>
                                     <option value="มารดา">มารดา</option>
                                     <option value="ปู่">ปู่</option>
                                     <option value="ย่า">ย่า</option>
                                     <option value="ตา">ตา</option>
                                     <option value="ยาย">ยาย</option>
-                                    <option value="พี่">พี่</option>
-                                    <option value="น้อง">น้อง</option>
                                     <option value="ลุง">ลุง</option>
                                     <option value="ป้า">ป้า</option>
-                                    <option value="น้า">น้า</option>
-                                    <option value="อา">อา</option>
+                                    <option value="ญาติ">ญาติ</option>
                                     <option value="อื่นๆ">อื่นๆ</option>
+                                </select>
+                            </div>
+
+                            {/* Guardian Occupation */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    อาชีพผู้ปกครอง
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.guardianOccupation}
+                                    onChange={(e) => handleInputChange('guardianOccupation', e.target.value)}
+                                    placeholder="อาชีพ"
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                                />
+                            </div>
+
+                            {/* Guardian Monthly Income (select ranges) */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                    <Users className="w-4 h-4 text-amber-600" />
+                                    รายได้ต่อเดือนของผู้ปกครอง
+                                </label>
+                                <select
+                                    value={formData.guardianMonthlyIncome}
+                                    onChange={(e) => handleInputChange('guardianMonthlyIncome', e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
+                                >
+                                    <option value="">-- เลือกช่วงรายได้ --</option>
+                                    <option value="<10000">ต่ำกว่า 10,000</option>
+                                    <option value="10000-20000">10,000 - 20,000</option>
+                                    <option value="21000-30000">21,000 - 30,000</option>
+                                    <option value="31000-40000">31,000 - 40,000</option>
+                                    <option value=">=41000">41,000 ขึ้นไป</option>
                                 </select>
                             </div>
 
@@ -567,89 +1004,7 @@ const HomeVisits = () => {
                                         onChange={(e) => handleInputChange('familyStatusOther', e.target.value)}
                                     />
                                 )}
-                            </div>
-
-                            {/* Occupation */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-briefcase text-amber-600"></i>
-                                    อาชีพผู้ปกครอง <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.occupation}
-                                    onChange={(e) => handleInputChange('occupation', e.target.value)}
-                                    placeholder="เช่น เกษตรกร, ค้าขาย, รับราชการ, พนักงานบริษัท"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                                    required
-                                />
-                            </div>
-
-                            {/* Monthly Income */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-cash-coin text-amber-600"></i>
-                                    รายได้ต่อเดือน
-                                </label>
-                                <select
-                                    value={formData.monthlyIncome}
-                                    onChange={(e) => handleInputChange('monthlyIncome', e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                >
-                                    <option value="">-- เลือกช่วงรายได้ --</option>
-                                    <option value="ต่ำกว่า 10,000 บาท">ต่ำกว่า 10,000 บาท</option>
-                                    <option value="10,000 - 20,000 บาท">10,000 - 20,000 บาท</option>
-                                    <option value="20,001 - 30,000 บาท">20,001 - 30,000 บาท</option>
-                                    <option value="30,001 - 50,000 บาท">30,001 - 50,000 บาท</option>
-                                    <option value="50,001 - 100,000 บาท">50,001 - 100,000 บาท</option>
-                                    <option value="มากกว่า 100,000 บาท">มากกว่า 100,000 บาท</option>
-                                </select>
-                            </div>
-
-                            {/* Phone Number */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <Phone className="w-4 h-4 text-amber-600" />
-                                    เบอร์โทรศัพท์
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={formData.phoneNumber}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        if (value.length <= 10) {
-                                            handleInputChange('phoneNumber', value);
-                                        }
-                                    }}
-                                    placeholder="เช่น 0812345678 (10 หลัก)"
-                                    maxLength="10"
-                                    pattern="[0-9]{10}"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">💡 กรอกตัวเลข 10 หลัก ไม่ต้องใส่ขีด (-)</p>
-                            </div>
-
-                            {/* Emergency Contact */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                    <i className="bi bi-telephone-plus text-amber-600"></i>
-                                    เบอร์ฉุกเฉิน
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={formData.emergencyContact}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        if (value.length <= 10) {
-                                            handleInputChange('emergencyContact', value);
-                                        }
-                                    }}
-                                    placeholder="เช่น 0987654321 (10 หลัก)"
-                                    maxLength="10"
-                                    pattern="[0-9]{10}"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">💡 กรอกตัวเลข 10 หลัก ไม่ต้องใส่ขีด (-)</p>
+                            
                             </div>
 
 
@@ -662,236 +1017,174 @@ const HomeVisits = () => {
                     <div className="space-y-6">
                         <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                             <Home className="w-6 h-6 text-amber-600" />
-                            ที่อยู่และสภาพบ้าน
+                            ที่อยู่และสภาพบ้าน 
                         </h3>
 
                         <div className="space-y-4">
-                            {/* Address */}
+                            {/* Address - Read-only display from student data */}
                             <div>
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <MapPin className="w-4 h-4 text-amber-600" />
-                                    ที่อยู่ <span className="text-red-500">*</span>
+                                    ที่อยู่ 
                                 </label>
                                 <textarea
-                                    value={formData.mainAddress}
-                                    onChange={(e) => handleInputChange('mainAddress', e.target.value)}
-                                    placeholder="กรอกที่อยู่ที่สามารถติดต่อได้"
+                                    value={formData.address}
+                                    onChange={(e) => handleInputChange('address', e.target.value)}
                                     rows="4"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
-                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl resize-none text-gray-700 focus:ring-2 focus:ring-amber-500"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* House Type */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* House Type - multi-select */}
                                 <div>
                                     <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                         <Home className="w-4 h-4 text-amber-600" />
                                         ประเภทบ้าน
                                     </label>
-                                    <select
-                                        value={formData.houseType}
-                                        onChange={(e) => handleInputChange('houseType', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    >
-                                        <option value="">-- เลือก --</option>
-                                        <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
-                                        <option value="แฟลต/อพาร์ทเม้นท์">แฟลต/อพาร์ทเม้นท์</option>
-                                        <option value="ห้องเช่า">ห้องเช่า</option>
-                                        <option value="ทาวน์เฮาส์">ทาวน์เฮาส์</option>
-                                        <option value="อื่นๆ">อื่นๆ</option>
-                                    </select>
-                                </div>
-
-                                {/* House Ownership */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                        <i className="bi bi-key text-amber-600"></i>
-                                        กรรมสิทธิ์
-                                    </label>
-                                    <select
-                                        value={formData.houseOwnership}
-                                        onChange={(e) => handleInputChange('houseOwnership', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    >
-                                        <option value="">-- เลือก --</option>
-                                        <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
-                                        <option value="เช่า">เช่า</option>
-                                        <option value="อาศัย">อาศัย</option>
-                                        <option value="ผ่อนชำระ">ผ่อนชำระ</option>
-                                    </select>
-                                </div>
-
-                                {/* House Condition */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                        <i className="bi bi-house-check text-amber-600"></i>
-                                        สภาพบ้าน
-                                    </label>
-                                    <select
-                                        value={formData.houseCondition}
-                                        onChange={(e) => handleInputChange('houseCondition', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white"
-                                    >
-                                        <option value="">-- เลือก --</option>
-                                        <option value="ดีมาก">ดีมาก</option>
-                                        <option value="ดี">ดี</option>
-                                        <option value="ปานกลาง">ปานกลาง</option>
-                                        <option value="ควรปรับปรุง">ควรปรับปรุง</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* House Material - Checkbox Group */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                                    <i className="bi bi-bricks text-amber-600"></i>
-                                    วัสดุก่อสร้าง
-                                </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {[
-                                        'คอนกรีต',
-                                        'ไม้',
-                                        'สังกะสี',
-                                        'ไผ่',
-                                        'ผสม',
+                                        'บ้านเดี่ยว',
+                                        'บ้านแถว/ทาวน์เฮาส์',
+                                        'อาศัยกับญาติ',
+                                        'บ้านเช่า',
+                                        'ห้องเช่า',
+                                        'กระท่อม',
                                         'อื่นๆ'
-                                    ].map((item) => (
-                                        <label
-                                            key={item}
-                                            className="flex items-center gap-2 p-2 border-2 border-gray-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all cursor-pointer"
-                                        >
+                                    ].map((opt) => (
+                                        <label key={opt} className="flex items-center gap-3 p-2">
                                             <input
                                                 type="checkbox"
-                                                checked={formData.houseMaterial?.includes(item) || false}
-                                                onChange={(e) => {
-                                                    const currentValues = formData.houseMaterial
-                                                        ? formData.houseMaterial.split(', ').filter(v => v.trim() !== '')
-                                                        : [];
-                                                    let newValues;
-                                                    if (e.target.checked) {
-                                                        newValues = [...currentValues, item];
-                                                    } else {
-                                                        newValues = currentValues.filter(v => v !== item);
-                                                    }
-                                                    handleInputChange('houseMaterial', newValues.join(', '));
-                                                }}
+                                                checked={parseMulti(formData.houseType).includes(opt)}
+                                                onChange={() => toggleMultiChoice('houseType', opt)}
                                                 className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-2 focus:ring-amber-500"
                                             />
-                                            <span className="text-sm font-medium text-gray-700">{item}</span>
+                                            <span className="text-sm">{opt}</span>
                                         </label>
                                     ))}
                                 </div>
-                                {formData.houseMaterial?.includes('อื่นๆ') && (
-                                    <input
-                                        type="text"
-                                        placeholder="โปรดระบุวัสดุอื่นๆ..."
-                                        className="mt-2 w-full px-4 py-2 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500"
-                                        onChange={(e) => handleInputChange('houseMaterialOther', e.target.value)}
-                                    />
-                                )}
-                            </div>
 
-                            {/* Utilities - Checkbox Group */}
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                                    <i className="bi bi-lightning-charge text-amber-600"></i>
-                                    สาธารณูปโภค
-                                </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {/* House Material - multi-select */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                        <i className="bi bi-bricks text-amber-600"></i>
+                                        วัสดุก่อสร้าง
+                                    </label>
+                                    {[
+                                        'คอนกรีต/อิฐ',
+                                        'ไม้',
+                                        'ไม้ผสมคอนกรีต',
+                                        'สังกะสี/วัสดุชั่วคราว',
+                                        'อื่นๆ'
+                                    ].map((opt) => (
+                                        <label key={opt} className="flex items-center gap-3 p-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={parseMulti(formData.houseMaterial).includes(opt)}
+                                                onChange={() => toggleMultiChoice('houseMaterial', opt)}
+                                                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-2 focus:ring-amber-500"
+                                            />
+                                            <span className="text-sm">{opt}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                {/* Utilities - multi-select */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                        <i className="bi bi-lightning text-amber-600"></i>
+                                        สาธารณูปโภค
+                                    </label>
                                     {[
                                         'ไฟฟ้า',
                                         'ประปา',
-                                        'โทรศัพท์',
+                                        'ห้องน้ำในบ้าน',
                                         'อินเทอร์เน็ต',
-                                        'ก๊าซ',
-                                        'ทีวี'
-                                    ].map((item) => (
-                                        <label
-                                            key={item}
-                                            className="flex items-center gap-2 p-2 border-2 border-gray-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all cursor-pointer"
-                                        >
+                                        'การขนส่งสะดวก',
+                                        'อื่นๆ'
+                                    ].map((opt) => (
+                                        <label key={opt} className="flex items-center gap-3 p-2">
                                             <input
                                                 type="checkbox"
-                                                checked={formData.utilities?.includes(item) || false}
-                                                onChange={(e) => {
-                                                    const currentValues = formData.utilities
-                                                        ? formData.utilities.split(', ').filter(v => v.trim() !== '')
-                                                        : [];
-                                                    let newValues;
-                                                    if (e.target.checked) {
-                                                        newValues = [...currentValues, item];
-                                                    } else {
-                                                        newValues = currentValues.filter(v => v !== item);
-                                                    }
-                                                    handleInputChange('utilities', newValues.join(', '));
-                                                }}
+                                                checked={parseMulti(formData.utilities).includes(opt)}
+                                                onChange={() => toggleMultiChoice('utilities', opt)}
                                                 className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-2 focus:ring-amber-500"
                                             />
-                                            <span className="text-sm font-medium text-gray-700">{item}</span>
+                                            <span className="text-sm">{opt}</span>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                {/* Study Area - multi-select */}
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                        <i className="bi bi-book text-amber-600"></i>
+                                        พื้นที่เรียน
+                                    </label>
+                                    {[
+                                        'มีโต๊ะอ่านหนังสือ',
+                                        'ไม่มีพื้นที่เฉพาะ',
+                                        'ใช้พื้นที่ส่วนรวม',
+                                        'มีแสงสว่างเพียงพอ',
+                                        'มีสิ่งรบกวนเยอะ',
+                                        'อื่นๆ'
+                                    ].map((opt) => (
+                                        <label key={opt} className="flex items-center gap-3 p-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={parseMulti(formData.studyArea).includes(opt)}
+                                                onChange={() => toggleMultiChoice('studyArea', opt)}
+                                                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-2 focus:ring-amber-500"
+                                            />
+                                            <span className="text-sm">{opt}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                                {/* Environment Condition */}
                                 <div>
                                     <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                                        <i className="bi bi-tree text-amber-600"></i>
-                                        สภาพแวดล้อม
+                                        <Phone className="w-4 h-4 text-amber-600" />
+                                        เบอร์ติดต่อผู้ปกครอง
                                     </label>
-                                    <textarea
-                                        value={formData.environmentCondition}
-                                        onChange={(e) => handleInputChange('environmentCondition', e.target.value)}
-                                        placeholder="เช่น เงียบสงบ, อยู่ติดริมโขง, อยู่ใกล้ถนนใหญ่"
-                                        rows="2"
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                                    <input
+                                        value={formData.phoneNumber}
+                                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:ring-2 focus:ring-amber-500"
                                     />
                                 </div>
 
-                                {/* Study Area - Radio Group */}
                                 <div>
-                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                                        <i className="bi bi-book text-amber-600"></i>
-                                        พื้นที่สำหรับเรียน
+                                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                        <i className="bi bi-telephone-forward text-amber-600"></i>
+                                        เบอร์ติดต่อฉุกเฉิน
                                     </label>
-                                    <div className="space-y-2">
-                                        {[
-                                            { value: 'มีโต๊ะเรียนส่วนตัว', desc: 'มีพื้นที่เรียนเฉพาะตัว' },
-                                            { value: 'ใช้โต๊ะร่วมกับครอบครัว', desc: 'แชร์พื้นที่กับคนในบ้าน' },
-                                            { value: 'ไม่มีโต๊ะเรียน', desc: 'ไม่มีพื้นที่เฉพาะ' },
-                                            { value: 'อื่นๆ', desc: 'ระบุเพิ่มเติม' }
-                                        ].map((item) => (
-                                            <label
-                                                key={item.value}
-                                                className="flex items-start gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all cursor-pointer"
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="studyArea"
-                                                    value={item.value}
-                                                    checked={formData.studyArea === item.value}
-                                                    onChange={(e) => handleInputChange('studyArea', e.target.value)}
-                                                    className="mt-1 w-5 h-5 text-amber-600 border-gray-300 focus:ring-2 focus:ring-amber-500"
-                                                />
-                                                <div className="flex-1">
-                                                    <span className="text-sm font-semibold text-gray-700">{item.value}</span>
-                                                    <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {formData.studyArea === 'อื่นๆ' && (
-                                        <input
-                                            type="text"
-                                            placeholder="โปรดระบุพื้นที่เรียนอื่นๆ..."
-                                            className="mt-2 w-full px-4 py-2 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500"
-                                            onChange={(e) => handleInputChange('studyAreaOther', e.target.value)}
-                                        />
-                                    )}
+                                    <input
+                                        value={formData.emergencyContact}
+                                        onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-700 focus:ring-2 focus:ring-amber-500"
+                                    />
                                 </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 text-sm font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.updateStudent}
+                                        onChange={(e) => handleInputChange('updateStudent', e.target.checked)}
+                                        className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-2 focus:ring-amber-500"
+                                    />
+                                    <span className="ml-2 text-sm">อัปเดตข้อมูลนักเรียนด้วย (บันทึกที่อยู่/บ้าน/เบอร์ติดต่อ)</span>
+                                </label>
+                            </div>
+
+                            <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                                <p className="text-sm text-blue-700">
+                                    <i className="bi bi-info-circle mr-2"></i>
+                                    <strong>หมายเหตุ:</strong> การแก้ไขข้อมูลที่อยู่/สภาพบ้านในแบบฟอร์มนี้จะเขียนทับข้อมูลนักเรียน
+                                    หากเลือก "อัปเดตข้อมูลนักเรียนด้วย" (แนะนำให้ตรวจสอบความถูกต้องก่อนบันทึก)
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1201,27 +1494,34 @@ const HomeVisits = () => {
                                     setFormData({
                                         teacherId: null,
                                         studentId: null,
-                                        studentIdNumber: '',
-                                        studentName: '',
+                                        studentNumber: '',
+                                        studentFirstName: '',
+                                        studentLastName: '',
+                                        studentNamePrefix: '',
                                         className: '',
-                                        teacherName: '',
-                                        visitDate: new Date().toISOString().split('T')[0],
                                         studentBirthDate: '',
-                                        parentName: '',
-                                        relationship: '',
-                                        occupation: '',
-                                        monthlyIncome: '',
-                                        familyStatus: '',
+                                        genderName: '',
+                                        teacherFirstName: '',
+                                        teacherLastName: '',
+                                        teacherNamePrefix: '',
+                                        guardianFirstName: '',
+                                        guardianLastName: '',
+                                        guardianNamePrefix: '',
+                                        guardianRelation: '',
+                                        guardianOccupation: '',
+                                        guardianMonthlyIncome: '',
+                                        address: '',
                                         phoneNumber: '',
                                         emergencyContact: '',
-                                        mainAddress: '',
                                         houseType: '',
-                                        houseOwnership: '',
-                                        houseCondition: '',
                                         houseMaterial: '',
                                         utilities: '',
-                                        environmentCondition: '',
                                         studyArea: '',
+                                        visitDate: new Date().toISOString().split('T')[0],
+                                        parentNamePrefix: '',
+                                        parentFirstName: '',
+                                        parentLastName: '',
+                                        familyStatus: '',
                                         visitPurpose: '',
                                         studentBehaviorAtHome: '',
                                         parentCooperation: '',
@@ -1229,7 +1529,8 @@ const HomeVisits = () => {
                                         recommendations: '',
                                         followUpPlan: '',
                                         summary: '',
-                                        notes: ''
+                                        notes: '',
+                                        updateStudent: false
                                     });
                                     setFileList([]);
                                 }}

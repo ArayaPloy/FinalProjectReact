@@ -69,10 +69,37 @@ router.get('/', verifyToken, async (req, res) => {
                 teacher_profile: {
                     select: {
                         id: true,
-                        fullName: true,
+                        namePrefix: true,
+                        firstName: true,
+                        lastName: true,
                         position: true,
+                        level: true,
                         phoneNumber: true,
-                        email: true
+                        email: true,
+                        education: true,
+                        major: true,
+                        biography: true,
+                        specializations: true,
+                        imagePath: true,
+                        departments_teachers_departmentIdTodepartments: {
+                            select: { name: true }
+                        },
+                        // ห้องเรียนที่ครูคนนี้เป็นครูประจำชั้น (1 ครู : 1 ห้อง)
+                        homeroom_classes: {
+                            select: {
+                                id: true,
+                                className: true,
+                                room: true,
+                                floor: true,
+                                building: true,
+                                maxStudents: true,
+                                isActive: true,
+                                academicYear: {
+                                    select: { id: true, year: true, isCurrent: true }
+                                },
+                                _count: { select: { students: true } }
+                            }
+                        }
                     }
                 }
             }
@@ -82,9 +109,23 @@ router.get('/', verifyToken, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // สร้าง fullName computed field สำหรับ teacher_profile
+        const responseData = {
+            ...user,
+            teacher_profile: user.teacher_profile ? {
+                ...user.teacher_profile,
+                fullName: `${user.teacher_profile.namePrefix || ''}${user.teacher_profile.firstName || ''}${user.teacher_profile.lastName ? ' ' + user.teacher_profile.lastName : ''}`.trim(),
+                department: user.teacher_profile.departments_teachers_departmentIdTodepartments?.name || null,
+                homeroom_class: user.teacher_profile.homeroom_classes ? {
+                    ...user.teacher_profile.homeroom_classes,
+                    studentCount: user.teacher_profile.homeroom_classes._count?.students ?? 0
+                } : null
+            } : null
+        };
+
         res.status(200).json({
             success: true,
-            data: user
+            data: responseData
         });
     } catch (error) {
         console.error('Error fetching profile:', error);
@@ -147,18 +188,6 @@ router.patch('/', verifyToken, async (req, res) => {
             }
         });
 
-        // ✅ ถ้ามี teacherId ให้อัปเดต teachers table ด้วย
-        if (updatedUser.teacherId) {
-            await prisma.teachers.update({
-                where: { id: updatedUser.teacherId },
-                data: {
-                    email: email,
-                    phoneNumber: phone || null
-                }
-            });
-            console.log(`✅ Updated teachers table for teacherId: ${updatedUser.teacherId}`);
-        }
-
         res.status(200).json({
             success: true,
             message: 'Profile updated successfully',
@@ -210,10 +239,10 @@ router.patch('/password', verifyToken, async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-        // อัปเดตรหัสผ่าน
+        // อัปเดตรหัสผ่าน และล้าง mustChangePassword flag ด้วย
         await prisma.users.update({
             where: { id: userId },
-            data: { password: hashedPassword }
+            data: { password: hashedPassword, mustChangePassword: false }
         });
 
         res.status(200).json({
@@ -278,6 +307,86 @@ router.post('/upload-image', verifyToken, upload.single('profileImage'), async (
             }
         }
         res.status(500).json({ message: 'Failed to upload image' });
+    }
+});
+
+// ========================================
+// 🔹 PATCH /api/profile/teacher - ครูแก้ไขข้อมูลตัวเองใน teachers table
+//    อนุญาตเฉพาะ: phoneNumber, email, biography, specializations
+//    ไม่อนุญาต: position, level, departmentId (admin only)
+// ========================================
+router.patch('/teacher', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // ดึง teacherId จาก users table
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { teacherId: true, userroles: { select: { roleName: true } } }
+        });
+
+        if (!user || !user.teacherId) {
+            return res.status(403).json({ message: 'ไม่พบข้อมูลครูสำหรับผู้ใช้นี้' });
+        }
+
+        const { phoneNumber, email, education, major, biography, specializations } = req.body;
+
+        // อนุญาตเฉพาะ fields ที่ครูแก้ไขเองได้
+        const updateData = {};
+        if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null;
+        if (email !== undefined) {
+            // ตรวจสอบ email ซ้ำในตาราง teachers (ยกเว้นตัวเอง)
+            if (email) {
+                const duplicate = await prisma.teachers.findFirst({
+                    where: { email, id: { not: user.teacherId }, isDeleted: false }
+                });
+                if (duplicate) {
+                    return res.status(400).json({ message: 'อีเมลนี้ถูกใช้งานแล้วโดยครูท่านอื่น' });
+                }
+            }
+            updateData.email = email || null;
+        }
+        if (education !== undefined) updateData.education = education || '';
+        if (major !== undefined) updateData.major = major || '';
+        if (biography !== undefined) updateData.biography = biography || '';
+        if (specializations !== undefined) updateData.specializations = specializations || '';
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'ไม่มีข้อมูลที่ต้องการอัปเดต' });
+        }
+
+        const updated = await prisma.teachers.update({
+            where: { id: user.teacherId },
+            data: updateData,
+            select: {
+                id: true,
+                namePrefix: true,
+                firstName: true,
+                lastName: true,
+                position: true,
+                level: true,
+                phoneNumber: true,
+                email: true,
+                education: true,
+                major: true,
+                biography: true,
+                specializations: true,
+                departments_teachers_departmentIdTodepartments: { select: { name: true } }
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'อัปเดตข้อมูลครูสำเร็จ',
+            data: {
+                ...updated,
+                fullName: `${updated.namePrefix || ''}${updated.firstName || ''}${updated.lastName ? ' ' + updated.lastName : ''}`.trim(),
+                department: updated.departments_teachers_departmentIdTodepartments?.name || null
+            }
+        });
+    } catch (error) {
+        console.error('Error updating teacher profile:', error);
+        res.status(500).json({ message: 'Failed to update teacher profile' });
     }
 });
 

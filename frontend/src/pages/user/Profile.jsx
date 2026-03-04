@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGetProfileQuery, useUpdateProfileMutation, useChangePasswordMutation, useUploadProfileImageMutation } from '../../redux/features/users/usersApi';
+import { useGetProfileQuery, useUpdateProfileMutation, useChangePasswordMutation, useUploadProfileImageMutation, useUpdateTeacherProfileMutation } from '../../redux/features/users/usersApi';
 import { useDispatch } from 'react-redux';
 import { updateUser } from '../../redux/features/auth/authSlice';
 import { User, Mail, Phone, Calendar, Shield, Lock, Upload, Save, Eye, EyeOff } from 'lucide-react';
@@ -21,12 +21,17 @@ const Profile = () => {
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [uploadImage, { isLoading: isUploading }] = useUploadProfileImageMutation();
+  const [updateTeacherProfile, { isLoading: isUpdatingTeacher }] = useUpdateTeacherProfileMutation();
 
   // State สำหรับ form ข้อมูลโปรไฟล์
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    phone: ''
+    phone: '',
+    education: '',
+    major: '',
+    biography: '',
+    specializations: ''
   });
 
   // State สำหรับ form รหัสผ่าน
@@ -47,13 +52,18 @@ const Profile = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [emailError, setEmailError] = useState('');
 
-  // เมื่อโหลดข้อมูล   ให้ set ค่าเริ่มต้นใน form
+  // เมื่อโหลดข้อมูล ให้ set ค่าเริ่มต้นใน form (รวม biography/specializations ของครู)
   useEffect(() => {
     if (profileData?.data) {
+      const tp = profileData.data.teacher_profile;
       setFormData({
         username: profileData.data.username || '',
         email: profileData.data.email || '',
-        phone: profileData.data.phone || ''
+        phone: profileData.data.phone || '',
+        education: tp?.education || '',
+        major: tp?.major || '',
+        biography: tp?.biography || '',
+        specializations: tp?.specializations || ''
       });
     }
   }, [profileData]);
@@ -111,7 +121,8 @@ const Profile = () => {
         icon: 'error',
         title: 'อีเมลไม่ถูกต้อง',
         text: 'กรุณากรอกอีเมลให้ถูกต้อง',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -141,12 +152,25 @@ const Profile = () => {
         email: result.data.email,
         phone: result.data.phone
       }));
+
+      // ถ้าเป็นครู ให้อัปเดตข้อมูลครูด้วย (ยกเว้น username)
+      if (profile?.teacher_profile) {
+        await updateTeacherProfile({
+          phoneNumber: formData.phone,
+          email: formData.email,
+          education: formData.education,
+          major: formData.major,
+          biography: formData.biography,
+          specializations: formData.specializations
+        }).unwrap();
+      }
       
       Swal.fire({
         icon: 'success',
         title: 'สำเร็จ!',
         text: result.message || 'อัปเดตข้อมูลโปรไฟล์สำเร็จ',
-        confirmButtonColor: '#10b981'
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'ตกลง'
       });
       
       setIsEditMode(false);
@@ -156,13 +180,12 @@ const Profile = () => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: error?.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
 
-  // ========================================
-  // 🔹 เปลี่ยนรหัสผ่าน
   // ========================================
   const handleChangePassword = async () => {
     // Validation
@@ -170,7 +193,8 @@ const Profile = () => {
       Swal.fire({
         icon: 'warning',
         title: 'กรุณากรอกข้อมูลให้ครบ',
-        confirmButtonColor: '#f59e0b'
+        confirmButtonColor: '#f59e0b',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -180,7 +204,8 @@ const Profile = () => {
         icon: 'error',
         title: 'รหัสผ่านไม่ตรงกัน',
         text: 'กรุณายืนยันรหัสผ่านใหม่ให้ตรงกัน',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -190,7 +215,8 @@ const Profile = () => {
         icon: 'warning',
         title: 'รหัสผ่านสั้นเกินไป',
         text: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
-        confirmButtonColor: '#f59e0b'
+        confirmButtonColor: '#f59e0b',
+        confirmButtonText: 'ตกลง'
       });
       return;
     }
@@ -202,7 +228,8 @@ const Profile = () => {
         icon: 'success',
         title: 'สำเร็จ!',
         text: result.message || 'เปลี่ยนรหัสผ่านสำเร็จ',
-        confirmButtonColor: '#10b981'
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'ตกลง'
       });
       
       // ล้างข้อมูล form
@@ -216,7 +243,8 @@ const Profile = () => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: error?.data?.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
@@ -234,7 +262,8 @@ const Profile = () => {
           icon: 'warning',
           title: 'ไฟล์ใหญ่เกินไป',
           text: 'กรุณาเลือกรูปที่มีขนาดไม่เกิน 2MB',
-          confirmButtonColor: '#f59e0b'
+          confirmButtonColor: '#f59e0b',
+          confirmButtonText: 'ตกลง'
         });
         return;
       }
@@ -246,7 +275,8 @@ const Profile = () => {
           icon: 'warning',
           title: 'ประเภทไฟล์ไม่ถูกต้อง',
           text: 'กรุณาเลือกไฟล์ JPG, PNG หรือ WebP เท่านั้น',
-          confirmButtonColor: '#f59e0b'
+          confirmButtonColor: '#f59e0b',
+          confirmButtonText: 'ตกลง'
         });
         return;
       }
@@ -287,7 +317,8 @@ const Profile = () => {
         icon: 'success',
         title: 'สำเร็จ!',
         text: result.message || 'อัปโหลดรูปโปรไฟล์สำเร็จ',
-        confirmButtonColor: '#10b981'
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'ตกลง'
       });
       
       // Clear เฉพาะ selected file เพื่อไม่ให้แสดงปุ่ม Upload อีก
@@ -297,19 +328,24 @@ const Profile = () => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: error?.data?.message || 'ไม่สามารถอัปโหลดรูปได้',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง'
       });
     }
   };
 
   const handleCancelEdit = () => {
     setIsEditMode(false);
-    // คืนค่าเดิม
     if (profileData?.data) {
+      const tp = profileData.data.teacher_profile;
       setFormData({
         username: profileData.data.username || '',
         email: profileData.data.email || '',
-        phone: profileData.data.phone || ''
+        phone: profileData.data.phone || '',
+        education: tp?.education || '',
+        major: tp?.major || '',
+        biography: tp?.biography || '',
+        specializations: tp?.specializations || ''
       });
     }
   };
@@ -338,12 +374,13 @@ const Profile = () => {
               <img
                 src={
                   imagePreview || 
-                  (profile?.profileImage 
+                  (profile?.profileImage && profile.profileImage !== '/default-avatar.jpg'
                     ? `${getBaseURL()}${profile.profileImage}?t=${Date.now()}` 
                     : '/default-avatar.jpg')
                 }
                 alt="Profile"
                 className="w-32 h-32 rounded-full object-cover mb-4 border-4 border-blue-100"
+                onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.jpg'; }}
               />
               
               <h3 className="text-xl font-semibold text-gray-800 mb-2">{profile?.username}</h3>
@@ -425,11 +462,11 @@ const Profile = () => {
                 <div className="space-x-2">
                   <button
                     onClick={handleSaveProfile}
-                    disabled={isUpdating}
+                    disabled={isUpdating || isUpdatingTeacher}
                     className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg disabled:opacity-50"
                   >
                     <Save className="w-4 h-4 inline mr-1" />
-                    {isUpdating ? 'กำลังบันทึก...' : 'บันทึก'}
+                    {(isUpdating || isUpdatingTeacher) ? 'กำลังบันทึก...' : 'บันทึก'}
                   </button>
                   <button
                     onClick={handleCancelEdit}
@@ -490,6 +527,78 @@ const Profile = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 />
               </div>
+
+              {/* วุฒิการศึกษา - แสดงเฉพาะครู */}
+              {profile?.teacher_profile && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    วุฒิการศึกษา
+                  </label>
+                  <input
+                    type="text"
+                    name="education"
+                    value={formData.education}
+                    onChange={handleInputChange}
+                    disabled={!isEditMode}
+                    placeholder="เช่น ปริญญาตรี, ปริญญาโท"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  />
+                </div>
+              )}
+
+              {/* สาขาวิชา - แสดงเฉพาะครู */}
+              {profile?.teacher_profile && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    สาขาวิชา
+                  </label>
+                  <input
+                    type="text"
+                    name="major"
+                    value={formData.major}
+                    onChange={handleInputChange}
+                    disabled={!isEditMode}
+                    placeholder="เช่น วิทยาศาสตร์ทั่วไป, คณิตศาสตร์"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  />
+                </div>
+              )}
+
+              {/* ประวัติย่อ - แสดงเฉพาะครู */}
+              {profile?.teacher_profile && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ประวัติย่อ
+                  </label>
+                  <textarea
+                    name="biography"
+                    value={formData.biography}
+                    onChange={handleInputChange}
+                    disabled={!isEditMode}
+                    placeholder="ประวัติการทำงาน, การศึกษา ฯลฯ"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 resize-none"
+                  />
+                </div>
+              )}
+
+              {/* ความเชี่ยวชาญ - แสดงเฉพาะครู */}
+              {profile?.teacher_profile && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ความเชี่ยวชาญ
+                  </label>
+                  <textarea
+                    name="specializations"
+                    value={formData.specializations}
+                    onChange={handleInputChange}
+                    disabled={!isEditMode}
+                    placeholder="วิชาที่ถนัด, ความเชี่ยวชาญพิเศษ"
+                    rows={2}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 resize-none"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -584,16 +693,93 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* แสดงข้อมูล Teacher (ถ้ามี) */}
+          {/* แสดงข้อมูล Teacher (ถ้ามี) - Read Only */}
           {profile?.teacher_profile && (
             <div className="bg-blue-50 rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-blue-800 mb-4">ข้อมูลครู</h2>
-              <div className="space-y-2 text-gray-700">
-                <p><strong>ชื่อ:</strong> {profile.teacher_profile.fullName}</p>
-                <p><strong>ตำแหน่ง:</strong> {profile.teacher_profile.position || 'ไม่ระบุ'}</p>
-                <p><strong>เบอร์โทร:</strong> {profile.teacher_profile.phoneNumber || 'ไม่ระบุ'}</p>
-                <p><strong>อีเมล:</strong> {profile.teacher_profile.email}</p>
+              <h2 className="text-xl font-semibold text-blue-800 mb-4">
+                🎓 ข้อมูลครูผู้สอน
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-700">
+                <div>
+                  <p className="text-xs text-blue-500 font-medium">ชื่อ-นามสกุล</p>
+                  <p className="font-semibold">
+                    {profile.teacher_profile.fullName ||
+                      `${profile.teacher_profile.namePrefix || ''}${profile.teacher_profile.firstName || ''} ${profile.teacher_profile.lastName || ''}`.trim() ||
+                      'ไม่ระบุ'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-500 font-medium">ตำแหน่ง</p>
+                  <p>{profile.teacher_profile.position || 'ไม่ระบุ'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-500 font-medium">วิทยฐานะ</p>
+                  <p>{profile.teacher_profile.level || 'ไม่ระบุ'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-500 font-medium">แผนก/กลุ่มสาระ</p>
+                  <p>{profile.teacher_profile.department || 'ไม่ระบุ'}</p>
+                </div>
               </div>
+
+              {/* ห้องเรียนที่รับผิดชอบ (homeroom) */}
+              {profile.teacher_profile.homeroom_class ? (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <p className="text-sm font-semibold text-blue-700 mb-2">🏫 ครูประจำชั้น</p>
+                  <div className="bg-white rounded-lg p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm text-gray-700">
+                    <div>
+                      <p className="text-xs text-blue-400 font-medium">ห้อง</p>
+                      <p className="font-bold text-blue-700 text-base">{profile.teacher_profile.homeroom_class.className}</p>
+                    </div>
+                    {profile.teacher_profile.homeroom_class.room && (
+                      <div>
+                        <p className="text-xs text-blue-400 font-medium">ห้องที่</p>
+                        <p>{profile.teacher_profile.homeroom_class.room}</p>
+                      </div>
+                    )}
+                    {(profile.teacher_profile.homeroom_class.floor || profile.teacher_profile.homeroom_class.building) && (
+                      <div>
+                        <p className="text-xs text-blue-400 font-medium">ที่ตั้ง</p>
+                        <p>
+                          {[
+                            profile.teacher_profile.homeroom_class.building,
+                            profile.teacher_profile.homeroom_class.floor ? `ชั้น ${profile.teacher_profile.homeroom_class.floor}` : null
+                          ].filter(Boolean).join(' ')}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-blue-400 font-medium">จำนวนนักเรียน</p>
+                      <p>
+                        <span className="font-semibold text-blue-700">{profile.teacher_profile.homeroom_class.studentCount}</span>
+                        {profile.teacher_profile.homeroom_class.maxStudents
+                          ? ` / ${profile.teacher_profile.homeroom_class.maxStudents} คน`
+                          : ' คน'}
+                      </p>
+                    </div>
+                    {profile.teacher_profile.homeroom_class.academicYear && (
+                      <div>
+                        <p className="text-xs text-blue-400 font-medium">ปีการศึกษา</p>
+                        <p className="flex items-center gap-1">
+                          {profile.teacher_profile.homeroom_class.academicYear.year}
+                          {profile.teacher_profile.homeroom_class.academicYear.isCurrent && (
+                            <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full font-medium">ปัจจุบัน</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <p className="text-sm text-gray-400 italic">ยังไม่ได้รับมอบหมายห้องเรียนประจำ</p>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 mt-3 italic">
+                * ชื่อ, ตำแหน่ง, วิทยฐานะ, แผนก, ครูประจำชั้น — แก้ไขโดยผู้ดูแลระบบเท่านั้น
+              </p>
             </div>
           )}
         </div>

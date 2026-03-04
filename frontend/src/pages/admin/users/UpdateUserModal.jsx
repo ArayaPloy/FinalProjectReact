@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import { useUpdateUserRoleMutation } from "../../../redux/features/auth/authApi";
 import { MdClose, MdSave, MdPerson, MdEmail, MdVerifiedUser } from "react-icons/md";
+import { useDispatch, useSelector } from "react-redux";
+import { updateUser } from "../../../redux/features/auth/authSlice";
 
 const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
+  const dispatch = useDispatch();
+  const currentUser = useSelector((state) => state.auth.user);
   const [role, setRole] = useState(user?.role || 'user');
   const [username, setUsername] = useState(user?.username || '');
   const [updateUserRole, { isLoading }] = useUpdateUserRoleMutation();
@@ -48,7 +52,15 @@ const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
       const userId = user.id;
       const roleId = getRoleId(role);
       
-      await updateUserRole({ userId, roleId, username: username.trim() }).unwrap();
+      const result = await updateUserRole({ userId, roleId, username: username.trim() }).unwrap();
+      
+      // ถ้าแอดมินแก้ไขข้อมูลของตัวเอง ให้อัปเดต Redux state ด้วย
+      if (currentUser?.id === userId) {
+        dispatch(updateUser({
+          username: username.trim(),
+          role: role
+        }));
+      }
       
       // Show success message
       const successDiv = document.createElement('div');

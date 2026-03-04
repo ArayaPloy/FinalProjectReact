@@ -23,6 +23,8 @@ import SingleBlog from "../pages/blogs/singleBlog/SingleBlog";
 import Login from "../pages/user/Login";
 import Register from "../pages/user/Register";
 import Profile from "../pages/user/Profile";
+import ForgotPassword from "../pages/user/ForgotPassword";
+import ChangePassword from "../pages/user/ChangePassword";
 import ProtectedRoute from "../components/ProtectedRoute";
 import PublicRoute from "../components/PublicRoute";
 import AdminLayout from "../pages/admin/AdminLayout";
@@ -39,6 +41,8 @@ import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceR
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
 import HomeVisitReport from "../pages/admin/reports/HomeVisitReport";
 import ManageAcademicYears from "../pages/admin/academic/ManageAcademicYears";
+import ManageClassroom from "../pages/admin/classroom/ManageClassroom";
+import ManageClassSchedules from "../pages/admin/classroom/ManageClassSchedules";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
 const router = createBrowserRouter([
@@ -165,6 +169,22 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         )
       },
+      {
+        path: "/forgot-password",
+        element: (
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        )
+      },
+      {
+        path: "/change-password",
+        element: (
+          <ProtectedRoute>
+            <ChangePassword />
+          </ProtectedRoute>
+        )
+      },
       // Admin Dashboard
       {
         path: '/dashboard',
@@ -191,7 +211,7 @@ const router = createBrowserRouter([
             element: <UpdatePosts />
           },
           {
-            path: 'users', // จัดการผู้ใช้
+            path: 'users', // จัดการผู้ใช้ (เฉพาะ Admin และ Super Admin)
             element: <ManageUser />,
           },
           {
@@ -209,11 +229,15 @@ const router = createBrowserRouter([
           {
             path: 'manage-teachers', // จัดการครูและบุคลากร
             element: <ManageTeacher />,
-          },/*
+          },
           {
-            path: 'manage-schedule', // จัดการตารางเรียน -ยังไม่ได้ทำหน้านี้
-              element: <ManageSchedule />,
-          },*/
+            path: 'manage-classrooms', // จัดการห้องเรียน
+            element: <ManageClassroom />,
+          },
+          {
+            path: 'manage-schedule', // จัดการตารางเรียน
+            element: <ManageClassSchedules />,
+          },
           // รายงานต่างๆ
           {
             path: 'flagpole-attendance-report', // รายงานการเข้าแถว

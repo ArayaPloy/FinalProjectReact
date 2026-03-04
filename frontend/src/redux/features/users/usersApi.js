@@ -27,6 +27,15 @@ export const usersApi = createApi({
         body: data,
       }),
       invalidatesTags: ['Profile'], // Refetch หลังอัปเดต
+      // อัปเดตข้อมูลผู้ใช้ใน authApi ด้วย (สำหรับหน้าจัดการผู้ใช้)
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Invalidate cache ของ authApi และ teachersApi
+          dispatch({ type: 'authApi/invalidateTags', payload: ['User'] });
+          dispatch({ type: 'teachersApi/invalidateTags', payload: ['Teachers'] });
+        } catch {}
+      },
     }),
     
     // เปลี่ยนรหัสผ่าน
@@ -56,6 +65,23 @@ export const usersApi = createApi({
         body: { newPassword },
       }),
     }),
+
+    // ครูแก้ไขข้อมูลตัวเองใน teachers table (phoneNumber, email, biography, specializations)
+    updateTeacherProfile: builder.mutation({
+      query: (data) => ({
+        url: "/teacher",
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ['Profile'],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Invalidate teachers cache เพื่อให้หน้าบุคลากร (FacultyStaff) โหลดใหม่
+          dispatch({ type: 'teachersApi/invalidateTags', payload: ['Teachers', 'Teacher'] });
+        } catch {}
+      },
+    }),
   }),
 });
 
@@ -65,4 +91,5 @@ export const {
   useChangePasswordMutation,
   useUploadProfileImageMutation,
   useAdminResetPasswordMutation,
+  useUpdateTeacherProfileMutation,
 } = usersApi;

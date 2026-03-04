@@ -90,7 +90,7 @@ const Home = () => {
             <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
               <LinkItem
                 href="/admissions"
-                title="รับสมัครนักเรียนออนไลน์"
+                title="รับสมัครนักเรียน"
                 icon={<UserAddIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />}
               />
               <LinkItem
