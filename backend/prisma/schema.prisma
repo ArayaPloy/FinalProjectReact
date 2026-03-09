@@ -18,7 +18,7 @@ model homeroom_classes {
   building          String?          @db.VarChar(50)
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now()) @db.Timestamp(0)
-  updatedAt         DateTime         @updatedAt @db.Timestamp(0)
+  updatedAt         DateTime         @default(now()) @updatedAt @db.Timestamp(0)
   deletedAt         DateTime?        @db.Timestamp(0)
   homeroomTeacher   teachers         @relation(fields: [homeroomTeacherId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroom_classes_ibfk_1")
   academicYear      academic_years?  @relation(fields: [academicYearId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "homeroom_classes_ibfk_2")
@@ -332,7 +332,7 @@ model homevisits {
   imagePath             String?           @db.VarChar(500)
   imageGallery          String?           @db.LongText
   createdAt             DateTime          @default(now()) @db.Timestamp(0)
-  updatedAt             DateTime          @updatedAt @db.Timestamp(0)
+  updatedAt             DateTime          @default(now()) @updatedAt @db.Timestamp(0)
   isDeleted             Boolean?          @default(false)
   deletedAt             DateTime?         @db.Timestamp(0)
   students              students?         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_homevisits_student")
