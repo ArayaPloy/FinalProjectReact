@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useFetchTeachersByDepartmentQuery } from '../../redux/features/teachers/teachersApi';
+import { getApiURL } from '../../utils/apiConfig';
 
 const HomeVisits = () => {
     const navigate = useNavigate();
@@ -100,7 +101,7 @@ const HomeVisits = () => {
     useEffect(() => {
         const fetchMe = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/auth/me', { credentials: 'include' });
+                const res = await fetch(getApiURL('/auth/me'), { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
                     const u = data.user || {};
@@ -184,7 +185,7 @@ const HomeVisits = () => {
         
         if (studentNumber && studentNumber.length === 5) {
             try {
-                const response = await fetch(`http://localhost:5000/api/homevisits/student/${studentNumber}`, {
+                const response = await fetch(getApiURL(`/homevisits/student/${studentNumber}`), {
                     credentials: 'include',
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('authToken')}`,
@@ -193,7 +194,6 @@ const HomeVisits = () => {
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('[DEBUG] Student API response:', JSON.stringify(result, null, 2));
                     
                     if (result.success && result.data) {
                         const student = result.data;
@@ -486,7 +486,7 @@ const HomeVisits = () => {
                         guardianMonthlyIncome: formData.guardianMonthlyIncome
                     };
 
-                    const patchResp = await fetch(`http://localhost:5000/api/students/${formData.studentId}`, {
+                    const patchResp = await fetch(getApiURL(`/students/${formData.studentId}`), {
                         method: 'PATCH',
                         credentials: 'include',
                         headers: {
@@ -564,7 +564,7 @@ const HomeVisits = () => {
                 });
             }, 200);
 
-            const response = await fetch('http://localhost:5000/api/homevisits', {
+            const response = await fetch(getApiURL('/homevisits'), {
                 method: 'POST',
                 body: uploadFormData,
                 credentials: 'include',

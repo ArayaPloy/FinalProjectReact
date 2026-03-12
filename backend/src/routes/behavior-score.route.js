@@ -2,22 +2,81 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const verifyToken = require('../middleware/verifyToken');
+const isAdmin = require('../middleware/admin');
 
 // ========================================
 // TEACHER ENDPOINTS
 // ========================================
 
 /**
+ * GET /api/behavior-scores/today
+ * ดึงคะแนนที่บันทึกไว้วันนี้ (classRoom เป็น optional — ถ้าไม่ระบุหรือ 'ทั้งหมด' จะดึงทุกห้อง)
+ * Query params: classRoom (optional), date (YYYY-MM-DD local, required)
+ */
+router.get('/today', verifyToken, async (req, res) => {
+  try {
+    const { classRoom, date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'กรุณาระบุวันที่' });
+    }
+
+    const [year, month, day] = date.split('-').map(Number);
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    // กรองตามห้อง (ถ้าไม่มี classRoom หรือ 'ทั้งหมด' → ดึงทุกห้อง)
+    const studentFilter = (classRoom && classRoom !== 'ทั้งหมด')
+      ? { homeroomClass: { className: classRoom }, isDeleted: false }
+      : { isDeleted: false };
+
+    const records = await prisma.studentbehaviorscores.findMany({
+      where: {
+        isDeleted: false,
+        createdAt: { gte: startOfDay, lte: endOfDay },
+        students: studentFilter
+      },
+      include: {
+        students: {
+          select: { id: true, firstName: true, lastName: true, namePrefix: true }
+        },
+        users_studentbehaviorscores_recorderIdTousers: {
+          select: {
+            username: true,
+            teacher_profile: {
+              select: { namePrefix: true, firstName: true, lastName: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const formatted = records.map(r => {
+      const recorder = r.users_studentbehaviorscores_recorderIdTousers;
+      let recorderName = null;
+      if (recorder) {
+        const t = recorder.teacher_profile;
+        recorderName = t
+          ? `${t.namePrefix || ''}${t.firstName || ''}${t.lastName ? ' ' + t.lastName : ''}`.trim()
+          : recorder.username;
+      }
+      return { ...r, recorderName };
+    });
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    console.error('Error fetching today behavior scores:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลได้', error: error.message });
+  }
+});
+
+/**
  * POST /api/behavior-scores
  * บันทึกคะแนนนักเรียน (รองรับ single และ multiple students)
- * Body: {
- *   records: [
- *     { studentId: 1, score: 10, comments: "ช่วยเหลืองาน" }
- *   ],
- *   recorderId: 1 (teacherId)
- * }
+ * สามารถบันทึกซ้ำได้หลายครั้งต่อวัน (append mode) เช่น นักเรียนทำดีและทำผิดซ้ำ
  */
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     const { records, recorderId } = req.body;
 
@@ -35,7 +94,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // บันทึกทีละรายการ
+    // บันทึกทีละรายการ (append — ไม่ลบข้อมูลเก่า)
     const createdRecords = await Promise.all(
       records.map(async (record) => {
         const { studentId, score, comments } = record;
@@ -95,7 +154,7 @@ router.post('/', async (req, res) => {
  * GET /api/behavior-scores/history/:studentId
  * ดูประวัติการบันทึกคะแนนของนักเรียน
  */
-router.get('/history/:studentId', async (req, res) => {
+router.get('/history/:studentId', verifyToken, async (req, res) => {
   try {
     const { studentId } = req.params;
 
@@ -185,11 +244,9 @@ router.get('/history/:studentId', async (req, res) => {
  * รายงานประวัติการบันทึกคะแนน (สำหรับ admin)
  * Query params: classRoom, studentId, search, startDate, endDate
  */
-router.get('/reports/history', async (req, res) => {
+router.get('/reports/history', verifyToken, isAdmin, async (req, res) => {
   try {
     const { classRoom, studentId, search, startDate, endDate } = req.query;
-    
-    console.log('History Query Params:', { classRoom, studentId, search, startDate, endDate });
 
     // Build where clause
     let whereClause = {
@@ -202,7 +259,7 @@ router.get('/reports/history', async (req, res) => {
       if (startDate) {
         try {
           const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0); // เริ่มต้นวัน
+          start.setHours(0, 0, 0, 0); // วันเริ่มต้น
           whereClause.createdAt.gte = start;
         } catch (e) {
           console.error('Invalid startDate:', startDate);
@@ -211,7 +268,7 @@ router.get('/reports/history', async (req, res) => {
       if (endDate) {
         try {
           const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999); // สิ้นสุดวัน
+          end.setHours(23, 59, 59, 999); // วันสิ้นสุด
           whereClause.createdAt.lte = end;
         } catch (e) {
           console.error('Invalid endDate:', endDate);
@@ -250,7 +307,7 @@ router.get('/reports/history', async (req, res) => {
       }
     });
 
-    // Filter by classRoom and search (after include)
+    // Filter by classRoom and search
     let filteredRecords = records;
     
     // Filter by classroom
@@ -281,7 +338,7 @@ router.get('/reports/history', async (req, res) => {
         });
         const currentTotal = 100 + allScores.reduce((sum, s) => sum + s.score, 0);
 
-        // ดึง audit logs สำหรับบันทึกนี้
+        // ดึง audit logs สำหรับบันทึก
         let auditLogs = [];
         try {
           auditLogs = await prisma.audit_logs.findMany({
@@ -307,7 +364,7 @@ router.get('/reports/history', async (req, res) => {
           auditLogs = [];
         }
 
-        // แปลง audit logs เป็นรูปแบบที่ frontend ต้องการ
+        // แปลง audit logs เป็นรูปแบบที่ frontend 
         const updateLogs = auditLogs.map(log => {
           let oldValues = {};
           let newValues = {};
@@ -355,10 +412,6 @@ router.get('/reports/history', async (req, res) => {
 
     // Filter out null records
     const validRecords = formattedRecords.filter(r => r !== null);
-    
-    console.log(`Found ${records.length} total records`);
-    console.log(`After filtering: ${filteredRecords.length} records`);
-    console.log(`After formatting: ${validRecords.length} valid records`);
 
     res.json({
       success: true,
@@ -381,26 +434,52 @@ router.get('/reports/history', async (req, res) => {
  * รายงานสรุปคะแนนความประพฤติ
  * Query params: classRoom, search, period (week/month/semester)
  */
-router.get('/reports/summary', async (req, res) => {
+router.get('/reports/summary', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { classRoom, search, period = 'week' } = req.query;
+    const { classRoom, search, period = 'week', weekDate, monthDate } = req.query;
 
     // คำนวณ date range ตาม period
+    let startDate, endDate;
     const now = new Date();
-    let startDate = new Date();
-    
-    switch (period) {
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case 'semester':
-        startDate.setMonth(now.getMonth() - 6);
-        break;
-      default:
-        startDate.setDate(now.getDate() - 7);
+
+    if (period === 'semester') {
+      // ใช้ภาคเรียนปัจจุบันจากฐานข้อมูล
+      const currentSemester = await prisma.semesters.findFirst({
+        where: { isCurrent: true, isActive: true }
+      });
+      if (currentSemester) {
+        startDate = new Date(currentSemester.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(currentSemester.endDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Fallback: เดือนปัจจุบัน
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
+    } else if (period === 'month') {
+      // ใช้เดือนที่ระบุจาก monthDate param (YYYY-MM)
+      if (monthDate && /^\d{4}-\d{2}$/.test(monthDate)) {
+        const [year, month] = monthDate.split('-').map(Number);
+        startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      } else {
+        // Fallback: เดือนปัจจุบัน
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
+    } else {
+      // week: ใช้ weekDate param (วันใดก็ได้ในสัปดาห์ที่ต้องการ → คำนวณจันทร์-อาทิตย์)
+      const d = (weekDate && /^\d{4}-\d{2}-\d{2}$/.test(weekDate)) ? new Date(weekDate) : new Date();
+      const day = d.getDay(); // 0=Sun, 1=Mon
+      const monday = new Date(d);
+      monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      startDate = monday;
+      endDate = sunday;
     }
 
     // ดึงข้อมูลนักเรียน
@@ -453,7 +532,7 @@ router.get('/reports/summary', async (req, res) => {
             isDeleted: false,
             createdAt: {
               gte: startDate,
-              lte: now
+              lte: endDate
             }
           },
           select: { score: true }
@@ -477,22 +556,32 @@ router.get('/reports/summary', async (req, res) => {
       })
     );
 
+    // กรองเฉพาะนักเรียนที่มีการบันทึกคะแนนในช่วงเวลาที่เลือก
+    const filteredSummary = summary.filter(s => s.recordCount > 0);
+
     // สถิติรวม
     const stats = {
-      totalStudents: summary.length,
-      averageScore: summary.length > 0 
-        ? (summary.reduce((sum, s) => sum + s.currentScore, 0) / summary.length).toFixed(2)
+      totalStudents: filteredSummary.length,
+      averageScore: filteredSummary.length > 0 
+        ? (filteredSummary.reduce((sum, s) => sum + s.currentScore, 0) / filteredSummary.length).toFixed(2)
         : 100,
-      totalAdded: summary.reduce((sum, s) => sum + s.addedPoints, 0),
-      totalDeducted: summary.reduce((sum, s) => sum + s.deductedPoints, 0),
-      studentsAbove90: summary.filter(s => s.currentScore >= 90).length,
-      studentsBelow70: summary.filter(s => s.currentScore < 70).length
+      totalAdded: filteredSummary.reduce((sum, s) => sum + s.addedPoints, 0),
+      totalDeducted: filteredSummary.reduce((sum, s) => sum + s.deductedPoints, 0),
+      studentsAbove90: filteredSummary.filter(s => s.currentScore >= 90).length,
+      studentsBelow70: filteredSummary.filter(s => s.currentScore < 70).length,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      periodLabel: period === 'week'
+        ? `สัปดาห์ ${startDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} – ${endDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        : period === 'month'
+        ? startDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
+        : 'ภาคเรียนปัจจุบัน'
     };
 
     res.json({
       success: true,
       data: {
-        summary: summary,
+        summary: filteredSummary,
         statistics: stats,
         period: period,
         classRoom: classRoom || 'ทั้งหมด'
@@ -541,7 +630,7 @@ router.put('/:id', async (req, res) => {
       comments: comments !== undefined ? comments : existingRecord.comments
     };
 
-    // อัพเดท
+    // อัปเดตบันทึก
     const updated = await prisma.studentbehaviorscores.update({
       where: { id: parseInt(id) },
       data: {
@@ -578,7 +667,7 @@ router.put('/:id', async (req, res) => {
         });
       } catch (auditError) {
         console.error('Error creating audit log:', auditError);
-        // ไม่ให้ error ของ audit log ทำให้การอัพเดทล้มเหลว
+        // ไม่ให้ error ของ audit log ทำให้การอัปเดตล้มเหลว
       }
     }
 
@@ -615,6 +704,23 @@ router.delete('/:id', async (req, res) => {
         updatedBy: deletedBy
       }
     });
+
+    try {
+      await prisma.audit_logs.create({
+        data: {
+          userId: deletedBy || req.userId || null,
+          tableName: 'studentbehaviorscores',
+          recordId: parseInt(id),
+          action: 'DELETE',
+          oldValues: JSON.stringify({ score: deleted.score, comments: deleted.comments }),
+          newValues: null,
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.get('user-agent') || null
+        }
+      });
+    } catch (auditError) {
+      console.error('Error creating audit log:', auditError);
+    }
 
     res.json({
       success: true,

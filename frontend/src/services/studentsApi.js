@@ -5,12 +5,12 @@ export const studentsApi = createApi({
   reducerPath: 'studentsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getApiURL('/students'),
-    credentials: 'include', // ส่ง cookie อัตโนมัติ
+    credentials: 'include',
   }),
   tagTypes: ['Students', 'Classrooms', 'BehaviorScores'],
   endpoints: (builder) => ({
     /**
-     * ดึงรายชื่อห้องเรียนทั้งหมด
+     * ดึงรายชื่อห้องเรียนทั้งหมด (string array)
      */
     getClassrooms: builder.query({
       query: () => '/classrooms',
@@ -19,7 +19,24 @@ export const studentsApi = createApi({
     }),
 
     /**
-     * ดึงข้อมูลนักเรียนพร้อมคะแนนปัจจุบัน (สำหรับหน้าบันทึกคะแนน)
+     * ดึงรายชื่อห้องเรียนพร้อมข้อมูลครูประจำชั้น
+     */
+    getClassroomsFull: builder.query({
+      query: () => '/classrooms-full',
+      providesTags: ['Classrooms'],
+      transformResponse: (response) => response.data || [],
+    }),
+
+    /**
+     * ดึงรายการเพศทั้งหมด
+     */
+    getGenders: builder.query({
+      query: () => '/genders',
+      transformResponse: (response) => response.data || [],
+    }),
+
+    /**
+     * ดึงข้อมูลนักเรียนในห้องพร้อมคะแนนปัจจุบัน (สำหรับหน้าบันทึกคะแนน)
      */
     getStudentsWithScores: builder.query({
       query: ({ classRoom, search = '' }) => ({
@@ -30,17 +47,15 @@ export const studentsApi = createApi({
     }),
 
     /**
-     * เพิ่ม endpointดึงรายชื่อนักเรียนทั้งหมด (สำหรับหน้า AllStudents)
+     * ดึงรายชื่อนักเรียนทั้งหมด (สำหรับหน้า AllStudents / ManageStudent)
      */
     getAllStudents: builder.query({
-      query: ({ classRoom, search } = {}) => {
+      query: ({ classRoom, search, includeDeleted } = {}) => {
         const params = {};
         if (classRoom) params.classRoom = classRoom;
         if (search) params.search = search;
-        return {
-          url: '/all',
-          params,
-        };
+        if (includeDeleted) params.includeDeleted = 'true';
+        return { url: '/all', params };
       },
       providesTags: ['Students'],
     }),
@@ -53,10 +68,7 @@ export const studentsApi = createApi({
         const params = {};
         if (classRoom) params.classRoom = classRoom;
         if (search) params.search = search;
-        return {
-          url: '',
-          params,
-        };
+        return { url: '', params };
       },
       providesTags: ['Students'],
     }),
@@ -82,7 +94,7 @@ export const studentsApi = createApi({
     }),
 
     /**
-     * แก้ไขข้อมูลนักเรียน
+     * แก้ไขข้อมูลนักเรียนทั้งหมด
      */
     updateStudent: builder.mutation({
       query: ({ id, ...studentData }) => ({
@@ -90,14 +102,22 @@ export const studentsApi = createApi({
         method: 'PUT',
         body: studentData,
       }),
-      invalidatesTags: (result, error, { id }) => [
-        'Students',
-        { type: 'Students', id },
-      ],
+      invalidatesTags: (result, error, { id }) => ['Students', { type: 'Students', id }],
     }),
 
     /**
-     * ลบนักเรียน
+     * เปิด/ปิดการใช้งานนักเรียน
+     */
+    toggleStudent: builder.mutation({
+      query: (id) => ({
+        url: `/${id}/toggle`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Students'],
+    }),
+
+    /**
+     * ลบนักเรียน (soft delete)
      */
     deleteStudent: builder.mutation({
       query: (id) => ({
@@ -106,16 +126,32 @@ export const studentsApi = createApi({
       }),
       invalidatesTags: ['Students'],
     }),
+
+    /**
+     * นำเข้าข้อมูลนักเรียนจากไฟล์ CSV
+     */
+    importStudents: builder.mutation({
+      query: (body) => ({
+        url: '/import',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Students'],
+    }),
   }),
 });
 
 export const {
   useGetClassroomsQuery,
+  useGetClassroomsFullQuery,
+  useGetGendersQuery,
   useGetStudentsWithScoresQuery,
   useGetAllStudentsQuery,
   useGetStudentsQuery,
   useGetStudentByIdQuery,
   useCreateStudentMutation,
   useUpdateStudentMutation,
+  useToggleStudentMutation,
   useDeleteStudentMutation,
+  useImportStudentsMutation,
 } = studentsApi;

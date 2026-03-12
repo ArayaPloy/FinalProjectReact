@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
                 username,
                 roleId: parseInt(roleId),
                 profileImage: '/default-avatar.jpg', 
-                phone: null, // Optional field
+                phone: null, 
                 lastLogin: null // Will be updated on first login
             },
             include: {
@@ -100,7 +100,7 @@ router.post('/login', async (req, res) => {
             httpOnly: true,  // ป้องกัน XSS - JavaScript ไม่สามารถอ่านได้
             secure: process.env.NODE_ENV === 'production', // HTTPS only ใน production
             sameSite: 'Lax', // ป้องกัน CSRF - ส่ง cookie เฉพาะ same-site requests
-            maxAge: cookieDays * 24 * 60 * 60 * 1000 // 1 วัน หรือ 30 วัน ถ้า rememberMe
+            maxAge: cookieDays * 24 * 60 * 60 * 1000 // 1 วัน ถ้าไม่กด rememberMe  30 วัน ถ้ากด rememberMe
         });
 
         // Return user data without password
@@ -143,11 +143,11 @@ router.post('/forgot-password', async (req, res) => {
 
         const user = await prisma.users.findUnique({ where: { email } });
         if (!user || user.isDeleted) {
-            // ตอบ success เสมอ เพื่อป้องกัน user enumeration
+            // ตอบ success เสมอ
             return res.status(200).json({ message: 'ส่งคำขอสำเร็จ' });
         }
 
-        // ตรวจสอบว่ามีคำขอ pending อยู่แล้วหรือไม่
+        // ตรวจสอบว่ามีคำขอ รอดำเนินการ อยู่แล้วหรือไม่
         const existing = await prisma.password_reset_requests.findFirst({
             where: { userId: user.id, status: 'pending' }
         });
@@ -228,7 +228,22 @@ router.post('/password-reset-requests/:id/approve', verifyToken, async (req, res
             email: request.user.email,
             tempPassword // แสดงให้แอดมินเห็น 1 ครั้งเท่านั้น
         });
-    } catch (error) {
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.user.id || null,
+                    tableName: 'password_reset_requests',
+                    recordId: parseInt(id),
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ status: 'pending' }),
+                    newValues: JSON.stringify({ status: 'approved', resolvedBy: req.user.id, targetUserId: request.userId }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }    } catch (error) {
         console.error('approve reset error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
     }
@@ -249,6 +264,24 @@ router.post('/password-reset-requests/:id/reject', verifyToken, async (req, res)
             where: { id: parseInt(id) },
             data: { status: 'rejected', resolvedAt: new Date(), resolvedBy: req.user.id }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.user.id || null,
+                    tableName: 'password_reset_requests',
+                    recordId: parseInt(id),
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ status: 'pending' }),
+                    newValues: JSON.stringify({ status: 'rejected', resolvedBy: req.user.id }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
+
         res.status(200).json({ message: 'ปฏิเสธคำขอแล้ว' });
     } catch (error) {
         res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
@@ -382,6 +415,23 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'users',
+                    recordId: userId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ username: user.username, email: user.email }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
+
         res.status(200).send({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('Error deleting user:', error);
@@ -477,6 +527,23 @@ router.put('/users/:id', verifyToken, isAdmin, async (req, res) => {
                 role: user.userroles.roleName
             }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'users',
+                    recordId: userId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ username: existingUser.username, roleId: existingUser.roleId }),
+                    newValues: JSON.stringify({ username: user.username, roleId: user.roleId }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
     } catch (error) {
         console.error('Error updating user role:', error);
         res.status(500).send({ message: 'Failed to update user role' });
@@ -552,6 +619,23 @@ router.patch('/users/:id/restore', verifyToken, isAdmin, async (req, res) => {
                 deletedAt: null // Set to null instead of default date
             }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'users',
+                    recordId: userId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ isDeleted: true }),
+                    newValues: JSON.stringify({ isDeleted: false, restoredBy: req.userId }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).send({ message: 'User restored successfully' });
     } catch (error) {

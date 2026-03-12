@@ -6,7 +6,7 @@ export const usersApi = createApi({
   reducerPath: "usersApi",
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/profile`,
-    credentials: "include", // ✅ ส่ง cookie ไปด้วยทุกครั้ง
+    credentials: "include", // ส่ง cookie ไปด้วยทุกครั้ง
   }),
   tagTypes: ['Profile'],
   endpoints: (builder) => ({

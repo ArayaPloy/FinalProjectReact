@@ -84,6 +84,7 @@ router.get('/flagpole-attendance/:studentNumber', async (req, res) => {
     const formattedRecords = attendanceRecords.map(record => ({
       id: record.id,
       date: record.date,
+      createdAt: record.createdAt,
       status: translationMap[record.attendancestatuses.name] || record.attendancestatuses.name,
       statusId: record.statusId,
       semester: record.semesters ? {

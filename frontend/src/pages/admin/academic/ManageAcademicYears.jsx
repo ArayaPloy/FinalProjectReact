@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MdModeEdit, MdDelete, MdCheckCircle } from 'react-icons/md';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 import {
@@ -11,6 +12,7 @@ import {
   useSetCurrentSemesterMutation,
 } from '../../../services/academicApi';
 import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
 
 const ManageAcademicYears = () => {
   const currentUser = useSelector(selectCurrentUser);
@@ -94,13 +96,7 @@ const ManageAcademicYears = () => {
       resetForm();
       refetch();
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
-        confirmButtonColor: '#D97706',
-        confirmButtonText: 'ตกลง'
-      });
+      showApiError(error, 'ไม่สามารถบันทึกข้อมูลได้', 'บันทึกข้อมูลปีการศึกษา');
     }
   };
 
@@ -151,13 +147,7 @@ const ManageAcademicYears = () => {
         });
         refetch();
       } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด!',
-          text: error.data?.message || 'ไม่สามารถดำเนินการได้',
-          confirmButtonColor: '#D97706',
-          confirmButtonText: 'ตกลง'
-        });
+        showApiError(error, 'ไม่สามารถดำเนินการได้', 'ตั้งปีการศึกษาปัจจุบัน');
       }
     }
   };
@@ -187,6 +177,10 @@ const ManageAcademicYears = () => {
         });
         refetch();
       } catch (error) {
+        if (error?.status === 403) {
+          showApiError(error, '', 'ลบปีการศึกษา');
+          return;
+        }
         // จัดการ error message ที่มีรายละเอียด
         const errorMessage = error.data?.message || 'ไม่สามารถลบได้';
         const errorDetail = error.data?.detail || '';
@@ -242,13 +236,7 @@ const ManageAcademicYears = () => {
       resetSemesterForm();
       refetch();
     } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: error.data?.message || 'ไม่สามารถบันทึกข้อมูลได้',
-        confirmButtonColor: '#D97706',
-        confirmButtonText: 'ตกลง'
-      });
+      showApiError(error, 'ไม่สามารถบันทึกข้อมูลได้', 'บันทึกข้อมูลภาคเรียน');
     }
   };
 
@@ -276,13 +264,7 @@ const ManageAcademicYears = () => {
         });
         refetch();
       } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด!',
-          text: error.data?.message || 'ไม่สามารถดำเนินการได้',
-          confirmButtonColor: '#D97706',
-          confirmButtonText: 'ตกลง'
-        });
+        showApiError(error, 'ไม่สามารถดำเนินการได้', 'ตั้งภาคเรียนปัจจุบัน');
       }
     }
   };
@@ -390,29 +372,29 @@ const ManageAcademicYears = () => {
                       {!year.isCurrent && year.isActive && (
                         <button
                           onClick={() => handleSetCurrent(year.id)}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-all hover:scale-105 flex items-center gap-2"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
                           title="ตั้งเป็นปีปัจจุบัน"
                         >
-                          <i className="bi bi-check-circle"></i>
+                          <MdCheckCircle className="w-4 h-4" />
                           ตั้งเป็นปีปัจจุบัน
                         </button>
                       )}
                       {year.isActive && (
                         <button
                           onClick={() => handleEdit(year)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all hover:scale-105 flex items-center gap-2"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                         >
-                          <i className="bi bi-pencil-square"></i>
+                          <MdModeEdit className="w-4 h-4" />
                           แก้ไข
                         </button>
                       )}
                       {!year.isCurrent && year.isActive && (
                         <button
                           onClick={() => handleDelete(year.id)}
-                          className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all hover:scale-105 flex items-center gap-2"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                           title="ลบปีการศึกษาและภาคเรียนทั้งหมด (ไม่สามารถกู้คืนได้)"
                         >
-                          <i className="bi bi-trash"></i>
+                          <MdDelete className="w-4 h-4" />
                           ลบ
                         </button>
                       )}
@@ -464,17 +446,17 @@ const ManageAcademicYears = () => {
                             {!semester.isCurrent && semester.isActive && (
                               <button
                                 onClick={() => handleSetCurrentSemester(semester.id)}
-                                className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
                                 title="ตั้งเป็นภาคปัจจุบัน"
                               >
-                                <i className="bi bi-check-circle"></i>
+                                <MdCheckCircle className="w-4 h-4" />
                               </button>
                             )}
                             <button
                               onClick={() => handleEditSemester(semester)}
-                              className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                             >
-                              <i className="bi bi-pencil"></i>
+                              <MdModeEdit className="w-4 h-4" />
                             </button>
                           </div>
                         </div>

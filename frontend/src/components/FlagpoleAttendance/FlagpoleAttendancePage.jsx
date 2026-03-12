@@ -18,10 +18,19 @@ import {
   useGetCurrentSemesterQuery
 } from '../../services/academicApi';
 
+// ดึงวันที่ปัจจุบันตาม local timezone (ไม่ใช้ UTC date เพื่อป้องกันปัญหาข้ามวัน ช่วงก่อน 07:00 น.)
+const getLocalDateString = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 const FlagpoleAttendancePage = () => {
   const [attendanceRecords, setAttendanceRecords] = useState({});
   const [originalAttendanceRecords, setOriginalAttendanceRecords] = useState({}); // เก็บค่าเดิมสำหรับ reset
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString);
   const [selectedClass, setSelectedClass] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
@@ -30,20 +39,20 @@ const FlagpoleAttendancePage = () => {
   // RTK Query hooks
   const { data: statuses = [] } = useGetAttendanceStatusesQuery();
   const { data: classList = [] } = useGetClassRoomsQuery();
-  const { data: students = [], isLoading: isLoadingStudents } = useGetStudentsByClassRoomQuery(selectedClass, { skip: !selectedClass });
-  const { data: existingAttendance = [], isLoading: isLoadingAttendance } = useGetFlagpoleAttendanceQuery(
+  const { data: students = [], isLoading: isLoadingStudents, isFetching: isFetchingStudents } = useGetStudentsByClassRoomQuery(selectedClass, { skip: !selectedClass });
+  const { data: existingAttendance = [], isFetching: isFetchingAttendance } = useGetFlagpoleAttendanceQuery(
     { date: selectedDate, classRoom: selectedClass },
-    { skip: !selectedClass || !selectedDate }
+    { skip: !selectedClass || !selectedDate, refetchOnMountOrArgChange: true }
   );
   const [createAttendance, { isLoading: isSaving }] = useCreateFlagpoleAttendanceMutation();
 
   // Academic Year & Semester hooks
-  const { 
-    data: academicYears = [], 
+  const {
+    data: academicYears = [],
     isLoading: isLoadingYears
   } = useGetAcademicYearsQuery();
-  
-  const { 
+
+  const {
     data: currentSemester,
     isLoading: isLoadingCurrentSemester
   } = useGetCurrentSemesterQuery();
@@ -123,40 +132,21 @@ const FlagpoleAttendancePage = () => {
     return JSON.stringify(attendanceRecords) !== JSON.stringify(originalAttendanceRecords);
   }, [attendanceRecords, originalAttendanceRecords]);
 
-  // Initialize attendance records when students change
+  // โหลดข้อมูลการเช็คชื่อลงฟอร์ม (รอให้ทั้ง students และ attendance โหลด/refetch เสร็จก่อน)
   useEffect(() => {
-    if (students.length === 0) return;
+    if (isFetchingStudents || isFetchingAttendance || students.length === 0) return;
 
-    // Set default records to null (no status selected)
-    const defaultRecords = {};
+    const records = {};
     students.forEach((student) => {
-      defaultRecords[student.id] = null; // ไม่มีการเลือกสถานะ
+      records[student.id] = null;
+    });
+    existingAttendance.forEach((record) => {
+      records[record.studentId] = record.statusId;
     });
 
-    setAttendanceRecords(defaultRecords);
-    setOriginalAttendanceRecords(defaultRecords); // เก็บค่าเดิมด้วย
-  }, [selectedClass, students.length]); // trigger เมื่อเปลี่ยนห้องหรือจำนวนนักเรียนเปลี่ยน
-
-  // Update attendance records when existing attendance is loaded
-  useEffect(() => {
-    if (isLoadingAttendance) return;
-
-    // Reset to null first
-    const resetRecords = {};
-    students.forEach((student) => {
-      resetRecords[student.id] = null;
-    });
-
-    // Then update with existing data if any
-    if (existingAttendance.length > 0) {
-      existingAttendance.forEach((record) => {
-        resetRecords[record.studentId] = record.statusId;
-      });
-    }
-
-    setAttendanceRecords(resetRecords);
-    setOriginalAttendanceRecords(resetRecords); // เก็บค่าเดิมสำหรับเปรียบเทียบ
-  }, [selectedDate, selectedClass, isLoadingAttendance, existingAttendance.length]); // trigger เมื่อเปลี่ยนวันที่หรือห้อง
+    setAttendanceRecords(records);
+    setOriginalAttendanceRecords(records);
+  }, [selectedDate, selectedClass, isFetchingStudents, isFetchingAttendance, existingAttendance, students]);
 
   // Set initial class when class list is loaded
   useEffect(() => {
@@ -253,6 +243,23 @@ const FlagpoleAttendancePage = () => {
         });
         return;
       }
+    }
+
+    // ตรวจสอบการบันทึกซ้ำ
+    if (existingAttendance.length > 0) {
+      const firstRecord = existingAttendance[0];
+      const recorderName = firstRecord.recorderName || 'ไม่ระบุ';
+      const overwriteResult = await Swal.fire({
+        title: '⚠️ พบข้อมูลที่บันทึกไปแล้ว!',
+        html: `ห้อง <strong>${selectedClass}</strong> วันที่ <strong>${new Date(selectedDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</strong><br>ได้ถูกบันทึกข้อมูลไปแล้วโดย <strong class="text-amber-600">${recorderName}</strong><br><br>ต้องการบันทึกซ้ำอีกครั้งหรือไม่?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกซ้ำ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#D97706',
+        cancelButtonColor: '#6B7280',
+      });
+      if (!overwriteResult.isConfirmed) return;
     }
 
     // กรองเฉพาะนักเรียนที่มีการเลือกสถานะแล้ว
@@ -385,7 +392,7 @@ const FlagpoleAttendancePage = () => {
                   <i className="bi bi-bar-chart-fill text-amber-600 text-lg md:text-xl"></i>
                   <h3 className="text-base md:text-lg font-bold text-amber-700">สถิติการเช็คชื่อ</h3>
                 </div>
-                
+
                 {/* Mobile: Vertical Stack, Tablet+: Horizontal */}
                 <div className="space-y-3 md:space-y-0 md:flex md:items-center md:justify-between md:flex-wrap md:gap-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 md:gap-6">
@@ -396,7 +403,7 @@ const FlagpoleAttendancePage = () => {
                         นักเรียนทั้งหมด: <span className="text-amber-700 text-base md:text-lg font-bold">{attendanceStats.total}</span> คน
                       </span>
                     </div>
-                    
+
                     {/* เช็คแล้ว */}
                     <div className="flex items-center gap-2.5 md:gap-2">
                       <i className="bi bi-check-circle-fill text-green-600 text-lg md:text-lg flex-shrink-0"></i>
@@ -404,7 +411,7 @@ const FlagpoleAttendancePage = () => {
                         เช็คแล้ว: <span className="text-green-600 text-base md:text-lg font-bold">{attendanceStats.checked}</span> คน
                       </span>
                     </div>
-                    
+
                     {/* ยังไม่เช็ค */}
                     <div className="flex items-center gap-2.5 md:gap-2">
                       <i className="bi bi-clock-fill text-orange-600 text-lg md:text-lg flex-shrink-0"></i>
@@ -413,7 +420,7 @@ const FlagpoleAttendancePage = () => {
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Success Badge */}
                   {attendanceStats.unchecked === 0 && attendanceStats.total > 0 && (
                     <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 md:py-2 rounded-lg shadow-md w-full sm:w-auto justify-center">
@@ -431,7 +438,7 @@ const FlagpoleAttendancePage = () => {
                     <i className="bi bi-pie-chart-fill text-amber-600 text-lg md:text-lg"></i>
                     <span className="text-sm md:text-base font-bold text-gray-800">สถิติแยกตามสถานะ</span>
                   </div>
-                  
+
                   {/* Mobile: Full Width Cards, Tablet+: Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2.5 md:gap-3">
                     {Object.entries(attendanceStats.statusCounts)
@@ -548,7 +555,7 @@ const FlagpoleAttendancePage = () => {
                   </span>
                 </div>
               )}
-              
+
               {/* Action Buttons - Mobile: Full Width Grid, Desktop: Flex */}
               <div className="grid grid-cols-2 md:flex md:ms-auto gap-2 md:gap-3 w-full md:w-auto">
                 {/* Save Button - Touch Optimized */}

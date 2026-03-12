@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const path = require('path');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -127,7 +128,10 @@ app.use('/api/schedules', classSchedulesRoutes);
 const subjectsRoutes = require('./src/routes/subjects.route');
 app.use('/api/subjects', subjectsRoutes);
 
-app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
+const admissionsRoutes = require('./src/routes/admissions.route');
+app.use('/api/admissions', admissionsRoutes);
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve static files from the uploads directory
 
 // Global Error Handler
 app.use((err, req, res, next) => {

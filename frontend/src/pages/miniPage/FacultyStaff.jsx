@@ -13,12 +13,16 @@ const FacultyStaff = () => {
     const [isGlobalSearch, setIsGlobalSearch] = useState(false);
     const [selectedStaff, setSelectedStaff] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [pendingTeacherId, setPendingTeacherId] = useState(null);
 
-    // Apply URL search param on mount (?search=name)
+    // Apply URL search/teacherId params on mount
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const searchParam = params.get('search');
-        if (searchParam) {
+        const teacherIdParam = params.get('teacherId');
+        if (teacherIdParam) {
+            setPendingTeacherId(Number(teacherIdParam));
+        } else if (searchParam) {
             setSearchTerm(searchParam);
             setIsGlobalSearch(true);
         }
@@ -35,6 +39,23 @@ const FacultyStaff = () => {
         data: departments = [],
         isLoading: departmentsLoading
     } = useFetchDepartmentsQuery();
+
+    // When data loads and we have a pending teacherId, find the teacher, switch tab, open modal
+    useEffect(() => {
+        if (!pendingTeacherId || !teachersByDepartment || Object.keys(teachersByDepartment).length === 0) return;
+        for (const [deptKey, staffList] of Object.entries(teachersByDepartment)) {
+            const found = staffList.find((t) => t.id === pendingTeacherId);
+            if (found) {
+                setActiveTab(deptKey);
+                setIsGlobalSearch(false);
+                setSearchTerm('');
+                setSelectedStaff(found);
+                setIsModalOpen(true);
+                setPendingTeacherId(null);
+                break;
+            }
+        }
+    }, [pendingTeacherId, teachersByDepartment]);
 
     // Set viewport meta tag to prevent zooming issues on mobile
     useEffect(() => {
@@ -345,14 +366,14 @@ const FacultyStaff = () => {
                                 ))}
                             </div>
 
-                            {filteredStaff.length === 0 && currentStaff.length === 0 && (
+                            {filteredStaff.length === 0 && allStaff.length === 0 && (
                                 <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                                     <IoPersonOutline className="mx-auto text-4xl mb-2" />
                                     ยังไม่มีข้อมูลบุคลากรในหน่วยงานนี้
                                 </div>
                             )}
 
-                            {filteredStaff.length === 0 && currentStaff.length > 0 && (
+                            {filteredStaff.length === 0 && allStaff.length > 0 && (
                                 <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                                     <IoPersonOutline className="mx-auto text-4xl mb-2" />
                                     ไม่พบบุคลากรที่ตรงกับการค้นหา "{searchTerm}"

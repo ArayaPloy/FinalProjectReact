@@ -69,6 +69,15 @@ const flagpoleAttendanceApi = createApi({
         params: { startDate, endDate, classRoom }
       }),
       transformResponse: (response) => response.data
+    }),
+
+    // ดึงรายงานสรุปรายนักเรียน (แยกตามช่วงเวลา: week/month/semester)
+    getFlagpoleSummary: builder.query({
+      query: ({ period, classRoom, search, weekDate, monthDate }) => ({
+        url: '/flagpole-attendance/summary',
+        params: { period, classRoom, search, weekDate, monthDate }
+      }),
+      transformResponse: (response) => response.data
     })
   })
 });
@@ -80,7 +89,8 @@ export const {
   useGetFlagpoleAttendanceQuery,
   useCreateFlagpoleAttendanceMutation,
   useGetFlagpoleStatisticsQuery,
-  useGetFlagpoleReportQuery
+  useGetFlagpoleReportQuery,
+  useGetFlagpoleSummaryQuery
 } = flagpoleAttendanceApi;
 
 export default flagpoleAttendanceApi;

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 import {
     useFetchCompleteHistoryQuery,
     useUpdateSchoolInfoMutation,
@@ -8,6 +11,9 @@ import {
     useUpdateTimelineEventMutation,
     useDeleteTimelineEventMutation
 } from '../../../redux/features/about/aboutApi';
+import { useFetchTeachersQuery } from '../../../redux/features/teachers/teachersApi';
+import { getApiURL } from '../../../utils/apiConfig';
+import { MdModeEdit, MdDelete, MdClose, MdSave, MdAdd } from 'react-icons/md';
 import { formatDate } from '../../../utils/dateFormater';
 
 import { DatePicker, Form, Input, ConfigProvider } from 'antd';
@@ -41,11 +47,15 @@ const customTheme = {
 };
 
 const SchoolHistoryAdmin = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = ['admin', 'super_admin'].includes((currentUser?.role || '').toLowerCase());
+
     const { data: historyData, error, isLoading, refetch } = useFetchCompleteHistoryQuery();
     const [updateSchoolInfo] = useUpdateSchoolInfoMutation();
     const [addTimelineEvent] = useAddTimelineEventMutation();
     const [updateTimelineEvent] = useUpdateTimelineEventMutation();
     const [deleteTimelineEvent] = useDeleteTimelineEventMutation();
+    const { data: teachers = [] } = useFetchTeachersQuery();
 
     const [activeTab, setActiveTab] = useState('school-info');
     const [isEditing, setIsEditing] = useState(false);
@@ -75,6 +85,18 @@ const SchoolHistoryAdmin = () => {
     const [eventForm, setEventForm] = useState(defaultEventForm);
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
     const [foundedDateMoment, setFoundedDateMoment] = useState(null);
+
+    // States สำหรับ upload รูปภาพหลัก
+    const [heroImageFile, setHeroImageFile] = useState(null);
+    const [heroImagePreview, setHeroImagePreview] = useState('');
+    const [isUploadingHero, setIsUploadingHero] = useState(false);
+    const [heroUploadError, setHeroUploadError] = useState('');
+
+    // States สำหรับ upload รูปภาพผู้อำนวยการ
+    const [directorImageFile, setDirectorImageFile] = useState(null);
+    const [directorImagePreview, setDirectorImagePreview] = useState('');
+    const [isUploadingDirector, setIsUploadingDirector] = useState(false);
+    const [directorUploadError, setDirectorUploadError] = useState('');
 
     useEffect(() => {
         if (historyData?.schoolInfo) {
@@ -116,6 +138,97 @@ const SchoolHistoryAdmin = () => {
         }
     };
 
+    const validateImageFile = (file) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) return 'กรุณาเลือกไฟล์รูปภาพ (JPEG, JPG, PNG, GIF, WEBP)';
+        if (file.size > 5 * 1024 * 1024) return 'ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)';
+        return null;
+    };
+
+    const handleHeroFileSelect = (e) => {
+        const file = e.target.files[0];
+        setHeroUploadError('');
+        if (!file) return;
+        const err = validateImageFile(file);
+        if (err) { setHeroUploadError(err); return; }
+        setHeroImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setHeroImagePreview(reader.result);
+        reader.readAsDataURL(file);
+    };
+
+    const handleHeroImageUpload = async () => {
+        if (!heroImageFile) return;
+        setIsUploadingHero(true);
+        setHeroUploadError('');
+        try {
+            const formData = new FormData();
+            formData.append('image', heroImageFile);
+            const response = await fetch(getApiURL('/upload/image'), { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+                setSchoolInfoForm(prev => ({ ...prev, heroImage: data.imageUrl }));
+                setHeroImageFile(null);
+                showNotification('อัปโหลดรูปภาพหลักสำเร็จ');
+            } else {
+                setHeroUploadError(data.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+            }
+        } catch {
+            setHeroUploadError('ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองอีกครั้ง');
+        } finally {
+            setIsUploadingHero(false);
+        }
+    };
+
+    const handleRemoveHeroImage = () => {
+        setHeroImageFile(null);
+        setHeroImagePreview('');
+        setHeroUploadError('');
+        setSchoolInfoForm(prev => ({ ...prev, heroImage: '' }));
+    };
+
+    const handleDirectorFileSelect = (e) => {
+        const file = e.target.files[0];
+        setDirectorUploadError('');
+        if (!file) return;
+        const err = validateImageFile(file);
+        if (err) { setDirectorUploadError(err); return; }
+        setDirectorImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setDirectorImagePreview(reader.result);
+        reader.readAsDataURL(file);
+    };
+
+    const handleDirectorImageUpload = async () => {
+        if (!directorImageFile) return;
+        setIsUploadingDirector(true);
+        setDirectorUploadError('');
+        try {
+            const formData = new FormData();
+            formData.append('image', directorImageFile);
+            const response = await fetch(getApiURL('/upload/teacher-image'), { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.success) {
+                setSchoolInfoForm(prev => ({ ...prev, director_image: data.imageUrl }));
+                setDirectorImageFile(null);
+                showNotification('อัปโหลดรูปภาพผู้อำนวยการสำเร็จ');
+            } else {
+                setDirectorUploadError(data.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
+            }
+        } catch {
+            setDirectorUploadError('ไม่สามารถอัปโหลดรูปภาพได้ กรุณาลองอีกครั้ง');
+        } finally {
+            setIsUploadingDirector(false);
+        }
+    };
+
+    const handleRemoveDirectorImage = () => {
+        setDirectorImageFile(null);
+        setDirectorImagePreview('');
+        setDirectorUploadError('');
+        setSchoolInfoForm(prev => ({ ...prev, director_image: '' }));
+    };
+
     const handleEventFormChange = (e) => {
         const { name, value } = e.target;
         setEventForm(prev => ({ ...prev, [name]: value || '' }));
@@ -132,7 +245,11 @@ const SchoolHistoryAdmin = () => {
             showNotification('บันทึกข้อมูลโรงเรียนเรียบร้อยแล้ว');
             refetch();
         } catch (error) {
-            showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+            if (error?.status === 403) {
+                showApiError(error, '', 'บันทึกข้อมูลโรงเรียน');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+            }
             console.error('Error updating school info:', error);
         }
     };
@@ -152,7 +269,11 @@ const SchoolHistoryAdmin = () => {
             showNotification('เพิ่มเหตุการณ์ใหม่เรียบร้อยแล้ว');
             refetch();
         } catch (error) {
-            showNotification('เกิดข้อผิดพลาดในการเพิ่มเหตุการณ์', 'error');
+            if (error?.status === 403) {
+                showApiError(error, '', 'เพิ่มเหตุการณ์');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการเพิ่มเหตุการณ์', 'error');
+            }
             console.error('Error adding event:', error);
         }
     };
@@ -172,7 +293,11 @@ const SchoolHistoryAdmin = () => {
             showNotification('แก้ไขเหตุการณ์เรียบร้อยแล้ว');
             refetch();
         } catch (error) {
-            showNotification('เกิดข้อผิดพลาดในการแก้ไขเหตุการณ์', 'error');
+            if (error?.status === 403) {
+                showApiError(error, '', 'แก้ไขเหตุการณ์');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการแก้ไขเหตุการณ์', 'error');
+            }
             console.error('Error updating event:', error);
         }
     };
@@ -202,13 +327,7 @@ const SchoolHistoryAdmin = () => {
                 });
                 refetch();
             } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถลบเหตุการณ์ได้',
-                    confirmButtonColor: '#d97706',
-                    confirmButtonText: 'ตกลง'
-                });
+                showApiError(error, 'ไม่สามารถลบเหตุการณ์ได้', 'ลบเหตุการณ์');
                 console.error('Error deleting event:', error);
             }
         }
@@ -233,6 +352,18 @@ const SchoolHistoryAdmin = () => {
 
     if (isLoading) return <div className="min-h-screen flex items-center justify-center">กำลังโหลดข้อมูล...</div>;
 
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-2xl shadow p-10 text-center max-w-sm">
+                    <div className="text-5xl mb-3">🔒</div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p className="text-gray-500 text-sm">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
+                </div>
+            </div>
+        );
+    }
+
     const timelineEvents = historyData?.timeline || [];
 
     return (
@@ -255,7 +386,7 @@ const SchoolHistoryAdmin = () => {
                     {/* Header Navigation Tabs */}
                     <div className="bg-white rounded-lg shadow-md mb-6">
                         <div className="border-b border-gray-200">
-                            <nav className="flex space-x-8 px-6">
+                            <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
                                 <button
                                     onClick={() => setActiveTab('school-info')}
                                     className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -282,18 +413,18 @@ const SchoolHistoryAdmin = () => {
 
                     {/* School Information Tab */}
                     {activeTab === 'school-info' && (
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-800">ข้อมูลโรงเรียน</h2>
+                        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                            <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">ข้อมูลโรงเรียน</h2>
                                 <button
                                     onClick={() => setIsEditing(!isEditing)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                         isEditing
-                                            ? 'bg-gray-500 hover:bg-gray-600 text-white'
-                                            : 'bg-amber-500 hover:bg-amber-600 text-white'
+                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
                                     }`}
                                 >
-                                    {isEditing ? 'ยกเลิก' : 'แก้ไข'}
+                                    {isEditing ? <><MdClose className="w-4 h-4" /> ยกเลิก</> : <><MdModeEdit className="w-4 h-4" /> แก้ไข</>}
                                 </button>
                             </div>
 
@@ -339,13 +470,27 @@ const SchoolHistoryAdmin = () => {
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-700">ผู้อำนวยการปัจจุบัน</label>
-                                    <Input
-                                        name="currentDirector"
-                                        value={schoolInfoForm.currentDirector}
-                                        onChange={handleSchoolInfoChange}
-                                        disabled={!isEditing}
-                                        className="w-full"
-                                    />
+                                    {isEditing ? (
+                                        <select
+                                            name="currentDirector"
+                                            value={schoolInfoForm.currentDirector}
+                                            onChange={handleSchoolInfoChange}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                                        >
+                                            <option value="">— เลือกผู้อำนวยการ —</option>
+                                            {teachers.map((t) => (
+                                                <option key={t.id} value={t.name}>
+                                                    {t.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <Input
+                                            value={schoolInfoForm.currentDirector}
+                                            disabled
+                                            className="w-full"
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-700">ระดับการศึกษา</label>
@@ -358,7 +503,7 @@ const SchoolHistoryAdmin = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block mb-2 text-sm font-medium text-gray-700">แผนก</label>
+                                    <label className="block mb-2 text-sm font-medium text-gray-700">สำนักงานเขต</label>
                                     <Input
                                         name="department"
                                         value={schoolInfoForm.department}
@@ -379,24 +524,100 @@ const SchoolHistoryAdmin = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block mb-2 text-sm font-medium text-gray-700">รูปภาพหลัก</label>
-                                    <Input
-                                        name="heroImage"
-                                        value={schoolInfoForm.heroImage}
-                                        onChange={handleSchoolInfoChange}
-                                        disabled={!isEditing}
-                                        className="w-full"
-                                    />
+                                    <label className="block mb-2 text-sm font-medium text-gray-700">รูปภาพปกพื้นหลัง</label>
+                                    {isEditing ? (
+                                        <div className="space-y-2">
+                                            {(heroImagePreview || schoolInfoForm.heroImage) && (
+                                                <div className="relative">
+                                                    <img
+                                                        src={heroImagePreview || schoolInfoForm.heroImage}
+                                                        alt="Hero preview"
+                                                        className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemoveHeroImage}
+                                                        className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full text-sm hover:bg-red-600"
+                                                    >×</button>
+                                                </div>
+                                            )}
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                                onChange={handleHeroFileSelect}
+                                                className="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer"
+                                            />
+                                            {heroImageFile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleHeroImageUpload}
+                                                    disabled={isUploadingHero}
+                                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium py-2 rounded-lg disabled:bg-gray-400"
+                                                >
+                                                    {isUploadingHero ? 'กำลังอัปโหลด...' : 'อัปโหลดรูปภาพหลัก'}
+                                                </button>
+                                            )}
+                                            {heroUploadError && <p className="text-red-500 text-xs">{heroUploadError}</p>}
+                                            {schoolInfoForm.heroImage && !heroImageFile && (
+                                                <p className="text-green-600 text-xs">✓ รูปภาพพร้อมใช้งาน</p>
+                                            )}
+                                            <p className="text-xs text-gray-400">รองรับ: JPEG, PNG, GIF, WEBP (สูงสุด 5MB)</p>
+                                        </div>
+                                    ) : (
+                                        schoolInfoForm.heroImage ? (
+                                            <img src={schoolInfoForm.heroImage} alt="Hero" className="w-full h-40 object-cover rounded-lg border border-gray-200" />
+                                        ) : (
+                                            <p className="text-gray-400 text-sm py-2">ยังไม่มีรูปภาพ</p>
+                                        )
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-700">รูปภาพผู้อำนวยการ</label>
-                                    <Input
-                                        name="director_image"
-                                        value={schoolInfoForm.director_image}
-                                        onChange={handleSchoolInfoChange}
-                                        disabled={!isEditing}
-                                        className="w-full"
-                                    />
+                                    {isEditing ? (
+                                        <div className="space-y-2">
+                                            {(directorImagePreview || schoolInfoForm.director_image) && (
+                                                <div className="relative">
+                                                    <img
+                                                        src={directorImagePreview || schoolInfoForm.director_image}
+                                                        alt="Director preview"
+                                                        className="w-32 h-40 object-cover rounded-lg border border-gray-200"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemoveDirectorImage}
+                                                        className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full text-sm hover:bg-red-600"
+                                                    >×</button>
+                                                </div>
+                                            )}
+                                            <input
+                                                type="file"
+                                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                                onChange={handleDirectorFileSelect}
+                                                className="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer"
+                                            />
+                                            {directorImageFile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDirectorImageUpload}
+                                                    disabled={isUploadingDirector}
+                                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium py-2 rounded-lg disabled:bg-gray-400"
+                                                >
+                                                    {isUploadingDirector ? 'กำลังอัปโหลด...' : 'อัปโหลดรูปภาพผู้อำนวยการ'}
+                                                </button>
+                                            )}
+                                            {directorUploadError && <p className="text-red-500 text-xs">{directorUploadError}</p>}
+                                            {schoolInfoForm.director_image && !directorImageFile && (
+                                                <p className="text-green-600 text-xs">✓ รูปภาพพร้อมใช้งาน</p>
+                                            )}
+                                            <p className="text-xs text-gray-400">รองรับ: JPEG, PNG, GIF, WEBP (สูงสุด 5MB)</p>
+                                        </div>
+                                    ) : (
+                                        schoolInfoForm.director_image ? (
+                                            <img src={schoolInfoForm.director_image} alt="Director" className="w-32 h-40 object-cover rounded-lg border border-gray-200" />
+                                        ) : (
+                                            <p className="text-gray-400 text-sm py-2">ยังไม่มีรูปภาพ</p>
+                                        )
+                                    )}
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block mb-2 text-sm font-medium text-gray-700">คำพูดผู้อำนวยการ</label>
@@ -415,9 +636,9 @@ const SchoolHistoryAdmin = () => {
                                 <div className="mt-6">
                                     <button
                                         onClick={handleSaveSchoolInfo}
-                                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium"
+                                        className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                                     >
-                                        บันทึกข้อมูล
+                                        <MdSave className="w-4 h-4" /> บันทึกข้อมูล
                                     </button>
                                 </div>
                             )}
@@ -426,10 +647,10 @@ const SchoolHistoryAdmin = () => {
 
                     {/* Timeline Add / Edit Form */}
                     {activeTab === 'timeline' && (
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
                             <button onClick={() => setShowAddEvent(!showAddEvent)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                {showAddEvent ? 'ยกเลิก' : 'เพิ่มเหตุการณ์'}
+                                    className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                {showAddEvent ? <><MdClose className="w-4 h-4" /> ยกเลิก</> : <><MdAdd className="w-4 h-4" /> เพิ่มเหตุการณ์</>}
                             </button>
 
                             {showAddEvent && (
@@ -468,9 +689,9 @@ const SchoolHistoryAdmin = () => {
                                         <div>
                                             <button
                                                 onClick={handleAddEvent}
-                                                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
+                                                className="inline-flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
                                             >
-                                                เพิ่มเหตุการณ์
+                                                <MdAdd className="w-4 h-4" /> เพิ่มเหตุการณ์
                                             </button>
                                         </div>
                                     </div>
@@ -514,18 +735,18 @@ const SchoolHistoryAdmin = () => {
                                             placeholder="ใส่รายละเอียดเหตุการณ์"
                                         />
                                     </div>
-                                    <div className="flex space-x-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <button
                                             onClick={() => handleUpdateEvent(event.id)}
-                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+                                            className="inline-flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
                                         >
-                                            บันทึก
+                                            <MdSave className="w-4 h-4" /> บันทึก
                                         </button>
                                         <button
                                             onClick={cancelEditing}
-                                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                                            className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors"
                                         >
-                                            ยกเลิก
+                                            <MdClose className="w-4 h-4" /> ยกเลิก
                                         </button>
                                     </div>
                                 </div>
@@ -550,15 +771,15 @@ const SchoolHistoryAdmin = () => {
                                     <div className="flex space-x-2 ml-4 flex-shrink-0">
                                         <button 
                                             onClick={() => startEditingEvent(event)} 
-                                            className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                                         >
-                                            แก้ไข
+                                            <MdModeEdit className="w-4 h-4" /> แก้ไข
                                         </button>
                                         <button 
                                             onClick={() => handleDeleteEvent(event.id)} 
-                                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                         >
-                                            ลบ
+                                            <MdDelete className="w-4 h-4" /> ลบ
                                         </button>
                                     </div>
                                 </div>

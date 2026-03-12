@@ -1,8 +1,16 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { FaMapMarkerAlt, FaPhoneAlt, FaClock } from "react-icons/fa";
+import { FaMapMarkerAlt, FaPhoneAlt, FaClock, FaEnvelope } from "react-icons/fa";
+import { useFetchSchoolInfoQuery } from "../redux/features/about/aboutApi";
 
 const Footer = () => {
+  const { data: schoolInfo } = useFetchSchoolInfoQuery();
+
+  const location = schoolInfo?.location || '270 หมู่ 9 ตำบลกองนาง อำเภอท่าบ่อ จังหวัดหนองคาย 43110';
+  const phone = schoolInfo?.phone || '081 975 5413';
+  const email = schoolInfo?.email || 'thabopittayakom@gmail.com';
+  const officeOpen = (schoolInfo?.officeHoursOpen || '08:00').replace(':', '.');
+  const officeClose = (schoolInfo?.officeHoursClose || '16:30').replace(':', '.');
+
   return (
     <footer className="bg-amber-900 text-amber-100 py-12">
       <div className="container mx-auto px-6">
@@ -30,17 +38,17 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/about-us" className="hover:text-white">
-                  เกี่ยวกับเรา
+                  ประวัติโรงเรียน
                 </Link>
               </li>
               <li>
-                <Link to="/privacy-policy" className="hover:text-white">
-                  หลักสูตร
+                <Link to="/academic-info" className="hover:text-white">
+                  วิชาการ/หลักสูตร
                 </Link>
               </li>
               <li>
                 <Link to="/blogs" className="hover:text-white">
-                  ข่าวสาร
+                  ข่าวสาร/กิจกรรม
                 </Link>
               </li>
               <li>
@@ -55,17 +63,21 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-amber-200">ข้อมูลติดต่อ</h4>
             <ul className="space-y-2">
-              <li className="flex items-center gap-2">
-                <FaMapMarkerAlt className="h-4 w-4" />
-                <span>270 หมู่ 9 ตำบลกองนาง อำเภอท่าบ่อ จังหวัดหนองคาย 43110</span>
+              <li className="flex items-start gap-2">
+                <FaMapMarkerAlt className="h-4 w-4 mt-1 flex-shrink-0" />
+                <span>{location}</span>
               </li>
               <li className="flex items-center gap-2">
-                <FaPhoneAlt className="h-4 w-4" />
-                <span>084-930-4710</span>
+                <FaPhoneAlt className="h-4 w-4 flex-shrink-0" />
+                <span>{phone}</span>
               </li>
               <li className="flex items-center gap-2">
-                <FaClock className="h-4 w-4" />
-                <span>จันทร์-ศุกร์: 8:00 น. - 16:30 น.</span>
+                <FaClock className="h-4 w-4 flex-shrink-0" />
+                <span>จันทร์-ศุกร์: {officeOpen} น. - {officeClose} น.</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <FaEnvelope className="h-4 w-4 flex-shrink-0" />
+                <span>{email}</span>
               </li>
             </ul>
           </div>

@@ -28,7 +28,7 @@ const navLists = [
       { name: 'บุคลากรและเจ้าหน้าที่', path: '/faculty-staff' },
     ],
   },
-  { name: 'วิชาการ', path: '/privacy-policy' },
+  { name: 'วิชาการ', path: '/academic-info' },
   { name: 'ข่าวและกิจกรรม', path: '/blogs' },
   {
     name: 'กิจกรรมนักเรียน',

@@ -92,7 +92,7 @@ router.get('/', async (req, res) => {
         };
 
         if (department) {
-            // Map department names to IDs - you'll need to adjust these IDs based on your data
+            // Map department names to IDs 
             const departmentIds = {
                 'administration': 1,
                 'thai': 2,
@@ -254,7 +254,7 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             imagePath
         } = req.body;
 
-        // รองรับทั้งแบบส่ง fullName (รวม) และ firstName+lastName (แยก)
+        // รองรับทั้งแบบส่ง fullName และ firstName+lastName โดยแปลง fullName เป็น firstName + lastName
         const nameParts = (fullName || '').trim().split(/\s+/);
         const firstName = firstNameRaw || nameParts[0] || '';
         const lastName = lastNameRaw || nameParts.slice(1).join(' ') || '';
@@ -292,6 +292,23 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
             message: 'Teacher created successfully',
             data: teacher
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'teachers',
+                    recordId: teacher.id,
+                    action: 'CREATE',
+                    oldValues: null,
+                    newValues: JSON.stringify({ firstName: teacher.firstName, lastName: teacher.lastName, departmentId: teacher.departmentId, position: teacher.position }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
     } catch (error) {
         console.error('Error creating teacher:', error);
         res.status(500).json({
@@ -302,15 +319,12 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Update teacher (Public route)
-router.patch('/:id', async (req, res) => {
+// Update teacher (protected route)
+router.patch('/:id', verifyToken, async (req, res) => {
     try {
         const teacherId = parseInt(req.params.id);
         // Frontend sends { data: {...} }, ส่งข้อมูลซ้อนจึงต้องดึงข้อมูลแยกออกมา req.body.data
         const updates = req.body.data || req.body;
-
-        console.log('🔄 Update teacher ID:', teacherId);
-        console.log('🔄 Update data received:', JSON.stringify(updates, null, 2));
 
         if (isNaN(teacherId)) {
             return res.status(400).json({
@@ -339,7 +353,7 @@ router.patch('/:id', async (req, res) => {
             updates.dob = new Date(updates.dob);
         }
 
-        // แปลง fullName → firstName + lastName ถ้า frontend ส่งมาแบบรวม
+        // แปลง fullName เป็น firstName + lastName ถ้า frontend ส่งมาแบบรวม
         if (updates.fullName !== undefined) {
             const nameParts = (updates.fullName || '').trim().split(/\s+/);
             updates.firstName = updates.firstName || nameParts[0] || '';
@@ -367,6 +381,23 @@ router.patch('/:id', async (req, res) => {
             message: 'Teacher updated successfully',
             data: updatedTeacher
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'teachers',
+                    recordId: teacherId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ firstName: existingTeacher.firstName, lastName: existingTeacher.lastName, departmentId: existingTeacher.departmentId, position: existingTeacher.position }),
+                    newValues: JSON.stringify({ firstName: updatedTeacher.firstName, lastName: updatedTeacher.lastName, departmentId: updatedTeacher.departmentId, position: updatedTeacher.position }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
     } catch (error) {
         console.error('Error updating teacher:', error);
         res.status(500).json({
@@ -420,6 +451,23 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
             success: true,
             message: 'Teacher deleted successfully'
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'teachers',
+                    recordId: teacherId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ firstName: existingTeacher.firstName, lastName: existingTeacher.lastName }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
     } catch (error) {
         console.error('Error deleting teacher:', error);
         res.status(500).json({

@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { Award, TrendingUp, TrendingDown, Save, RotateCcw, AlertCircle, Info, BookOpen, Users, CheckCircle, History, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
     useSaveBehaviorScoresMutation,
+    useGetTodayBehaviorScoresQuery,
     useGetStudentHistoryQuery
 } from '../../services/behaviorScoreApi';
-import { useGetClassroomsQuery, useGetStudentsWithScoresQuery } from '../../services/studentsApi';// ไม่ต้องใช้ mock classrooms แล้ว - ดึงจาก API
+import { useGetClassroomsQuery, useGetStudentsWithScoresQuery } from '../../services/studentsApi';
+import { selectCurrentUser } from '../../redux/features/auth/authSlice';
+
+// ดึงวันที่ปัจจุบันตาม local timezone (ไม่ใช้ UTC date เพื่อป้องกันปัญหาข้ามวัน ช่วงก่อน 07:00 น.)
+const getLocalDateString = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
 
 const addScoreCriteria = [
     { id: 1, points: 5, description: 'รักษาความสะอาด/เก็บของที่มีราคาไม่เกิน 50 บาท/ช่วยเหลือครูหรือคนอื่นเสมอ/เป็นตัวแทนเข้าร่วมแข่งขันระดับ ร.ร.' },
@@ -24,10 +36,14 @@ const deductScoreCriteria = [
 ];
 
 const BehaviorScorePage = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    const [selectedDate] = useState(getLocalDateString); // วันที่ปัจจุบัน (รีเซ็ตวันถัดไป)
     const [selectedClass, setSelectedClass] = useState('ทั้งหมด');
     const [searchQuery, setSearchQuery] = useState('');
     const [scoreRecords, setScoreRecords] = useState({});
     const [originalScoreRecords, setOriginalScoreRecords] = useState({});
+    // นับจำนวนครั้งที่บันทึกสำเร็จใน session นี้ (ป้องกัน race condition ของ RTK Query cache)
+    const [sessionSaveCount, setSessionSaveCount] = useState(0);
     const [showCriteria, setShowCriteria] = useState(false);
     const [bulkScoreMode, setBulkScoreMode] = useState(false);
     const [bulkCriteria, setBulkCriteria] = useState(null);
@@ -42,7 +58,7 @@ const BehaviorScorePage = () => {
 
     // RTK Query hooks
     const { data: classroomsData, isLoading: isLoadingClassrooms } = useGetClassroomsQuery();
-    const { data: studentsData, isLoading, refetch } = useGetStudentsWithScoresQuery(
+    const { data: studentsData, isLoading, isFetching: isFetchingStudents, refetch } = useGetStudentsWithScoresQuery(
         { classRoom: selectedClass, search: searchQuery },
         { skip: !selectedClass }
     );
@@ -50,6 +66,12 @@ const BehaviorScorePage = () => {
     const { data: historyData, isLoading: isLoadingHistory } = useGetStudentHistoryQuery(
         selectedStudentForHistory,
         { skip: !selectedStudentForHistory }
+    );
+
+    // ดึงคะแนนที่บันทึกไว้วันนี้ — ดึงเสมอ (รวมถึงเมื่อเลือก 'ทั้งหมด') เพื่อแสดงสถิติที่ถูกต้อง
+    const { data: todayRecords = [], isFetching: isFetchingToday, refetch: refetchTodayRecords } = useGetTodayBehaviorScoresQuery(
+        { classRoom: selectedClass, date: selectedDate },
+        { skip: false, refetchOnMountOrArgChange: true }
     );
 
     const classRoomList = classroomsData || [];
@@ -72,10 +94,19 @@ const BehaviorScorePage = () => {
 
     const scoreStats = useMemo(() => {
         const total = filteredStudents.length;
-        const recorded = filteredStudents.filter(student =>
+
+        // นับนักเรียนที่มีบันทึกวันนี้จริง (จาก DB) — กรองเฉพาะนักเรียนในรายการที่แสดงอยู่
+        const todayStudentIds = new Set(todayRecords.map(r => r.studentId));
+        const recordedToday = filteredStudents.filter(s => todayStudentIds.has(s.id)).length;
+
+        // นับที่กำลังเลือกในฟอร์มตอนนี้ (pending — ยังไม่ได้ save)
+        const selectedInForm = filteredStudents.filter(student =>
             scoreRecords[student.id] !== null && scoreRecords[student.id] !== undefined
         ).length;
+
+        const recorded = recordedToday;
         const notRecorded = total - recorded;
+
         const totalAdded = Object.values(scoreRecords).reduce((sum, record) => {
             if (record && record.points && record.points > 0) return sum + record.points;
             return sum;
@@ -84,8 +115,8 @@ const BehaviorScorePage = () => {
             if (record && record.points && record.points < 0) return sum + record.points;
             return sum;
         }, 0);
-        return { total, recorded, notRecorded, totalAdded, totalDeducted };
-    }, [filteredStudents, scoreRecords]);
+        return { total, recorded, recordedToday, selectedInForm, notRecorded, totalAdded, totalDeducted };
+    }, [filteredStudents, scoreRecords, todayRecords]);
 
     const hasChanges = useMemo(() => {
         return JSON.stringify(scoreRecords) !== JSON.stringify(originalScoreRecords);
@@ -98,14 +129,21 @@ const BehaviorScorePage = () => {
     }, [classRoomList, selectedClass]);
 
     useEffect(() => {
-        if (filteredStudents.length === 0) return;
-        const defaultRecords = {};
-        filteredStudents.forEach((student) => {
-            defaultRecords[student.id] = null;
+        if (isFetchingStudents || students.length === 0) return;
+        // ฟอร์มเริ่มต้นว่างเสมอเมื่อเปลี่ยนห้อง (append mode — บันทึกซ้ำได้หลายครั้งต่อวัน)
+        const records = {};
+        students.forEach((student) => {
+            records[student.id] = null;
         });
-        setScoreRecords(defaultRecords);
-        setOriginalScoreRecords(defaultRecords);
-    }, [selectedClass, filteredStudents.length]);
+        setScoreRecords(records);
+        setOriginalScoreRecords(records);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedClass, isFetchingStudents]);
+
+    // รีเซ็ต session counter เมื่อเปลี่ยนห้อง/วัน
+    useEffect(() => {
+        setSessionSaveCount(0);
+    }, [selectedClass, selectedDate]);
 
     const handleScoreChange = (studentId, criteriaId, points, description) => {
         setScoreRecords((prev) => {
@@ -183,9 +221,9 @@ const BehaviorScorePage = () => {
                                 <span class="text-gray-700">จำนวนนักเรียน: <strong class="text-amber-700">${selectedStudents.length}</strong> คน</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                ${bulkCriteria.points > 0 
-                                    ? '<i class="bi bi-arrow-up-circle-fill text-green-600"></i>' 
-                                    : '<i class="bi bi-arrow-down-circle-fill text-red-600"></i>'}
+                                ${bulkCriteria.points > 0
+                    ? '<i class="bi bi-arrow-up-circle-fill text-green-600"></i>'
+                    : '<i class="bi bi-arrow-down-circle-fill text-red-600"></i>'}
                                 <span class="text-gray-700">คะแนน: <strong class="${bulkCriteria.points > 0 ? 'text-green-600' : 'text-red-600'}">${bulkCriteria.points > 0 ? '+' : ''}${bulkCriteria.points}</strong> คะแนน</span>
                             </div>
                         </div>
@@ -233,9 +271,9 @@ const BehaviorScorePage = () => {
                                 <span>บันทึกสำเร็จ <strong>${selectedStudents.length}</strong> คน</span>
                             </div>
                             <div class="flex items-center gap-2 text-green-700">
-                                ${bulkCriteria.points > 0 
-                                    ? '<i class="bi bi-arrow-up-circle-fill"></i>' 
-                                    : '<i class="bi bi-arrow-down-circle-fill"></i>'}
+                                ${bulkCriteria.points > 0
+                    ? '<i class="bi bi-arrow-up-circle-fill"></i>'
+                    : '<i class="bi bi-arrow-down-circle-fill"></i>'}
                                 <span>คะแนน: <strong>${bulkCriteria.points > 0 ? '+' : ''}${bulkCriteria.points}</strong> คะแนน</span>
                             </div>
                         </div>
@@ -336,7 +374,7 @@ const BehaviorScorePage = () => {
 
         if (result.isConfirmed) {
             setScoreRecords({ ...originalScoreRecords });
-            
+
             Swal.fire({
                 icon: 'success',
                 title: 'ยกเลิกสำเร็จ',
@@ -368,6 +406,34 @@ const BehaviorScorePage = () => {
                     confirmButtonText: 'ตกลง'
                 });
                 return;
+            }
+
+            // ตรวจสอบการบันทึกซ้ำในวันเดียวกัน
+            // ใช้ทั้ง todayRecords (จาก DB) และ sessionSaveCount (ป้องกัน RTK cache race condition)
+            const savingStudentIds = new Set(records.map(r => r.studentId));
+            const overlappingRecords = todayRecords.filter(r => savingStudentIds.has(r.studentId));
+            const hasTodayData = overlappingRecords.length > 0 || sessionSaveCount > 0;
+            if (hasTodayData) {
+                const lastRecord = overlappingRecords[0] || todayRecords[0]; // orderBy desc → record ล่าสุด
+                const recorderName = lastRecord?.recorderName || (sessionSaveCount > 0 ? (currentUser?.username || 'ผู้บันทึกคนล่าสุด') : 'ไม่ระบุ');
+                const savedCount = overlappingRecords.length > 0
+                    ? new Set(overlappingRecords.map(r => r.studentId)).size
+                    : 0;
+                const totalEntries = Math.max(overlappingRecords.length, sessionSaveCount);
+                const scopeLabel = selectedClass && selectedClass !== 'ทั้งหมด'
+                    ? `ห้อง <strong>${selectedClass}</strong>`
+                    : `<strong>นักเรียนที่เลือก</strong>`;
+                const overwriteResult = await Swal.fire({
+                    title: '⚠️ พบข้อมูลที่บันทึกไว้แล้ววันนี้!',
+                    html: `${scopeLabel} วันที่ <strong>${new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</strong><br>มีบันทึกคะแนนจำนวน <strong class="text-amber-600">${totalEntries} ครั้ง</strong>${savedCount > 0 ? ` (${savedCount} คน)` : ''} บันทึกล่าสุดโดย <strong class="text-amber-600">${recorderName}</strong><br><br>ต้องการ<strong>บันทึกเพิ่มเติม</strong>อีกครั้งหรือไม่? (บันทึกเดิมจะยังคงอยู่)`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="bi bi-plus-circle-fill mr-1"></i>บันทึกเพิ่มเติม',
+                    cancelButtonText: '<i class="bi bi-x-circle mr-1"></i>ยกเลิก',
+                    confirmButtonColor: '#D97706',
+                    cancelButtonColor: '#6B7280',
+                });
+                if (!overwriteResult.isConfirmed) return;
             }
 
             const confirmed = await Swal.fire({
@@ -419,10 +485,9 @@ const BehaviorScorePage = () => {
                 }
             });
 
-            // TODO: ใส่ recorderId จริงจาก user ที่ login
             const result = await saveBehaviorScores({
                 records,
-                recorderId: 1 // ควรดึงจาก auth context
+                recorderId: currentUser?.id || 1
             }).unwrap();
 
             Swal.fire({
@@ -448,10 +513,14 @@ const BehaviorScorePage = () => {
                 }
             });
 
-            // Reset state
-            setScoreRecords({});
-            setOriginalScoreRecords({});
-            refetch(); // Refresh data
+            // รีเซ็ตฟอร์มหลังบันทึกสำเร็จ เพื่อเตรียมรับบันทึกรายการถัดไป
+            const emptyRecords = {};
+            students.forEach((student) => { emptyRecords[student.id] = null; });
+            setScoreRecords(emptyRecords);
+            setOriginalScoreRecords(emptyRecords);
+            setSessionSaveCount(prev => prev + 1); // นับครั้งที่บันทึกใน session นี้
+            refetch(); // Refresh student scores data
+            refetchTodayRecords(); // อัพเดท today records ทันที
 
         } catch (error) {
             console.error('Error saving:', error);
@@ -613,7 +682,7 @@ const BehaviorScorePage = () => {
                                         ))}
                                     </div>
                                 </div>
-                                
+
                                 {/* เกณฑ์หักคะแนน */}
                                 <div>
                                     <h3 className="text-base md:text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
@@ -646,7 +715,7 @@ const BehaviorScorePage = () => {
                                     <i className="bi bi-bar-chart-fill text-amber-600 text-lg md:text-xl"></i>
                                     <h3 className="text-base md:text-lg font-bold text-amber-700">สถิติการบันทึก</h3>
                                 </div>
-                                
+
                                 {/* Mobile: Vertical Stack, Tablet+: Horizontal */}
                                 <div className="space-y-3 md:space-y-0 md:flex md:items-center md:justify-between md:flex-wrap md:gap-4">
                                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 md:gap-6">
@@ -657,15 +726,25 @@ const BehaviorScorePage = () => {
                                                 ทั้งหมด: <span className="text-amber-700 text-base md:text-lg font-bold">{scoreStats.total}</span> คน
                                             </span>
                                         </div>
-                                        
-                                        {/* บันทึกแล้ว */}
+
+                                        {/* บันทึกแล้ววันนี้ (จาก DB) */}
                                         <div className="flex items-center gap-2.5 md:gap-2">
                                             <i className="bi bi-check-circle-fill text-blue-600 text-lg md:text-lg flex-shrink-0"></i>
                                             <span className="text-sm md:text-sm font-semibold text-gray-700">
-                                                บันทึกแล้ว: <span className="text-blue-600 text-base md:text-lg font-bold">{scoreStats.recorded}</span> คน
+                                                บันทึกแล้ววันนี้: <span className="text-blue-600 text-base md:text-lg font-bold">{scoreStats.recorded}</span> คน
                                             </span>
                                         </div>
-                                        
+
+                                        {/* กำลังเลือกในฟอร์ม (pending) */}
+                                        {scoreStats.selectedInForm > 0 && (
+                                            <div className="flex items-center gap-2.5 md:gap-2">
+                                                <i className="bi bi-pencil-fill text-purple-600 text-lg md:text-lg flex-shrink-0"></i>
+                                                <span className="text-sm md:text-sm font-semibold text-gray-700">
+                                                    กำลังเลือก: <span className="text-purple-600 text-base md:text-lg font-bold">{scoreStats.selectedInForm}</span> คน
+                                                </span>
+                                            </div>
+                                        )}
+
                                         {/* ยังไม่บันทึก */}
                                         <div className="flex items-center gap-2.5 md:gap-2">
                                             <i className="bi bi-clock-fill text-orange-600 text-lg md:text-lg flex-shrink-0"></i>
@@ -674,38 +753,38 @@ const BehaviorScorePage = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Success Badge */}
                                     {scoreStats.recorded === scoreStats.total && scoreStats.total > 0 && (
                                         <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2.5 md:py-2 rounded-lg shadow-md w-full sm:w-auto justify-center">
                                             <CheckCircle className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                                            <span className="text-sm font-bold">บันทึกครบทุกคนแล้ว</span>
+                                            <span className="text-sm font-bold">มีการบันทึกแล้ว</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* สถิติคะแนน - Mobile Grid */}
-                            {scoreStats.recorded > 0 && (
+                            {/* สถิติคะแนน - แสดงเมื่อมีการเลือกในฟอร์ม (pending save) */}
+                            {scoreStats.selectedInForm > 0 && (
                                 <div className="bg-white rounded-lg md:rounded-xl border-2 border-gray-200 p-4 md:p-5">
                                     <div className="flex items-center gap-2 mb-3 md:mb-4">
                                         <i className="bi bi-pie-chart-fill text-amber-600 text-lg md:text-lg"></i>
                                         <span className="text-sm md:text-base font-bold text-gray-800">สถิติคะแนน</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2.5 md:gap-3">
-                                        {/* คะแนนเพิ่ม */}
+                                        {/* คะแนนที่เพิ่ม */}
                                         <div className="bg-green-50 px-4 py-3 md:py-3 rounded-lg md:rounded-xl border-2 border-green-200 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
                                             <i className="bi bi-arrow-up-circle-fill text-green-700 text-lg md:text-lg flex-shrink-0"></i>
-                                            <span className="text-sm md:text-sm font-bold text-green-700 flex-1">คะแนนเพิ่ม</span>
+                                            <span className="text-sm md:text-sm font-bold text-green-700 flex-1">คะแนนที่เพิ่ม</span>
                                             <span className="bg-green-600 text-white px-3 py-1.5 md:py-1 rounded-full text-sm font-bold min-w-[32px] md:min-w-[28px] text-center shadow-sm flex-shrink-0">
                                                 +{scoreStats.totalAdded}
                                             </span>
                                         </div>
-                                        
-                                        {/* คะแนนหัก */}
+
+                                        {/* คะแนนที่หัก */}
                                         <div className="bg-red-50 px-4 py-3 md:py-3 rounded-lg md:rounded-xl border-2 border-red-200 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
                                             <i className="bi bi-arrow-down-circle-fill text-red-700 text-lg md:text-lg flex-shrink-0"></i>
-                                            <span className="text-sm md:text-sm font-bold text-red-700 flex-1">คะแนนหัก</span>
+                                            <span className="text-sm md:text-sm font-bold text-red-700 flex-1">คะแนนที่หัก</span>
                                             <span className="bg-red-600 text-white px-3 py-1.5 md:py-1 rounded-full text-sm font-bold min-w-[32px] md:min-w-[28px] text-center shadow-sm flex-shrink-0">
                                                 {scoreStats.totalDeducted}
                                             </span>
@@ -732,11 +811,10 @@ const BehaviorScorePage = () => {
                             </div>
                             <button
                                 onClick={() => setBulkScoreMode(!bulkScoreMode)}
-                                className={`px-5 md:px-6 py-3 md:py-2.5 rounded-lg md:rounded-xl font-bold text-sm md:text-base transition-all shadow-md hover:shadow-lg active:scale-95 touch-manipulation min-h-[48px] md:min-h-0 flex items-center justify-center gap-2 ${
-                                    bulkScoreMode
+                                className={`px-5 md:px-6 py-3 md:py-2.5 rounded-lg md:rounded-xl font-bold text-sm md:text-base transition-all shadow-md hover:shadow-lg active:scale-95 touch-manipulation min-h-[48px] md:min-h-0 flex items-center justify-center gap-2 ${bulkScoreMode
                                         ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800'
                                         : 'bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 border-2 border-gray-300'
-                                }`}
+                                    }`}
                             >
                                 {bulkScoreMode ? (
                                     <>
@@ -771,18 +849,17 @@ const BehaviorScorePage = () => {
                                                     <button
                                                         key={c.id}
                                                         onClick={() => handleBulkScoreChange(c.id, c.points, c.description)}
-                                                        className={`px-3 md:px-4 py-2.5 md:py-2 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 touch-manipulation ${
-                                                            bulkCriteria?.criteriaId === c.id
+                                                        className={`px-3 md:px-4 py-2.5 md:py-2 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 touch-manipulation ${bulkCriteria?.criteriaId === c.id
                                                                 ? 'bg-green-600 text-white shadow-lg md:scale-105'
                                                                 : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 active:bg-green-200'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         +{c.points}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
-                                        
+
                                         {/* หักคะแนน */}
                                         <div>
                                             <p className="text-xs md:text-xs font-semibold text-red-700 mb-2">หักคะแนน</p>
@@ -791,11 +868,10 @@ const BehaviorScorePage = () => {
                                                     <button
                                                         key={c.id}
                                                         onClick={() => handleBulkScoreChange(c.id, c.points, c.description)}
-                                                        className={`px-3 md:px-4 py-2.5 md:py-2 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 touch-manipulation ${
-                                                            bulkCriteria?.criteriaId === c.id
+                                                        className={`px-3 md:px-4 py-2.5 md:py-2 rounded-lg font-semibold text-sm md:text-base transition-all active:scale-95 touch-manipulation ${bulkCriteria?.criteriaId === c.id
                                                                 ? 'bg-red-600 text-white shadow-lg md:scale-105'
                                                                 : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 active:bg-red-200'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {c.points}
                                                     </button>
@@ -804,7 +880,7 @@ const BehaviorScorePage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Selected Criteria Display */}
                                 {bulkCriteria && (
                                     <div className="bg-white rounded-lg p-3 md:p-4 border-2 border-amber-300">
@@ -814,7 +890,7 @@ const BehaviorScorePage = () => {
                                         <p className="text-xs md:text-sm mt-2 text-gray-700 leading-relaxed">{bulkCriteria.description}</p>
                                     </div>
                                 )}
-                                
+
                                 {/* Comment Input */}
                                 <div>
                                     <label className="flex items-center gap-2 text-sm md:text-sm font-bold mb-2 text-gray-700">
@@ -829,7 +905,7 @@ const BehaviorScorePage = () => {
                                         rows="3"
                                     />
                                 </div>
-                                
+
                                 {/* Action Buttons */}
                                 <div className="grid grid-cols-2 gap-2 md:gap-3">
                                     <button
@@ -859,12 +935,12 @@ const BehaviorScorePage = () => {
                                 >
                                     {selectedStudents.length === filteredStudents.length ? (
                                         <>
-                                            <i className="bi bi-check-square-fill mr-1"></i> 
+                                            <i className="bi bi-check-square-fill mr-1"></i>
                                             <span>ยกเลิกเลือกทั้งหมด</span>
                                         </>
                                     ) : (
                                         <>
-                                            <i className="bi bi-square mr-1"></i> 
+                                            <i className="bi bi-square mr-1"></i>
                                             <span>เลือกทั้งหมด</span>
                                         </>
                                     )}
@@ -891,7 +967,7 @@ const BehaviorScorePage = () => {
                                 >
                                     ««
                                 </button>
-                                
+
                                 {/* Previous Page */}
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -914,11 +990,10 @@ const BehaviorScorePage = () => {
                                             <button
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
-                                                className={`px-3 md:px-4 py-2 md:py-2 rounded-lg font-bold text-sm md:text-base transition-all touch-manipulation min-w-[40px] md:min-w-0 ${
-                                                    currentPage === pageNum
+                                                className={`px-3 md:px-4 py-2 md:py-2 rounded-lg font-bold text-sm md:text-base transition-all touch-manipulation min-w-[40px] md:min-w-0 ${currentPage === pageNum
                                                         ? 'bg-amber-600 text-white shadow-md hover:shadow-lg active:bg-amber-700'
                                                         : 'border-2 hover:bg-gray-50 active:bg-gray-100'
-                                                }`}
+                                                    }`}
                                             >
                                                 {pageNum}
                                             </button>
@@ -940,7 +1015,7 @@ const BehaviorScorePage = () => {
                                 >
                                     »
                                 </button>
-                                
+
                                 {/* Last Page */}
                                 <button
                                     onClick={() => setCurrentPage(totalPages)}
@@ -964,11 +1039,11 @@ const BehaviorScorePage = () => {
                                 <div className="flex items-center gap-2 md:gap-2 bg-orange-100 px-4 md:px-5 py-3 md:py-3 rounded-lg md:rounded-xl border-2 border-orange-300 w-full md:w-auto">
                                     <AlertCircle className="w-5 h-5 md:w-5 md:h-5 text-orange-600 flex-shrink-0" />
                                     <span className="text-sm md:text-sm font-semibold text-orange-700">
-                                        มีการเปลี่ยนแปลง <span className="font-bold">{scoreStats.recorded}</span> รายการที่ยังไม่ได้บันทึก
+                                        มีการเปลี่ยนแปลง <span className="font-bold">{scoreStats.selectedInForm}</span> รายการที่ยังไม่ได้บันทึก
                                     </span>
                                 </div>
                             )}
-                            
+
                             {/* Action Buttons - Mobile: Full Width Grid, Desktop: Flex */}
                             <div className="grid grid-cols-2 md:flex md:ms-auto gap-2 md:gap-3 w-full md:w-auto">
                                 {/* Save Button - Touch Optimized */}
@@ -1033,8 +1108,8 @@ const BehaviorScorePage = () => {
                                         <div
                                             key={student.id}
                                             className={`border-2 rounded-xl p-5 transition-all ${isSelected
-                                                    ? 'border-amber-300 bg-amber-50'
-                                                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                ? 'border-amber-300 bg-amber-50'
+                                                : 'border-gray-200 hover:border-gray-300 bg-white'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between mb-4">
@@ -1066,12 +1141,12 @@ const BehaviorScorePage = () => {
                                                     </button>
                                                     <div className="text-right bg-gray-50 px-1 md:px-4 py-1 md:py-2 rounded-lg border">
                                                         <div className="text-xs text-gray-600">
-                                                            <span className="md:hidden">คะแนน</span> 
+                                                            <span className="md:hidden">คะแนน</span>
                                                             <span className="hidden md:inline">คะแนนปัจจุบัน</span>
                                                         </div>
                                                         <div className={`text-2xl font-bold ${student.currentScore >= 90 ? 'text-green-600' :
-                                                                student.currentScore >= 70 ? 'text-blue-600' :
-                                                                    student.currentScore >= 50 ? 'text-orange-600' : 'text-red-600'
+                                                            student.currentScore >= 70 ? 'text-blue-600' :
+                                                                student.currentScore >= 50 ? 'text-orange-600' : 'text-red-600'
                                                             }`}>
                                                             {student.currentScore}
                                                         </div>
@@ -1090,8 +1165,8 @@ const BehaviorScorePage = () => {
                                                                         key={c.id}
                                                                         onClick={() => handleScoreChange(student.id, c.id, c.points, c.description)}
                                                                         className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${record?.criteriaId === c.id
-                                                                                ? 'bg-green-600 text-white shadow-md scale-105'
-                                                                                : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                                                            ? 'bg-green-600 text-white shadow-md scale-105'
+                                                                            : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
                                                                             }`}
                                                                     >
                                                                         +{c.points}
@@ -1107,8 +1182,8 @@ const BehaviorScorePage = () => {
                                                                         key={c.id}
                                                                         onClick={() => handleScoreChange(student.id, c.id, c.points, c.description)}
                                                                         className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${record?.criteriaId === c.id
-                                                                                ? 'bg-red-600 text-white shadow-md scale-105'
-                                                                                : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                                                                            ? 'bg-red-600 text-white shadow-md scale-105'
+                                                                            : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
                                                                             }`}
                                                                     >
                                                                         {c.points}
@@ -1194,8 +1269,8 @@ const BehaviorScorePage = () => {
                                                         <div>
                                                             <div className="font-semibold text-gray-800">
                                                                 คะแนนสะสม: <span className={`text-lg ${record.currentTotal >= 90 ? 'text-green-600' :
-                                                                        record.currentTotal >= 70 ? 'text-blue-600' :
-                                                                            record.currentTotal >= 50 ? 'text-orange-600' : 'text-red-600'
+                                                                    record.currentTotal >= 70 ? 'text-blue-600' :
+                                                                        record.currentTotal >= 50 ? 'text-orange-600' : 'text-red-600'
                                                                     }`}>{record.currentTotal}</span>
                                                             </div>
                                                             <div className="text-sm text-gray-500 mt-1 flex items-center gap-1">

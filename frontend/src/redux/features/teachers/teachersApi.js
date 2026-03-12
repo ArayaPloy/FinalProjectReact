@@ -82,7 +82,7 @@ export const teachersApi = createApi({
                 { type: 'Teacher', id },
                 'Teachers'
             ],
-            // ✅ อัปเดต Profile cache เมื่ออัปเดตข้อมูลครู
+            // อัปเดต Profile cache เมื่ออัปเดตข้อมูลครู
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
                     await queryFulfilled;

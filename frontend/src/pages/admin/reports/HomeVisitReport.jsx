@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
     Search, Filter, Calendar, Users, Home, FileText,
-    Eye, Trash2, Download, Printer, ChevronLeft, ChevronRight,
+    Download, Printer, ChevronLeft, ChevronRight,
     AlertCircle, CheckCircle, XCircle, Clock, MapPin, Phone,
-    Mail, User, Building, Image as ImageIcon, X
+    Mail, User, Building, Image as ImageIcon, X, Eye
 } from 'lucide-react';
+import { MdVisibility, MdDelete } from 'react-icons/md';
 import Swal from 'sweetalert2';
 import { getApiURL } from '../../../utils/apiConfig';
 import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
@@ -32,6 +33,15 @@ const HomeVisitReport = () => {
     const [selectedImage, setSelectedImage] = useState('');
     const [teachers, setTeachers] = useState([]);
     const [uniqueTeachersCount, setUniqueTeachersCount] = useState(0);
+
+    // Export Modal State
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const [exportMode, setExportMode] = useState('date');
+    const [exportDateFrom, setExportDateFrom] = useState('');
+    const [exportDateTo, setExportDateTo] = useState('');
+    const [exportTeacherId, setExportTeacherId] = useState('');
+    const [exportStudentSearch, setExportStudentSearch] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
 
     // Fetch home visits data
     const fetchHomeVisits = async () => {
@@ -85,7 +95,7 @@ const HomeVisitReport = () => {
             }
         } catch (error) {
             console.error('Error fetching home visits:', error);
-            
+
             // ไม่แสดง alert ถ้าเป็น 401 (จัดการแล้วข้างบน)
             if (error.message !== '401') {
                 Swal.fire({
@@ -218,20 +228,256 @@ const HomeVisitReport = () => {
         }
     };
 
-    // Export to PDF (placeholder)
-    const handleExportPDF = () => {
-        Swal.fire({
-            icon: 'info',
-            title: 'กำลังพัฒนา',
-            text: 'ฟีเจอร์ส่งออก PDF กำลังอยู่ระหว่างการพัฒนา',
-            confirmButtonColor: '#3b82f6',
-            confirmButtonText: 'ตกลง'
-        });
+    // Build and open a PDF-ready print window for the given visits array
+    const buildAndPrintPDF = (allVisits, subtitleLabel) => {
+        if (!allVisits.length) {
+            Swal.fire({ icon: 'warning', title: 'ไม่มีข้อมูล', text: 'ไม่พบข้อมูลการเยี่ยมบ้านตามเงื่อนไขที่เลือก', confirmButtonText: 'ตกลง' });
+            return;
+        }
+
+        const sorted = [...allVisits].sort((a, b) => new Date(a.visitDate) - new Date(b.visitDate));
+        const imgHost = `${window.location.protocol}//${window.location.hostname}:5000`;
+        const imgUrl = (path) => {
+            if (!path) return null;
+            return path.startsWith('http') ? path : `${imgHost}${path}`;
+        };
+        const fmt = (d) => d ? new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+        const fmtTime = (visitDate, createdAt) => {
+            if (!visitDate) return '-';
+            const d = fmt(visitDate);
+            if (!createdAt) return d;
+            const t = new Date(createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
+            return `${d} เวลา ${t} น.`;
+        };
+        const parseJ = (f) => {
+            if (!f) return [];
+            try {
+                const p = typeof f === 'string' ? JSON.parse(f) : f;
+                const arr = Array.isArray(p) ? p : [p];
+                return arr.filter(i => i && typeof i === 'string' && i.trim() !== '');
+            } catch { return typeof f === 'string' ? f.split(',').map(i => i.trim()).filter(Boolean) : []; }
+        };
+        const esc = (s) => String(s || '-').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const val = (s) => `<span class="val">${esc(s)}</span>`;
+
+        const cards = sorted.map((v, i) => {
+            const teacher = v.teachers ? `${v.teachers.namePrefix || ''}${v.teachers.firstName || ''} ${v.teachers.lastName || ''}`.trim() : (v.teacherName || '-');
+            const student = v.students ? `${v.students.namePrefix || ''}${v.students.firstName || ''} ${v.students.lastName || ''}`.trim() : (v.studentName || '-');
+            const studentNo = v.students?.studentNumber || '-';
+            const className = v.students?.homeroomClass?.className || '-';
+            const address = v.students?.address || '-';
+            const phone = v.students?.phoneNumber || '-';
+            const emergency = v.students?.emergencyContact || '-';
+            const parent = (v.parentFirstName || v.parentLastName) ? `${v.parentNamePrefix || ''}${v.parentFirstName || ''} ${v.parentLastName || ''}`.trim() : '-';
+            const guardianName = (v.students?.guardianFirstName || v.students?.guardianLastName)
+                ? `${v.students.guardianNamePrefix || ''}${v.students.guardianFirstName || ''} ${v.students.guardianLastName || ''}`.trim() : '-';
+            const displayParent = parent !== '-' ? parent : guardianName;
+            const relation = v.students?.guardianRelation || '-';
+            const occupation = v.students?.guardianOccupation || '-';
+            const income = v.students?.guardianMonthlyIncome || '-';
+            const purpose = parseJ(v.visitPurpose).join('<br/>') || '-';
+            const family = parseJ(v.familyStatus).join(', ') || '-';
+            const houseType = v.students?.houseType || v.houseType || '-';
+            const houseMaterial = v.students?.houseMaterial || v.houseMaterial || '-';
+            const utilities = v.students?.utilities || v.utilities || '-';
+            const studyArea = v.students?.studyArea || v.studyArea || '-';
+
+            // images
+            const allImages = [];
+            const mainImg = imgUrl(v.imagePath);
+            if (mainImg) allImages.push(mainImg);
+            parseJ(v.imageGallery).forEach(p => { const u = imgUrl(p); if (u) allImages.push(u); });
+            const imagesHtml = allImages.length
+                ? `<div class="section-group">
+                     <div class="section-title-bar">รูปภาพประกอบ</div>
+                     <div class="images-grid">
+                       ${allImages.map(u => `<div class="img-wrap"><img src="${u}" onerror="this.style.display='none'" /></div>`).join('')}
+                     </div>
+                   </div>`
+                : '';
+
+            const cell = (label, value, html = false) =>
+                `<div class="cell"><div class="cell-label">${esc(label)}</div><div class="cell-value">${html ? value : esc(value)}</div></div>`;
+
+            const repeatHeader = i > 0 ? `
+  <div class="repeat-header">
+    <h1>รายงานการเยี่ยมบ้านนักเรียน</h1>
+    <p>${esc(subtitleLabel)} &nbsp;|  วันที่พิมพ์ ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} &nbsp;|  จำนวน ${sorted.length} รายการ</p>
+  </div>` : '';
+
+            return `
+<div class="visit-card ${i > 0 ? 'page-break' : ''}">
+  ${repeatHeader}
+  <div class="card-header">
+    <span>รายการที่ ${i + 1} — ${esc(student)}</span>
+    <span class="card-date-right">${fmtTime(v.visitDate, v.createdAt)}</span>
+  </div>
+
+  <div class="section-group">
+    <div class="section-title-bar">ข้อมูลพื้นฐาน</div>
+    <div class="two-col">
+      ${cell('ครูผู้เยี่ยม', teacher)}
+      ${cell('รหัสนักเรียน', studentNo)}
+      ${cell('ชื่อนักเรียน', student)}
+      ${cell('ห้องเรียน', className)}
+      ${cell('เบอร์โทร', phone)}
+      ${cell('ผู้ติดต่อฉุกเฉิน', emergency)}
+    </div>
+    <div class="one-col">
+      ${cell('ที่อยู่', address)}
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-title-bar">ข้อมูลผู้ปกครองและครอบครัว</div>
+    <div class="two-col">
+      ${cell('ชื่อผู้ปกครอง', displayParent)}
+      ${cell('ความสัมพันธ์', relation)}
+      ${cell('อาชีพ', occupation)}
+      ${cell('รายได้ต่อเดือน', income)}
+      ${cell('สถานะครอบครัว', family)}
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-title-bar">สภาพบ้าน</div>
+    <div class="two-col">
+      ${cell('ประเภทบ้าน', houseType)}
+      ${cell('วัสดุก่อสร้าง', houseMaterial)}
+      ${cell('สาธารณูปโภค', utilities)}
+      ${cell('พื้นที่เรียน', studyArea)}
+    </div>
+  </div>
+
+  <div class="section-group">
+    <div class="section-title-bar">รายละเอียดการเยี่ยมบ้าน</div>
+    <div class="one-col">
+      ${cell('วัตถุประสงค์การเยี่ยม', purpose, true)}
+      ${cell('พฤติกรรมนักเรียนที่บ้าน', v.studentBehaviorAtHome)}
+      ${cell('ความร่วมมือของผู้ปกครอง', v.parentCooperation)}
+      ${cell('ปัญหาที่พบ', v.problems)}
+      ${cell('ข้อเสนอแนะ', v.recommendations)}
+      ${cell('แผนติดตามผล', v.followUpPlan)}
+      ${cell('สรุป', v.summary)}
+      ${v.notes ? cell('หมายเหตุ', v.notes) : ''}
+    </div>
+  </div>
+
+  ${imagesHtml}
+
+  <div class="section-group signature-section">
+    <div class="signature-row">
+      <div class="sig-box">
+        <div class="sig-line">ลงชื่อผู้ปกครอง .....................................</div>
+        <div class="sig-name">( ${esc(displayParent)} )</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line">ลงชื่อครูผู้เยี่ยม .....................................</div>
+        <div class="sig-name">( ${esc(teacher)} )</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>รายงานการเยี่ยมบ้านนักเรียน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', 'TH Sarabun New', Tahoma, sans-serif; font-size: 11pt; color: #111; background: #fff; padding: 8mm 12mm; }
+  h1.report-title { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 3px; }
+  p.report-sub { text-align: center; font-size: 9.5pt; color: #555; margin-bottom: 14px; }
+  .visit-card { margin-bottom: 12px; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; background: #1e3a5f; color: #fff; padding: 6px 12px; font-weight: bold; font-size: 10.5pt; }
+  .card-date-right { font-size: 9.5pt; font-weight: normal; }
+  .section-group { margin-top: 6px; break-inside: avoid; page-break-inside: avoid; }
+  .section-title-bar { background: #dbeafe; color: #1e3a5f; font-weight: bold; font-size: 9.5pt; padding: 3px 10px; border-left: 4px solid #1e3a5f; margin-bottom: 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #d1d5db; border-top: none; }
+  .one-col { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid #d1d5db; border-top: none; }
+  .cell { display: flex; flex-direction: column; padding: 4px 8px; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; font-size: 10pt; }
+  .cell:nth-child(even) { border-right: none; }
+  .one-col .cell { border-right: none; }
+  .cell-label { font-weight: bold; color: #374151; font-size: 9pt; margin-bottom: 1px; }
+  .cell-value { color: #111; }
+  .images-grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border: 1px solid #d1d5db; border-top: none; }
+  .img-wrap { width: 110px; height: 110px; overflow: hidden; border: 1px solid #ccc; border-radius: 4px; }
+  .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .signature-section { margin-top: 24px; }
+  .signature-row { display: flex; justify-content: space-around; padding: 8px 20px 4px; }
+  .sig-box { text-align: center; width: 42%; }
+  .sig-line { padding-bottom: 6px; margin-bottom: 4px; font-size: 10pt; letter-spacing: 0.5px; }
+  .sig-name { font-size: 9.5pt; color: #374151; }
+  .report-header { text-align: center; margin-bottom: 14px; }
+  .repeat-header { display: none; }
+  .page-break { page-break-before: always; }
+  @media print {
+    body { padding: 6mm 10mm; }
+    .repeat-header { display: block; text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
+    .repeat-header h1 { font-size: 14pt; font-weight: bold; margin-bottom: 2px; }
+    .repeat-header p { font-size: 8.5pt; color: #555; }
+    .section-group { break-inside: avoid; page-break-inside: avoid; }
+    .signature-section { break-inside: avoid; page-break-inside: avoid; }
+    .page-break { break-before: page; }
+    .images-grid { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="report-header">
+  <h1 class="report-title">รายงานการเยี่ยมบ้านนักเรียน</h1>
+  <p class="report-sub">${esc(subtitleLabel)} &nbsp;|&nbsp; วันที่พิมพ์ ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} &nbsp;|&nbsp; จำนวน ${sorted.length} รายการ</p>
+</div>
+${cards}
+</body></html>`;
+
+        const win = window.open('', '_blank');
+        if (!win) { Swal.fire({ icon: 'error', title: 'ถูก Popup Blocked', text: 'กรุณาอนุญาต popup สำหรับเว็บไซต์นี้แล้วลองใหม่', confirmButtonText: 'ตกลง' }); return; }
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(() => win.print(), 600);
     };
 
-    // Print report
-    const handlePrint = () => {
-        window.print();
+    const handleExportPDF = async () => {
+        setIsExporting(true);
+        try {
+            const apiURL = getApiURL('/homevisits');
+            const params = new URLSearchParams({ page: 1, limit: 9999 });
+            let subtitleLabel = 'ข้อมูลทั้งหมด';
+
+            if (exportMode === 'date') {
+                if (exportDateFrom) { params.set('startDate', exportDateFrom); }
+                if (exportDateTo) { params.set('endDate', exportDateTo); }
+                subtitleLabel = exportDateFrom || exportDateTo
+                    ? `วันที่ ${exportDateFrom || '...'} ถึง ${exportDateTo || '...'}`
+                    : 'ข้อมูลทั้งหมด';
+            } else if (exportMode === 'teacher') {
+                if (exportTeacherId) {
+                    params.set('teacherId', exportTeacherId);
+                    const t = teachers.find(t => String(t.id) === String(exportTeacherId));
+                    subtitleLabel = t ? `ครู: ${t.namePrefix || ''}${t.name || ''}`.trim() : 'ตามครูผู้เยี่ยม';
+                }
+            } else if (exportMode === 'student') {
+                if (exportStudentSearch) {
+                    params.set('search', exportStudentSearch);
+                    subtitleLabel = `นักเรียน: ${exportStudentSearch}`;
+                }
+            }
+
+            const response = await fetch(`${apiURL}?${params}`, { credentials: 'include' });
+            const result = await response.json();
+            const visits = result.success ? result.data : homeVisits;
+            setExportModalOpen(false);
+            buildAndPrintPDF(visits, subtitleLabel);
+        } catch (e) {
+            setExportModalOpen(false);
+            buildAndPrintPDF(homeVisits, 'ข้อมูลทั้งหมด');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     // Parse JSON fields
@@ -262,6 +508,24 @@ const HomeVisitReport = () => {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    // Format visit date + recorded time (createdAt)
+    const formatVisitDateTime = (visitDate, createdAt) => {
+        if (!visitDate) return '-';
+        const date = new Date(visitDate);
+        const formatted = date.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        if (!createdAt) return formatted;
+        const timeStr = new Date(createdAt).toLocaleTimeString('th-TH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Bangkok'
+        });
+        return `${formatted} ${timeStr}`;
     };
 
     // Open image modal
@@ -456,21 +720,12 @@ const HomeVisitReport = () => {
                         {/* Action Buttons */}
                         <div className="flex flex-wrap gap-3">
                             <button
-                                onClick={handlePrint}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                onClick={() => setExportModalOpen(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                             >
-                                <Printer className="w-4 h-4" />
-                                พิมพ์รายงาน
+                                <Download className="w-4 h-4" />
+                                ส่งออก PDF
                             </button>
-                            {isAdmin && (
-                                <button
-                                    onClick={handleExportPDF}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    ส่งออก PDF
-                                </button>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -519,17 +774,13 @@ const HomeVisitReport = () => {
                                     {homeVisits.map((visit) => (
                                         <tr key={visit.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatDate(visit.visitDate)}
+                                                {formatVisitDateTime(visit.visitDate, visit.createdAt)}
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
-                                                    <p className="truncate">
-                                                        {visit.teachers
-                                                            ? `${visit.teachers.namePrefix || ''}${visit.teachers.firstName || ''} ${visit.teachers.lastName || ''}`.trim()
-                                                            : visit.teacherName || '-'
-                                                        }
-                                                    </p>
-                                                </div>
+                                            <td className="px-4 py-4 text-sm text-gray-900 max-w-[8rem] truncate">
+                                                {visit.teachers
+                                                    ? `${visit.teachers.namePrefix || ''}${visit.teachers.firstName || ''} ${visit.teachers.lastName || ''}`.trim()
+                                                    : visit.teacherName || '-'
+                                                }
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {visit.students ?
@@ -546,28 +797,25 @@ const HomeVisitReport = () => {
                                                     '-'
                                                 }
                                             </td>
-                                            <td className="px-4 py-4 text-sm text-gray-900">
-                                                <div className="max-w-[7rem]"> {/* จำกัดความกว้างคอลัมน์ */}
-                                                    <p className="truncate">
-                                                        {parseJsonField(visit.visitPurpose).join(', ') || '-'}
-                                                    </p>
-                                                </div>
+                                            <td className="px-4 py-4 text-sm text-gray-900 max-w-[9rem] truncate">
+                                                {parseJsonField(visit.visitPurpose).join(', ') || '-'}
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => handleViewDetails(visit.id)}
-                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                                                     >
-                                                        <Eye className="w-4 h-4" />
+                                                        <MdVisibility className="w-4 h-4" />
                                                         <span>ดู</span>
                                                     </button>
                                                     {isAdmin && (
                                                         <button
                                                             onClick={() => handleDelete(visit.id, visit.studentName)}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            <MdDelete className="w-4 h-4" />
+                                                            <span>ลบ</span>
                                                         </button>
                                                     )}
                                                 </div>
@@ -593,7 +841,7 @@ const HomeVisitReport = () => {
                                     <div className="flex items-center justify-between">
                                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
                                             <Calendar className="w-4 h-4" />
-                                            {formatDate(visit.visitDate)}
+                                            {formatVisitDateTime(visit.visitDate, visit.createdAt)}
                                         </div>
                                     </div>
 
@@ -657,17 +905,18 @@ const HomeVisitReport = () => {
                                     <div className="flex gap-2 pt-3 border-t border-gray-100">
                                         <button
                                             onClick={() => handleViewDetails(visit.id)}
-                                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                                         >
-                                            <Eye className="w-4 h-4" />
+                                            <MdVisibility className="w-4 h-4" />
                                             ดูรายละเอียด
                                         </button>
                                         {isAdmin && (
                                             <button
                                                 onClick={() => handleDelete(visit.id, visit.studentName)}
-                                                className="inline-flex items-center justify-center px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                                                className="inline-flex items-center justify-center gap-1 px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <MdDelete className="w-4 h-4" />
+                                                <span>ลบ</span>
                                             </button>
                                         )}
                                     </div>
@@ -730,8 +979,8 @@ const HomeVisitReport = () => {
                                             key={pageNum}
                                             onClick={() => setCurrentPage(pageNum)}
                                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'text-gray-700 hover:bg-gray-100'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'text-gray-700 hover:bg-gray-100'
                                                 }`}
                                         >
                                             {pageNum}
@@ -780,7 +1029,7 @@ const HomeVisitReport = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-sm text-blue-600 font-medium">วันที่เยี่ยมบ้าน</p>
-                                            <p className="text-base text-gray-900">{formatDate(viewingVisit.visitDate)}</p>
+                                            <p className="text-base text-gray-900">{formatVisitDateTime(viewingVisit.visitDate, viewingVisit.createdAt)}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-blue-600 font-medium">ครูผู้เยี่ยม</p>
@@ -1008,6 +1257,94 @@ const HomeVisitReport = () => {
                                     className="w-full sm:w-auto px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                                 >
                                     ปิด
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Export PDF Modal */}
+                {exportModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    <Download className="w-5 h-5 text-green-600" />
+                                    ตัวเลือกส่งออก PDF
+                                </h2>
+                                <button onClick={() => setExportModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-5">
+                                {/* Mode selector */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">เลือกประเภทการส่งออก</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {[['date', 'ตามวันที่'], ['teacher', 'ตามครูผู้เยี่ยม'], ['student', 'ตามนักเรียน']].map(([mode, label]) => (
+                                            <button
+                                                key={mode}
+                                                onClick={() => setExportMode(mode)}
+                                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold border-2 transition-colors ${exportMode === mode ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
+                                                    }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Date mode */}
+                                {exportMode === 'date' && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">วันที่เริ่มต้น</label>
+                                            <input type="date" value={exportDateFrom} onChange={e => setExportDateFrom(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">วันที่สิ้นสุด</label>
+                                            <input type="date" value={exportDateTo} onChange={e => setExportDateTo(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                                        </div>
+                                        <p className="text-xs text-gray-500">หากไม่เลือกวันที่จะส่งออกข้อมูลทั้งหมด</p>
+                                    </div>
+                                )}
+
+                                {/* Teacher mode */}
+                                {exportMode === 'teacher' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">เลือกครูผู้เยี่ยม</label>
+                                        <select value={exportTeacherId} onChange={e => setExportTeacherId(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500">
+                                            <option value="">ครูทุกคน</option>
+                                            {teachers.map(t => (
+                                                <option key={t.id} value={t.id}>{t.namePrefix} {t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {/* Student mode */}
+                                {exportMode === 'student' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">ค้นหาชื่อหรือรหัสนักเรียน</label>
+                                        <input type="text" value={exportStudentSearch} onChange={e => setExportStudentSearch(e.target.value)}
+                                            placeholder="พิมพ์ชื่อ หรือ รหัสนักเรียน..."
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                                        <p className="text-xs text-gray-500 mt-1">ค้นหาได้ทั้งชื่อ-นามสกุล และรหัสนักเรียน (ตัวเลข) — หากเว้นว่างจะส่งออกข้อมูลทั้งหมด</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+                                <button onClick={() => setExportModalOpen(false)}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">
+                                    ยกเลิก
+                                </button>
+                                <button onClick={handleExportPDF} disabled={isExporting}
+                                    className="inline-flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                                    {isExporting ? <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Download className="w-4 h-4" />}
+                                    {isExporting ? 'กำลังส่งออก...' : 'ส่งออก PDF'}
                                 </button>
                             </div>
                         </div>

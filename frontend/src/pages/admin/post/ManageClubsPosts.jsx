@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 import {
     IoChevronBack,
     IoPeople,
@@ -18,12 +21,10 @@ import {
     IoTime,
     IoFilter,
     IoAdd,
-    IoTrash,
-    IoCreate,
-    IoSave,
     IoCheckmark,
     IoWarning,
 } from 'react-icons/io5';
+import { MdModeEdit, MdDelete } from 'react-icons/md';
 
 // Import the API hooks
 import {
@@ -38,6 +39,9 @@ import {
 } from '../../../redux/features/teachers/teachersApi'; // Adjust the path as needed
 
 const ManageClubsPosts = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = ['admin', 'super_admin'].includes((currentUser?.role || '').toLowerCase());
+
     // API hooks
     const { 
         data: clubsData = [], 
@@ -232,7 +236,11 @@ const ManageClubsPosts = () => {
                 showNotification(result.error || 'เกิดข้อผิดพลาดในการแก้ไขชุมนุม', 'error');
             }
         } catch (error) {
-            showNotification('เกิดข้อผิดพลาดในการแก้ไขชุมนุม', 'error');
+            if (error?.status === 403) {
+                showApiError(error, '', 'แก้ไขชุมนุม');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการแก้ไขชุมนุม', 'error');
+            }
             console.error('Error updating club:', error);
         }
     };
@@ -274,13 +282,7 @@ const ManageClubsPosts = () => {
                     });
                 }
             } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'เกิดข้อผิดพลาดในการลบชุมนุม',
-                    confirmButtonColor: '#d97706',
-                    confirmButtonText: 'ตกลง'
-                });
+                showApiError(error, 'เกิดข้อผิดพลาดในการลบชุมนุม', 'ลบชุมนุม');
                 console.error('Error deleting club:', error);
             }
         }
@@ -319,7 +321,19 @@ const ManageClubsPosts = () => {
         showNotification('รีเฟรชข้อมูลเรียบร้อยแล้ว');
     };
 
-    // Loading state
+    // Loading state เพิ่ม guard block
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-2xl shadow p-10 text-center max-w-sm">
+                    <div className="text-5xl mb-3">🔒</div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p className="text-gray-500 text-sm">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
+                </div>
+            </div>
+        );
+    }
+
     if (clubsLoading || categoriesLoading || teachersLoading) {
         return (
             <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
@@ -797,17 +811,17 @@ const ManageClubsPosts = () => {
                                                     <button
                                                         onClick={() => startEditingClub(club)}
                                                         disabled={isUpdating || isDeleting}
-                                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1 disabled:opacity-50"
+                                                        className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50"
                                                     >
-                                                        <IoCreate />
+                                                        <MdModeEdit className="w-4 h-4" />
                                                         <span>แก้ไข</span>
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteClub(club.id)}
                                                         disabled={isUpdating || isDeleting}
-                                                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1 disabled:opacity-50"
+                                                        className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                                                     >
-                                                        <IoTrash />
+                                                        <MdDelete className="w-4 h-4" />
                                                         <span>{isDeleting ? 'กำลังลบ...' : 'ลบ'}</span>
                                                     </button>
                                                 </div>

@@ -115,6 +115,32 @@ export const closeAlert = () => {
     Swal.close();
 };
 
+// Permission denied alert (403 Forbidden)
+export const showPermissionError = (action = 'ดำเนินการนี้') => {
+    return Swal.fire({
+        icon: 'warning',
+        title: 'ไม่มีสิทธิ์ดำเนินการ',
+        html: `<p>คุณไม่มีสิทธิ์<strong>${action}</strong></p><p class="text-sm text-gray-500 mt-2">เฉพาะบัญชีที่มีสิทธิ์เท่านั้นที่สามารถดำเนินการนี้ได้<br>หากต้องการความช่วยเหลือ กรุณาติดต่อผู้ดูแลระบบ</p>`,
+        confirmButtonColor: '#D97706',
+        confirmButtonText: 'ตกลง',
+    });
+};
+
+// Smart API error handler – detects 403 permission errors automatically
+export const showApiError = (error, fallbackMessage = 'ไม่สามารถดำเนินการได้', action = 'ดำเนินการนี้') => {
+    const status = error?.status ?? error?.data?.statusCode;
+    if (status === 403) {
+        return showPermissionError(action);
+    }
+    return Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error?.data?.message || error?.message || fallbackMessage,
+        confirmButtonColor: '#EF4444',
+        confirmButtonText: 'ตกลง',
+    });
+};
+
 export default {
     showToast,
     showSuccess,
@@ -126,4 +152,6 @@ export default {
     showDeleteConfirm,
     showCustom,
     closeAlert,
+    showPermissionError,
+    showApiError,
 };

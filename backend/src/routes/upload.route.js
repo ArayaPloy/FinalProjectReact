@@ -6,13 +6,13 @@ const fs = require('fs');
 const router = express.Router();
 
 // สร้างโฟลเดอร์ uploads/blogs ถ้ายังไม่มี
-const uploadDir = 'uploads/blogs';
+const uploadDir = path.join(__dirname, '../../uploads/blogs');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // สร้างโฟลเดอร์ uploads/teachers ถ้ายังไม่มี
-const teachersUploadDir = 'uploads/teachers';
+const teachersUploadDir = path.join(__dirname, '../../uploads/teachers');
 if (!fs.existsSync(teachersUploadDir)) {
   fs.mkdirSync(teachersUploadDir, { recursive: true });
 }
@@ -28,8 +28,6 @@ const storage = multer.diskStorage({
     
     // ดึง extension จาก mimetype (แม่นยำกว่า originalname)
     let ext = '';
-    console.log('📁 Original filename:', file.originalname);
-    console.log('🎨 Mimetype:', file.mimetype);
     
     switch(file.mimetype) {
       case 'image/jpeg':
@@ -51,8 +49,6 @@ const storage = multer.diskStorage({
         ext = path.extname(file.originalname) || '.jpg';
     }
     
-    console.log('📝 Extension determined:', ext);
-    
     const nameWithoutExt = path.basename(file.originalname, path.extname(file.originalname));
     
     // ลบอักขระพิเศษออกจากชื่อไฟล์
@@ -69,8 +65,6 @@ const storage = multer.diskStorage({
     }
     
     const finalFilename = safeName + '-' + uniqueSuffix + ext;
-    console.log('✅ Final filename:', finalFilename);
-    console.log('📏 Filename length:', finalFilename.length);
     
     // สร้างชื่อไฟล์สุดท้าย: safename-timestamp-random.ext
     cb(null, finalFilename);
@@ -151,7 +145,7 @@ const teacherUpload = multer({
   fileFilter: fileFilter
 });
 
-// Route สำหรับอัพโหลดรูปภาพ (บล็อก)
+// Route สำหรับอัพโหลดรูปภาพ (Blog)
 router.post('/image', upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
@@ -175,7 +169,6 @@ router.post('/image', upload.single('image'), (req, res) => {
             
             if (fs.existsSync(fullPath)) {
               fs.unlinkSync(fullPath);
-              console.log('✅ Deleted old image:', fullPath);
             }
           }
         } catch (deleteError) {
@@ -225,7 +218,6 @@ router.post('/teacher-image', teacherUpload.single('image'), (req, res) => {
             
             if (fs.existsSync(fullPath)) {
               fs.unlinkSync(fullPath);
-              console.log('✅ Deleted old teacher image:', fullPath);
             }
           }
         } catch (deleteError) {

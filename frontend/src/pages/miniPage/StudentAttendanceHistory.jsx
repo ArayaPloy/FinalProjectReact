@@ -238,19 +238,19 @@ const StudentAttendanceHistory = () => {
                 <i className="bi bi-bar-chart-fill text-amber-600 text-lg sm:text-xl flex-shrink-0"></i>
                 <span className="truncate">สถิติการเข้าแถว</span>
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+              <div className="grid grid-cols-5 gap-2 md:gap-3">
                 {Object.entries(studentData.statistics).map(([status, count]) => {
                   const config = getStatusConfig(status);
                   const Icon = config.icon;
                   return (
                     <div
                       key={status}
-                      className={`${config.bg} ${config.border} border-2 p-3 sm:p-4 rounded-lg md:rounded-xl flex flex-col items-center gap-2 hover:shadow-md transition-shadow touch-manipulation`}
+                      className={`${config.bg} ${config.border} border-2 px-2 py-2.5 rounded-lg flex flex-col items-center gap-1 hover:shadow-md transition-shadow touch-manipulation`}
                     >
-                      <Icon className={`w-6 h-6 md:w-8 md:h-8 ${config.color} flex-shrink-0`} />
-                      <p className={`text-xs sm:text-sm font-bold ${config.color} text-center`}>{status}</p>
-                      <p className="text-xl md:text-2xl font-bold text-gray-800">{count}</p>
-                      <p className="text-xs text-gray-500">ครั้ง</p>
+                      <Icon className={`w-5 h-5 md:w-6 md:h-6 ${config.color} flex-shrink-0`} />
+                      <p className={`text-sm font-bold ${config.color} text-center leading-tight`}>{status}</p>
+                      <p className="text-lg md:text-xl font-bold text-gray-800 leading-none">{count}</p>
+                      <p className="text-sm text-gray-500 leading-none">ครั้ง</p>
                     </div>
                   );
                 })}
@@ -296,13 +296,20 @@ const StudentAttendanceHistory = () => {
                               className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                             >
                               <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-gray-700 text-sm md:text-base">{index + 1}</td>
-                              <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-gray-700 text-sm md:text-base">
-                                {new Date(record.date).toLocaleDateString('th-TH', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  weekday: 'long'
-                                })}
+                              <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base">
+                                <p className="font-semibold text-gray-700">
+                                  {new Date(record.date).toLocaleDateString('th-TH', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    weekday: 'long'
+                                  })}
+                                </p>
+                                {record.createdAt && (
+                                  <p className="text-sm text-gray-400 mt-0">
+                                    บันทึกเมื่อ {new Date(record.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                  </p>
+                                )}
                               </td>
                               <td className="px-4 md:px-6 py-3 md:py-4">
                                 <div className={`inline-flex items-center gap-2 ${config.bg} ${config.border} border-2 px-3 md:px-4 py-2 rounded-lg`}>
@@ -360,6 +367,11 @@ const StudentAttendanceHistory = () => {
                                   weekday: 'long'
                                 })}
                               </p>
+                              {record.createdAt && (
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  บันทึกเมื่อ {new Date(record.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                </p>
+                              )}
                             </div>
                           </div>
 

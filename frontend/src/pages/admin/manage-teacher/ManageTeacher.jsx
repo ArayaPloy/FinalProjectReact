@@ -9,7 +9,9 @@ import {
     useFetchDepartmentsQuery
 } from '../../../redux/features/teachers/teachersApi';
 import Swal from 'sweetalert2';
-import { Edit2, Trash2, Plus, X, Upload, Search, Eye, UserPlus } from 'lucide-react';
+import { showApiError } from '../../../utils/sweetAlertHelper';
+import { Plus, X, Upload, Search, UserPlus } from 'lucide-react';
+import { MdVisibility, MdModeEdit, MdDelete } from 'react-icons/md';
 import { getApiURL, getBackendURL } from '../../../utils/apiConfig';
 
 const ManageTeacher = () => {
@@ -385,14 +387,7 @@ const ManageTeacher = () => {
             console.error('❌ Error data:', JSON.stringify(error.data, null, 2));
             console.error('❌ Error message:', error.message);
             console.error('❌ Full error object:', JSON.stringify(error, null, 2));
-
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: error.data?.message || error.message || 'ไม่สามารถบันทึกข้อมูลได้',
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'ตกลง'
-            });
+            showApiError(error, 'ไม่สามารถบันทึกข้อมูลได้', 'บันทึกข้อมูลบุคลากร');
         }
     };
 
@@ -426,13 +421,7 @@ const ManageTeacher = () => {
             refetch();
         } catch (error) {
             console.error('Delete error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถลบข้อมูลได้',
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'ตกลง'
-            });
+            showApiError(error, 'ไม่สามารถลบข้อมูลได้', 'ลบข้อมูลบุคลากร');
         }
     };
 
@@ -570,25 +559,26 @@ const ManageTeacher = () => {
                                     <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                                         <button
                                             onClick={() => handleViewDetails(teacher)}
-                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
                                         >
-                                            <Eye className="w-4 h-4" />
+                                            <MdVisibility className="w-4 h-4" />
                                             <span>ดู</span>
                                         </button>
                                         {isAdmin && (
                                         <>
                                         <button
                                             onClick={() => openModal(teacher)}
-                                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+                                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                                         >
-                                            <Edit2 className="w-4 h-4" />
+                                            <MdModeEdit className="w-4 h-4" />
                                             <span>แก้ไข</span>
                                         </button>
                                         <button
                                             onClick={() => handleDelete(teacher)}
-                                            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <MdDelete className="w-4 h-4" />
+                                            <span>ลบ</span>
                                         </button>
                                         </>
                                         )}
@@ -668,7 +658,7 @@ const ManageTeacher = () => {
                                                         onClick={handleRemoveImage}
                                                         className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <MdDelete className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
@@ -1109,12 +1099,6 @@ const ManageTeacher = () => {
                                         แก้ไขข้อมูล
                                     </button>
                                     )}
-                                    <button
-                                        onClick={() => setIsViewModalOpen(false)}
-                                        className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                                    >
-                                        ปิด
-                                    </button>
                                 </div>
                             </div>
                         </div>

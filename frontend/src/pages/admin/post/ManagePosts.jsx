@@ -2,8 +2,16 @@ import React, { useState } from "react";
 import { useDeleteBlogMutation, useFetchBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { Link } from "react-router-dom";
 import Swal from 'sweetalert2';
-import { formatDate } from "../../../utils/dateFormater";
-import { MdModeEdit } from "react-icons/md";
+import { showApiError } from '../../../utils/sweetAlertHelper';
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleDateString('th-TH', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok'
+  });
+};
+import { MdModeEdit, MdDelete } from "react-icons/md";
+
 
 const ManagePosts = () => {
   const [query, setQuery] = useState({ search: "", category: "" });
@@ -36,13 +44,7 @@ const ManagePosts = () => {
         refetch();
       } catch (error) {
         console.error("ลบบทความไม่สำเร็จ:", error);
-        Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด',
-          text: 'ไม่สามารถลบบทความได้',
-          confirmButtonColor: '#d97706',
-          confirmButtonText: 'ตกลง'
-        });
+        showApiError(error, 'ไม่สามารถลบบทความได้', 'ลบบทความ');
       }
     }
   };
@@ -56,7 +58,7 @@ const ManagePosts = () => {
           <h3 className="text-2xl font-semibold text-gray-800">บทความทั้งหมด</h3>
           <Link to="/blogs">
             <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-              ดูทั้งหมด
+              ดูบทความทั้งหมด
             </button>
           </Link>
         </div>
@@ -68,8 +70,7 @@ const ManagePosts = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ลำดับ</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ชื่อบทความ</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">วันที่เผยแพร่</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">แก้ไข</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ลบ</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">จัดการบทความ</th>
               </tr>
             </thead>
             <tbody>
@@ -79,19 +80,17 @@ const ManagePosts = () => {
                   <td className="px-6 py-4 text-sm text-gray-700">{blog.title}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{formatDate(blog.createdAt)}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">
-                    <Link to={`/dashboard/update-items/${blog.id}`} className="text-indigo-600 hover:text-indigo-800">
-                      <span className="flex items-center gap-1">
-                        <MdModeEdit /> แก้ไข
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    <button
-                      className="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors"
-                      onClick={() => handleDelete(blog.id)}
-                    >
-                      ลบ
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/dashboard/update-items/${blog.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                        <MdModeEdit className="w-4 h-4" /> แก้ไข
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(blog.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                      >
+                        <MdDelete className="w-4 h-4" /> ลบ
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

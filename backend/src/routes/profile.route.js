@@ -245,6 +245,23 @@ router.patch('/password', verifyToken, async (req, res) => {
             data: { password: hashedPassword, mustChangePassword: false }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: userId || null,
+                    tableName: 'users',
+                    recordId: userId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ event: 'password_changed' }),
+                    newValues: JSON.stringify({ event: 'password_changed', mustChangePassword: false }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
+
         res.status(200).json({
             success: true,
             message: 'Password changed successfully'
@@ -420,6 +437,23 @@ router.patch('/admin/reset-password/:userId', verifyToken, adminMiddleware, asyn
             where: { id: parseInt(userId) },
             data: { password: hashedPassword }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'users',
+                    recordId: parseInt(userId),
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ event: 'admin_password_reset' }),
+                    newValues: JSON.stringify({ event: 'admin_password_reset', resetBy: req.userId, targetUser: targetUser.username }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).json({
             success: true,

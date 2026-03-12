@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Swal from 'sweetalert2';
+import { MdModeEdit, MdBlock } from 'react-icons/md';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -186,7 +189,8 @@ const ClassroomModal = ({ isOpen, onClose, onSave, classroom, teachers, academic
 };
 
 // ─── ManageClassroom page ─────────────────────────────────────────────────
-const ManageClassroom = () => {
+const ManageClassroom = () => {    const currentUser = useSelector(selectCurrentUser);
+    const isAdmin = ['admin', 'super_admin'].includes((currentUser?.role || '').toLowerCase());
     const [classrooms, setClassrooms] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [academicYears, setAcademicYears] = useState([]);
@@ -266,15 +270,15 @@ const ManageClassroom = () => {
 
     const handleDelete = async (classroom) => {
         const result = await Swal.fire({
-            title: `ลบห้อง "${classroom.className}" ?`,
+            title: `ปิดการใช้งานห้อง "${classroom.className}" ?`,
             html: classroom.studentCount > 0
-                ? `<p class="text-yellow-600">มีนักเรียน <strong>${classroom.studentCount}</strong> คนในห้องนี้<br/>ระบบจะ<strong>ปิดการใช้งาน</strong>แทนการลบจริง</p>`
-                : '<p>ห้องนี้ไม่มีนักเรียน สามารถลบได้</p>',
+                ? `<p class="text-yellow-600">มีนักเรียน <strong>${classroom.studentCount}</strong> คนในห้องนี้</p><p class="mt-1">ห้องนี้จะถูก<strong>ปิดการใช้งาน</strong></p>`
+                : '<p>ห้องนี้จะถูก<strong>ปิดการใช้งาน</strong></p>',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: classroom.studentCount > 0 ? '#d97706' : '#ef4444',
+            confirmButtonColor: '#d97706',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: classroom.studentCount > 0 ? 'ปิดการใช้งาน' : 'ลบจริง',
+            confirmButtonText: 'ปิดการใช้งาน',
             cancelButtonText: 'ยกเลิก',
         });
 
@@ -308,6 +312,18 @@ const ManageClassroom = () => {
     });
 
     // ─── render ───────────────────────────────────────────────────────────────
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-2xl shadow p-10 text-center max-w-sm">
+                    <div className="text-5xl mb-3">🔒</div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p className="text-gray-500 text-sm">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto">
             {/* Header */}
@@ -330,7 +346,7 @@ const ManageClassroom = () => {
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder="ค้นหาห้อง, ครูประจำชั้น, อาคาร..."
+                    placeholder="ค้นหาห้องเรียน, ครูประจำชั้น..."
                     className="w-full max-w-md border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-500"
                 />
             </div>
@@ -377,27 +393,27 @@ const ManageClassroom = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filtered.map(classroom => (
-                                    <tr key={classroom.id} className={`hover:bg-gray-50 transition-colors ${!classroom.isActive ? 'opacity-50' : ''}`}>
-                                        <td className="px-4 py-3">
+                                    <tr key={classroom.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className={`px-4 py-3 ${!classroom.isActive ? 'opacity-40' : ''}`}>
                                             <span className="font-bold text-indigo-700 text-base">{classroom.className}</span>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className={`px-4 py-3 ${!classroom.isActive ? 'opacity-40' : ''}`}>
                                             {classroom.homeroomTeacher ? (
                                                 <span className="text-gray-700">{classroom.homeroomTeacher.fullName}</span>
                                             ) : (
                                                 <span className="text-gray-400 italic text-xs">ยังไม่กำหนด</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className={`px-4 py-3 text-center ${!classroom.isActive ? 'opacity-40' : ''}`}>
                                             <span className={`font-semibold ${classroom.studentCount >= (classroom.maxStudents || 40) ? 'text-red-600' : 'text-gray-700'}`}>
                                                 {classroom.studentCount}
                                             </span>
                                             <span className="text-gray-400 text-xs">/{classroom.maxStudents || '—'}</span>
                                         </td>
-                                        <td className="px-4 py-3 hidden sm:table-cell text-gray-600 text-xs">
+                                        <td className={`px-4 py-3 hidden sm:table-cell text-gray-600 text-xs ${!classroom.isActive ? 'opacity-40' : ''}`}>
                                             {[classroom.building ? `อาคาร ${classroom.building}` : null, classroom.floor ? `ชั้น ${classroom.floor}` : null, classroom.room ? `ห้อง ${classroom.room}` : null].filter(Boolean).join(' ') || '—'}
                                         </td>
-                                        <td className="px-4 py-3 hidden md:table-cell text-gray-600 text-xs">
+                                        <td className={`px-4 py-3 hidden md:table-cell text-gray-600 text-xs ${!classroom.isActive ? 'opacity-40' : ''}`}>
                                             {classroom.academicYear
                                                 ? <span className="flex items-center gap-1">
                                                     {classroom.academicYear.year}
@@ -414,15 +430,15 @@ const ManageClassroom = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => { setEditingClassroom(classroom); setModalOpen(true); }}
-                                                    className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
                                                 >
-                                                    แก้ไข
+                                                    <MdModeEdit className="w-4 h-4" /> แก้ไข
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(classroom)}
-                                                    className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                                 >
-                                                    ลบ
+                                                    <MdBlock className="w-4 h-4" /> ปิด
                                                 </button>
                                             </div>
                                         </td>

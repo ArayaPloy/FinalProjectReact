@@ -43,32 +43,6 @@ Table academic_years {
   }
 }
 
-Table academicclubattendance {
-  id int [pk, increment]
-  clubId int [ref: > academicclubs.id]
-  date date
-  studentId int [ref: > students.id]
-  statusId int [not null, ref: > attendancestatuses.id]
-  summary text
-  imagePath varchar(255)
-  recorderId int [ref: > teachers.id]
-  createdAt timestamp [default: `now()`]
-  updatedAt timestamp [default: `now()`]
-  isDeleted boolean [default: false]
-  deletedAt timestamp
-  updatedBy int [ref: > users.id]
-  semesterId int [ref: > semesters.id]
-  
-  indexes {
-    clubId
-    recorderId
-    semesterId
-    statusId
-    studentId
-    updatedBy
-  }
-}
-
 Table academicclubs {
   id int [pk, increment]
   name varchar(100) [not null]
@@ -490,23 +464,6 @@ Table teachersubjects {
   
   indexes {
     subjectId
-  }
-}
-
-Table user_login_logs {
-  id int [pk, increment]
-  userId int [not null, ref: > users.id]
-  action varchar(20) [not null]
-  ipAddress varchar(45)
-  userAgent text
-  loginAt timestamp [default: `now()`]
-  logoutAt timestamp
-  sessionToken varchar(255)
-  
-  indexes {
-    loginAt [name: 'idx_login_time']
-    userId [name: 'idx_login_user']
-    (userId, loginAt) [name: 'idx_user_login_time']
   }
 }
 

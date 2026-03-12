@@ -157,6 +157,22 @@ router.post('/academic-years', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'academic_years',
+                    recordId: newAcademicYear.id,
+                    action: 'CREATE',
+                    oldValues: null,
+                    newValues: JSON.stringify({ year: newAcademicYear.year, isCurrent: newAcademicYear.isCurrent }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(201).json({
             message: 'สร้างปีการศึกษาสำเร็จ',
             data: newAcademicYear
@@ -249,6 +265,22 @@ router.patch('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'academic_years',
+                    recordId: yearId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ year: existingYear.year, isCurrent: existingYear.isCurrent, isActive: existingYear.isActive }),
+                    newValues: JSON.stringify({ year: updatedYear.year, isCurrent: updatedYear.isCurrent, isActive: updatedYear.isActive }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             message: 'อัปเดตปีการศึกษาและภาคเรียนสำเร็จ',
             data: updatedYear
@@ -289,6 +321,22 @@ router.patch('/academic-years/:id/set-current', verifyToken, isAdmin, async (req
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'academic_years',
+                    recordId: yearId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ isCurrent: false }),
+                    newValues: JSON.stringify({ isCurrent: true }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             message: 'ตั้งเป็นปีการศึกษาปัจจุบันสำเร็จ',
             data: updatedYear
@@ -317,8 +365,7 @@ router.delete('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
                         _count: {
                             select: {
                                 flagpoleattendance: true,
-                                homeroomattendance: true,
-                                academicclubattendance: true
+                                homeroomattendance: true
                             }
                         }
                     }
@@ -341,8 +388,7 @@ router.delete('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
         // ตรวจสอบว่าภาคเรียนมีข้อมูลเชื่อมโยงหรือไม่
         const hasRelatedData = academicYear.semesters.some(semester => 
             semester._count.flagpoleattendance > 0 ||
-            semester._count.homeroomattendance > 0 ||
-            semester._count.academicclubattendance > 0
+            semester._count.homeroomattendance > 0
         );
 
         if (hasRelatedData) {
@@ -350,13 +396,12 @@ router.delete('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
             const totalRecords = academicYear.semesters.reduce((sum, semester) => 
                 sum + 
                 semester._count.flagpoleattendance + 
-                semester._count.homeroomattendance + 
-                semester._count.academicclubattendance
+                semester._count.homeroomattendance
             , 0);
 
             return res.status(400).json({ 
                 message: 'ไม่สามารถลบปีการศึกษาที่มีข้อมูลบันทึกแล้วได้',
-                detail: `ปีการศึกษา ${academicYear.year} มีข้อมูลการบันทึกทั้งหมด ${totalRecords} รายการ (การเข้าแถว, เข้าชุมนุม, เข้าห้องโฮมรูม)`,
+                detail: `ปีการศึกษา ${academicYear.year} มีข้อมูลการบันทึกทั้งหมด ${totalRecords} รายการ (การเข้าแถว, เข้าห้องโฮมรูม)`,
                 suggestion: 'หากต้องการหยุดใช้งานปีนี้ กรุณาใช้ฟังก์ชัน "ปิดใช้งาน" แทน หรือติดต่อผู้ดูแลระบบ'
             });
         }
@@ -365,6 +410,23 @@ router.delete('/academic-years/:id', verifyToken, isAdmin, async (req, res) => {
         await prisma.academic_years.delete({
             where: { id: yearId }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'academic_years',
+                    recordId: yearId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ year: academicYear.year, isCurrent: academicYear.isCurrent }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).json({ 
             message: 'ลบปีการศึกษาสำเร็จ',
@@ -480,6 +542,22 @@ router.patch('/semesters/:id', verifyToken, isAdmin, async (req, res) => {
             });
         }
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'semesters',
+                    recordId: semesterId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ isCurrent: existingSemester.isCurrent, isActive: existingSemester.isActive }),
+                    newValues: JSON.stringify({ isCurrent: updatedSemester.isCurrent, isActive: updatedSemester.isActive }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             message: 'อัปเดตภาคเรียนและปีการศึกษาสำเร็จ',
             data: updatedSemester
@@ -533,6 +611,22 @@ router.patch('/semesters/:id/set-current', verifyToken, isAdmin, async (req, res
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'semesters',
+                    recordId: semesterId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ isCurrent: false }),
+                    newValues: JSON.stringify({ isCurrent: true }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             message: 'ตั้งเป็นภาคเรียนปัจจุบันสำเร็จ',
             data: updatedSemester

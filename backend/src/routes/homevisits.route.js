@@ -156,8 +156,6 @@ router.get('/student/:studentNumber', verifyToken, async (req, res) => {
             });
         }
 
-        console.log(`[GET /student/${studentNumber}] Found student ID=${student.id}, homeroomClassId=${student.homeroomClassId}`);
-
         res.status(200).json({
             success: true,
             data: student
@@ -207,7 +205,7 @@ router.get('/', verifyToken, async (req, res) => {
         }
         if (search) {
             whereClause.OR = [
-                { 
+                {
                     students: {
                         OR: [
                             { firstName: { contains: search } },
@@ -216,7 +214,7 @@ router.get('/', verifyToken, async (req, res) => {
                         ]
                     }
                 },
-                { 
+                {
                     teachers: {
                         OR: [
                             { firstName: { contains: search } },
@@ -437,6 +435,22 @@ router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
         };
 
         const newVisit = await prisma.homevisits.create({ data });
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'homevisits',
+                    recordId: newVisit.id,
+                    action: 'CREATE',
+                    oldValues: null,
+                    newValues: JSON.stringify({ studentId: data.studentId, visitDate: data.visitDate, teacherId: data.teacherId }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(201).json({ success: true, data: newVisit });
     } catch (error) {
         console.error(error);
@@ -566,12 +580,12 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
                 updateData.imageGallery = newImagePaths.length > 1 ? JSON.stringify(newImagePaths.slice(1)) : null; // gallery
             } else {
                 // Append to existing images
-                const existingGallery = existingVisit.imageGallery 
-                    ? (typeof existingVisit.imageGallery === 'string' 
-                        ? JSON.parse(existingVisit.imageGallery) 
+                const existingGallery = existingVisit.imageGallery
+                    ? (typeof existingVisit.imageGallery === 'string'
+                        ? JSON.parse(existingVisit.imageGallery)
                         : existingVisit.imageGallery)
                     : [];
-                
+
                 // ถ้ายังไม่มี imagePath ให้ใช้รูปแรกเป็น imagePath
                 if (!existingVisit.imagePath && newImagePaths.length > 0) {
                     updateData.imagePath = newImagePaths[0];
@@ -623,6 +637,22 @@ router.put('/:id', verifyToken, upload.array('images', 5), handleMulterError, as
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'homevisits',
+                    recordId: homeVisitId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ visitDate: existingVisit.visitDate, summary: existingVisit.summary }),
+                    newValues: JSON.stringify({ visitDate: updateData.visitDate || existingVisit.visitDate, summary: updateData.summary }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             success: true,
             message: 'Home visit updated successfully',
@@ -685,6 +715,23 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
                 updatedBy: req.userId
             }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'homevisits',
+                    recordId: homeVisitId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ studentId: existingVisit.studentId, visitDate: existingVisit.visitDate }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).json({
             success: true,

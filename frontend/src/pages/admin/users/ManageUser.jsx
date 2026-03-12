@@ -4,10 +4,15 @@ import {
   useDeleteUserMutation,
   useGetUserQuery,
 } from "../../../redux/features/auth/authApi";
+import { useFetchPendingBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { MdModeEdit, MdDelete, MdWarning, MdAdminPanelSettings, MdLockReset } from "react-icons/md";
 import { FiUsers, FiUserCheck, FiUserX } from "react-icons/fi";
+import { HiOutlineNewspaper } from "react-icons/hi";
 import UpdateUserModal from "./UpdateUserModal";
 import PasswordResetRequests from "./PasswordResetRequests";
+import BlogApprovalRequests from "../post/BlogApprovalRequests";
+import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
 
 const ManageUser = () => {
   const [activeTab, setActiveTab] = useState("users");
@@ -32,6 +37,11 @@ const ManageUser = () => {
   });
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
+  // ดึงจำนวน pending blog posts (สำหรับ badge บนแท็บ)
+  const { data: pendingBlogs = [] } = useFetchPendingBlogsQuery(undefined, {
+    skip: !isAuthorized
+  });
+
   const handleDelete = async (userId) => {
     try {
       await deleteUser(userId).unwrap();
@@ -45,12 +55,7 @@ const ManageUser = () => {
       setTimeout(() => document.body.removeChild(successDiv), 3000);
     } catch (error) {
       console.error("Failed to delete user:", error);
-      // Show error message
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      errorDiv.textContent = 'เกิดข้อผิดพลาดในการลบผู้ใช้';
-      document.body.appendChild(errorDiv);
-      setTimeout(() => document.body.removeChild(errorDiv), 3000);
+      showApiError(error, 'เกิดข้อผิดพลาดในการลบผู้ใช้', 'ลบผู้ใช้');
     }
   };
 
@@ -191,6 +196,24 @@ const ManageUser = () => {
               <MdLockReset className="text-base" />
               คำขอรีเซ็ตรหัสผ่าน
             </button>
+            <button
+              onClick={() => setActiveTab("blogs")}
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === "blogs"
+                  ? "bg-indigo-600 text-white shadow"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <HiOutlineNewspaper className="text-base" />
+              คำขอโพสต์บทความ
+              {pendingBlogs.length > 0 && (
+                <span className={`ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === "blogs" ? "bg-white text-indigo-600" : "bg-red-500 text-white"
+                }`}>
+                  {pendingBlogs.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -198,6 +221,10 @@ const ManageUser = () => {
         {activeTab === "reset" ? (
           <div className="p-6">
             <PasswordResetRequests />
+          </div>
+        ) : activeTab === "blogs" ? (
+          <div className="p-6">
+            <BlogApprovalRequests />
           </div>
         ) : (
         <div className="overflow-x-auto">
@@ -251,7 +278,7 @@ const ManageUser = () => {
                       </button>
                       <button
                         onClick={() => setShowDeleteConfirm(user.id)}
-                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                         title="ลบผู้ใช้"
                         disabled={isDeleting}
                       >

@@ -21,7 +21,13 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
             description,
             heroImage,
             director_image,
-            director_quote
+            director_quote,
+            phone,
+            officeHoursOpen,
+            officeHoursClose,
+            email,
+            facebookUrl,
+            facebookName
         } = req.body;
 
         const schoolInfoData = {
@@ -34,6 +40,12 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
             heroImage,
             director_image,
             director_quote,
+            phone,
+            officeHoursOpen,
+            officeHoursClose,
+            email,
+            facebookUrl,
+            facebookName,
             foundedDate,
             updatedBy: req.userId,
         };
@@ -61,6 +73,22 @@ router.post('/school-info', verifyToken, isAdmin, async (req, res) => {
             });
         }
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'school_info',
+                    recordId: schoolInfo.id,
+                    action: existingSchoolInfo ? 'UPDATE' : 'CREATE',
+                    oldValues: existingSchoolInfo ? JSON.stringify({ schoolName: existingSchoolInfo.schoolName }) : null,
+                    newValues: JSON.stringify({ schoolName: schoolInfo.schoolName }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(201).json({
             message: existingSchoolInfo ? 'School information updated successfully' : 'School information created successfully',
             schoolInfo
@@ -114,6 +142,22 @@ router.post('/timeline', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'school_timeline',
+                    recordId: timelineEvent.id,
+                    action: 'CREATE',
+                    oldValues: null,
+                    newValues: JSON.stringify({ year: timelineEvent.year, title: timelineEvent.title }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(201).json({
             message: 'Timeline event created successfully',
             timelineEvent
@@ -212,6 +256,22 @@ router.patch('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
             }
         });
 
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'school_timeline',
+                    recordId: timelineId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ year: existingEvent.year, title: existingEvent.title }),
+                    newValues: JSON.stringify({ year: updatedEvent.year, title: updatedEvent.title }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
         res.status(200).json({
             message: 'Timeline event updated successfully',
             timelineEvent: updatedEvent
@@ -255,6 +315,23 @@ router.delete('/timeline/:id', verifyToken, isAdmin, async (req, res) => {
                 deletedBy: req.userId
             }
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'school_timeline',
+                    recordId: timelineId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ year: existingEvent.year, title: existingEvent.title }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).json({
             message: 'Timeline event deleted successfully'

@@ -15,6 +15,7 @@ import { academicApi } from '../services/academicApi';
 import { studentPublicApi } from '../services/studentPublicApi';
 import { classScheduleApi } from '../services/classScheduleApi';
 import { subjectsApi } from '../services/subjectsApi';
+import { admissionsApi } from '../services/admissionsApi';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     [studentPublicApi.reducerPath]: studentPublicApi.reducer,
     [classScheduleApi.reducerPath]: classScheduleApi.reducer,
     [subjectsApi.reducerPath]: subjectsApi.reducer,
+    [admissionsApi.reducerPath]: admissionsApi.reducer,
     auth: authReducer,
     flagpoleAttendance: flagpoleAttendanceReducer
   },
@@ -50,6 +52,7 @@ export const store = configureStore({
       academicApi.middleware,
       studentPublicApi.middleware,
       classScheduleApi.middleware,
-      subjectsApi.middleware
+      subjectsApi.middleware,
+      admissionsApi.middleware
     ),
 });

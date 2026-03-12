@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useFetchBlogsQuery } from "../../../redux/features/blogs/blogsApi";
+import { useFetchBlogsQuery, useFetchPendingBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { useGetUserStatsQuery, useGetPasswordResetRequestsQuery } from "../../../redux/features/auth/authApi";
 import { useGetCommentsQuery } from "../../../redux/features/comments/commentsApi";
 import Swal from "sweetalert2";
@@ -23,6 +23,10 @@ const Dashboard = () => {
     skip: !isAdmin,
   });
   const pendingResetCount = Array.isArray(resetRequests) ? resetRequests.length : 0;
+  const { data: pendingBlogs = [] } = useFetchPendingBlogsQuery(undefined, {
+    skip: !isAdmin,
+  });
+  const pendingBlogCount = pendingBlogs.length;
 
   // นับจำนวนผู้ใช้ตามบทบาท
   const roleStats = useMemo(() => {
@@ -48,7 +52,7 @@ const Dashboard = () => {
     if (isLoading || !userStats) return; // รอให้โหลดข้อมูลเสร็จก่อน
 
     const newUsers = userStats.userCount || 0;
-    if (pendingResetCount === 0 && newUsers === 0) return;
+    if (pendingResetCount === 0 && newUsers === 0 && pendingBlogCount === 0) return;
 
     popupShownRef.current = true;
 
@@ -58,6 +62,9 @@ const Dashboard = () => {
     }
     if (pendingResetCount > 0) {
       html += `<li>🔑 มีคำขอรีเซ็ตรหัสผ่าน <strong>${pendingResetCount}</strong> รายการ รอการอนุมัติ</li>`;
+    }
+    if (pendingBlogCount > 0) {
+      html += `<li>📋 มีคำขอโพสต์บทความ <strong>${pendingBlogCount}</strong> รายการ รอการอนุมัติ</li>`;
     }
     html += '</ul>';
 
@@ -76,7 +83,7 @@ const Dashboard = () => {
         navigate('/dashboard/users');
       }
     });
-  }, [isAdmin, isLoading, userStats, pendingResetCount, navigate]);
+  }, [isAdmin, isLoading, userStats, pendingResetCount, pendingBlogCount, navigate]);
 
   // คำนวณสถิติบทความ
   const blogStats = useMemo(() => {

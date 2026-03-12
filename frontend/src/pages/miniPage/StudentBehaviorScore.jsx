@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
-import { Search, Users, TrendingUp, TrendingDown, Award, AlertCircle } from 'lucide-react';
+import { Search, Users, TrendingUp, TrendingDown, Award, AlertCircle, ClipboardList } from 'lucide-react';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useLazyGetStudentBehaviorScoreQuery } from '../../services/studentPublicApi';
 
@@ -175,34 +175,28 @@ const StudentBehaviorScore = () => {
                   <i className="bi bi-bar-chart-fill text-amber-600 text-lg md:text-xl"></i>
                   <span>สถิติการบันทึก</span>
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 p-4 md:p-4 rounded-lg md:rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="w-7 h-7 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs md:text-sm font-bold text-green-700 leading-tight">คะแนนที่เพิ่ม</p>
-                        <p className="text-xl md:text-2xl font-bold text-green-600 leading-tight mt-0.5">+{studentData.statistics.totalAdded}</p>
-                      </div>
+                <div className="grid grid-cols-3 gap-2 md:gap-3">
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 px-3 py-2.5 rounded-lg flex items-center gap-2.5">
+                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-green-700 leading-tight">คะแนนที่เพิ่ม</p>
+                      <p className="text-lg md:text-xl font-bold text-green-600 leading-none">+{studentData.statistics.totalAdded}</p>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 p-4 md:p-4 rounded-lg md:rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <TrendingDown className="w-7 h-7 md:w-8 md:h-8 text-red-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs md:text-sm font-bold text-red-700 leading-tight">คะแนนที่หัก</p>
-                        <p className="text-xl md:text-2xl font-bold text-red-600 leading-tight mt-0.5">-{studentData.statistics.totalDeducted}</p>
-                      </div>
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 px-3 py-2.5 rounded-lg flex items-center gap-2.5">
+                    <TrendingDown className="w-5 h-5 md:w-6 md:h-6 text-red-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-red-700 leading-tight">คะแนนที่หัก</p>
+                      <p className="text-lg md:text-xl font-bold text-red-600 leading-none">-{studentData.statistics.totalDeducted}</p>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 p-4 md:p-4 rounded-lg md:rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <i className="bi bi-list-ul text-blue-600 text-2xl md:text-3xl flex-shrink-0"></i>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs md:text-sm font-bold text-blue-700 leading-tight">จำนวนบันทึก</p>
-                        <p className="text-xl md:text-2xl font-bold text-blue-600 leading-tight mt-0.5">{studentData.statistics.totalRecords}</p>
-                      </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 px-3 py-2.5 rounded-lg flex items-center gap-2.5">
+                    <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-blue-700 leading-tight">จำนวนบันทึก</p>
+                      <p className="text-lg md:text-xl font-bold text-blue-600 leading-none">{studentData.statistics.totalRecords}</p>
                     </div>
                   </div>
                 </div>
@@ -249,12 +243,17 @@ const StudentBehaviorScore = () => {
                             className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                           >
                             <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-gray-700 text-sm md:text-base">{index + 1}</td>
-                            <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-gray-700 text-sm md:text-base whitespace-nowrap">
-                              {new Date(record.date).toLocaleDateString('th-TH', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
+                            <td className="px-4 md:px-6 py-3 md:py-4 text-sm md:text-base whitespace-nowrap">
+                              <p className="font-semibold text-gray-700">
+                                {new Date(record.date).toLocaleDateString('th-TH', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-sm text-gray-400 mt-0">
+                                บันทึกเมื่อ {new Date(record.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                              </p>
                             </td>
                             <td className="px-4 md:px-6 py-3 md:py-4 text-center">
                               <span
@@ -297,13 +296,18 @@ const StudentBehaviorScore = () => {
                             <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-md font-bold text-sm">
                               #{index + 1}
                             </span>
-                            <span className="text-xs text-gray-500 font-semibold">
-                              {new Date(record.date).toLocaleDateString('th-TH', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </span>
+                            <div>
+                              <p className="text-xs text-gray-500 font-semibold">
+                                {new Date(record.date).toLocaleDateString('th-TH', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                บันทึกเมื่อ {new Date(record.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                              </p>
+                            </div>
                           </div>
                           <span
                             className={`inline-flex items-center px-3 py-1.5 rounded-lg font-bold text-base ${

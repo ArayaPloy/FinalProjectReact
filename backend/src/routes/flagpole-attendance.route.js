@@ -124,17 +124,36 @@ router.get('/flagpole-attendance', verifyToken, async (req, res) => {
           include: {
             academic_years: true
           }
+        },
+        users_flagpoleattendance_recorderIdTousers: {
+          select: {
+            username: true,
+            teacher_profile: {
+              select: { namePrefix: true, firstName: true, lastName: true }
+            }
+          }
         }
       }
     });
 
-    const formattedAttendance = attendance.map(a => ({
-      ...a,
-      students: a.students ? {
-        ...a.students,
-        fullName: `${a.students.firstName || ''}${a.students.lastName ? ' ' + a.students.lastName : ''}`.trim()
-      } : null
-    }));
+    const formattedAttendance = attendance.map(a => {
+      const recorder = a.users_flagpoleattendance_recorderIdTousers;
+      let recorderName = null;
+      if (recorder) {
+        const t = recorder.teacher_profile;
+        recorderName = t
+          ? `${t.namePrefix || ''}${t.firstName || ''}${t.lastName ? ' ' + t.lastName : ''}`.trim()
+          : recorder.username;
+      }
+      return {
+        ...a,
+        recorderName,
+        students: a.students ? {
+          ...a.students,
+          fullName: `${a.students.firstName || ''}${a.students.lastName ? ' ' + a.students.lastName : ''}`.trim()
+        } : null
+      };
+    });
 
     res.json({ success: true, data: formattedAttendance });
   } catch (error) {
@@ -172,6 +191,17 @@ router.post('/flagpole-attendance', verifyToken, async (req, res) => {
       console.error('Error detecting semester:', error);
     }
   }
+
+  // ── ดึงข้อมูลเดิมก่อน transaction เพื่อใช้บันทึก audit log ──
+  const existingAttendance = await prisma.flagpoleattendance.findMany({
+    where: {
+      date: new Date(date),
+      students: { homeroomClass: { className: classRoom } }
+    },
+    select: { studentId: true, statusId: true }
+  });
+  const oldStatusMap = {};
+  existingAttendance.forEach(r => { oldStatusMap[r.studentId] = r.statusId; });
 
   try {
     // Begin transaction
@@ -212,6 +242,26 @@ router.post('/flagpole-attendance', verifyToken, async (req, res) => {
 
       return attendance;
     });
+
+    // ── บันทึก audit log หลัง transaction สำเร็จ ──
+    try {
+      await prisma.audit_logs.createMany({
+        data: result.map(record => ({
+          userId: req.userId || null,
+          tableName: 'flagpoleattendance',
+          recordId: record.id,
+          action: oldStatusMap[record.studentId] !== undefined ? 'UPDATE' : 'CREATE',
+          oldValues: oldStatusMap[record.studentId] !== undefined
+            ? JSON.stringify({ statusId: oldStatusMap[record.studentId] })
+            : null,
+          newValues: JSON.stringify({ statusId: record.statusId, date, classRoom }),
+          ipAddress: req.ip || req.connection?.remoteAddress || null,
+          userAgent: req.get('user-agent') || null
+        }))
+      });
+    } catch (auditError) {
+      console.error('Error creating audit logs:', auditError);
+    }
 
     res.json({ 
       success: true, 
@@ -403,6 +453,7 @@ router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
           }
           return {
             date: r.date.toISOString().split('T')[0],
+            recordedAt: r.createdAt ? r.createdAt.toISOString() : null,
             studentNumber: r.students.studentNumber,
             studentName: `${r.students.namePrefix || ''}${r.students.firstName || ''}${r.students.lastName ? ' ' + r.students.lastName : ''}`.trim(),
             classRoom: r.students.homeroomClass?.className || '',
@@ -415,6 +466,172 @@ router.get('/flagpole-attendance/report', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching attendance report:', error);
     res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลรายงานได้' });
+  }
+});
+
+// ─── Flagpole Attendance Summary per Student ─────────────────────────────────
+// GET /flagpole-attendance/summary?period=week|month|semester&classRoom=...&search=...
+router.get('/flagpole-attendance/summary', verifyToken, async (req, res) => {
+  try {
+    const { period = 'week', classRoom, search } = req.query;
+
+    const translationMap = {
+      'present': 'มา',
+      'late': 'สาย',
+      'sick leave': 'ลาป่วย',
+      'personal leave': 'ลากิจ',
+      'absent': 'ขาด'
+    };
+
+    // ─── Determine date range ────────────────────────────────────────────
+    let startDate, endDate;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    if (period === 'semester') {
+      // Use current active semester dates
+      const currentSemester = await prisma.semesters.findFirst({
+        where: { isCurrent: true, isActive: true }
+      });
+      if (currentSemester) {
+        startDate = new Date(currentSemester.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(currentSemester.endDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Fallback: current month if no active semester
+        const now2 = new Date();
+        startDate = new Date(now2.getFullYear(), now2.getMonth(), 1, 0, 0, 0, 0);
+        endDate = new Date(now2.getFullYear(), now2.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
+    } else if (period === 'month') {
+      // Use specific month from monthDate param (YYYY-MM)
+      const monthDate = req.query.monthDate;
+      if (monthDate && /^\d{4}-\d{2}$/.test(monthDate)) {
+        const [year, month] = monthDate.split('-').map(Number);
+        startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      } else {
+        // Fallback: current month
+        const now2 = new Date();
+        startDate = new Date(now2.getFullYear(), now2.getMonth(), 1, 0, 0, 0, 0);
+        endDate = new Date(now2.getFullYear(), now2.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
+    } else {
+      // week: use weekDate param (any date in the desired week → compute Mon–Sun)
+      const weekDate = req.query.weekDate;
+      const d = (weekDate && /^\d{4}-\d{2}-\d{2}$/.test(weekDate)) ? new Date(weekDate) : new Date();
+      const day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+      const monday = new Date(d);
+      monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      startDate = monday;
+      endDate = sunday;
+    }
+
+    // ─── Build where condition ───────────────────────────────────────────
+    const whereCondition = {
+      date: { gte: startDate, lte: endDate },
+      students: { isDeleted: false }
+    };
+
+    if (classRoom && classRoom !== 'all' && classRoom !== 'ทั้งหมด') {
+      whereCondition.students.homeroomClass = { className: classRoom };
+    }
+
+    // ─── Fetch all records in range ──────────────────────────────────────
+    const records = await prisma.flagpoleattendance.findMany({
+      where: whereCondition,
+      include: {
+        students: {
+          select: {
+            id: true,
+            studentNumber: true,
+            namePrefix: true,
+            firstName: true,
+            lastName: true,
+            homeroomClass: { select: { className: true } }
+          }
+        },
+        attendancestatuses: true
+      }
+    });
+
+    // ─── Aggregate per student ───────────────────────────────────────────
+    const studentMap = {};
+
+    records.forEach(r => {
+      const s = r.students;
+      if (!s) return;
+
+      const key = s.id;
+      if (!studentMap[key]) {
+        studentMap[key] = {
+          studentCode: s.studentNumber,
+          studentName: `${s.namePrefix || ''}${s.firstName || ''}${s.lastName ? ' ' + s.lastName : ''}`.trim(),
+          classRoom: s.homeroomClass?.className || '',
+          มา: 0, สาย: 0, ลาป่วย: 0, ลากิจ: 0, ขาด: 0
+        };
+      }
+
+      const statusTH = translationMap[r.attendancestatuses.name] || r.attendancestatuses.name;
+      if (studentMap[key][statusTH] !== undefined) {
+        studentMap[key][statusTH]++;
+      }
+    });
+
+    // ─── Apply search filter ─────────────────────────────────────────────
+    let summaryArray = Object.values(studentMap);
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      summaryArray = summaryArray.filter(st =>
+        st.studentCode?.toLowerCase().includes(q) ||
+        st.studentName?.toLowerCase().includes(q)
+      );
+    }
+
+    // ─── Compute totals + attendance rate ────────────────────────────────
+    // นับ "มา" และ "สาย" ว่าเข้าแถว  ลาป่วย/ลากิจ/ขาด ถือว่าไม่ได้เข้าแถว
+    summaryArray = summaryArray.map(st => {
+      const total = st.มา + st.สาย + st.ลาป่วย + st.ลากิจ + st.ขาด;
+      const attendanceRate = total > 0 ? (((st.มา + st.สาย) / total) * 100).toFixed(2) : '0.00';
+      return { ...st, total, attendanceRate: parseFloat(attendanceRate) };
+    });
+
+    // ─── Overall statistics ──────────────────────────────────────────────
+    const totalStudents = summaryArray.length;
+    const totalPresent = summaryArray.reduce((s, st) => s + st.มา + st.สาย, 0);
+    const totalRecords = summaryArray.reduce((s, st) => s + st.total, 0);
+    const overallRate = totalRecords > 0 ? ((totalPresent / totalRecords) * 100).toFixed(2) : '0.00';
+    const studentsAbove90 = summaryArray.filter(st => st.attendanceRate >= 90).length;
+    const studentsBelow70 = summaryArray.filter(st => st.attendanceRate < 70).length;
+
+    res.json({
+      success: true,
+      data: {
+        summary: summaryArray,
+        statistics: {
+          totalStudents,
+          overallAttendanceRate: overallRate,
+          studentsAbove90,
+          studentsBelow70,
+          periodLabel: period === 'week'
+            ? `สัปดาห์ ${startDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} – ${endDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : period === 'month'
+            ? startDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
+            : 'ภาคเรียนปัจจุบัน',
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching flagpole summary:', error);
+    res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลสรุปได้' });
   }
 });
 

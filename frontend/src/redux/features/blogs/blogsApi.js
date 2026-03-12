@@ -8,7 +8,7 @@ export const blogsApi = createApi({
     baseUrl: `${API_BASE_URL}/`,
     credentials: 'include' // ส่ง cookie อัตโนมัติ
   }),
-  tagTypes: ['Blogs'],
+  tagTypes: ['Blogs', 'PendingBlogs'],
   endpoints: (builder) => ({
 
     fetchBlogCategories: builder.query({
@@ -27,7 +27,12 @@ export const blogsApi = createApi({
     }),
 
     fetchRelatedBlogs: builder.query({
-      query: (id) => `blogs/related/${id}`, // ส่ง id ไปยังเซิร์ฟเวอร์
+      query: (id) => `blogs/related/${id}`,
+    }),
+
+    fetchPendingBlogs: builder.query({
+      query: () => 'blogs/pending',
+      providesTags: ['PendingBlogs'],
     }),
 
     postBlog: builder.mutation({
@@ -37,7 +42,7 @@ export const blogsApi = createApi({
         body: newBlog,
         credentials: 'include',
       }),
-      invalidatesTags: ['Blogs'],
+      invalidatesTags: ['Blogs', 'PendingBlogs'],
     }),
 
     updateBlog: builder.mutation({
@@ -47,7 +52,25 @@ export const blogsApi = createApi({
         body: rest,
         credentials: 'include',
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Blogs', id }],
+      invalidatesTags: (result, error, { id }) => [{ type: 'Blogs', id }, 'PendingBlogs'],
+    }),
+
+    approveBlog: builder.mutation({
+      query: (id) => ({
+        url: `blogs/approve/${id}`,
+        method: 'PATCH',
+        credentials: 'include',
+      }),
+      invalidatesTags: ['Blogs', 'PendingBlogs'],
+    }),
+
+    rejectBlog: builder.mutation({
+      query: (id) => ({
+        url: `blogs/reject/${id}`,
+        method: 'PATCH',
+        credentials: 'include',
+      }),
+      invalidatesTags: ['PendingBlogs'],
     }),
 
     deleteBlog: builder.mutation({
@@ -67,6 +90,9 @@ export const {
   useFetchBlogByIdQuery, 
   usePostBlogMutation, 
   useUpdateBlogMutation, 
-  useDeleteBlogMutation ,
+  useDeleteBlogMutation,
   useFetchRelatedBlogsQuery,
+  useFetchPendingBlogsQuery,
+  useApproveBlogMutation,
+  useRejectBlogMutation,
 } = blogsApi;

@@ -26,6 +26,18 @@ export const behaviorScoreApi = createApi({
     }),
 
     /**
+     * ดึงคะแนนที่บันทึกวันนี้ตามห้องเรียน (สำหรับแสดงในฟอร์มและตรวจสอบการบันทึกซ้ำ)
+     */
+    getTodayBehaviorScores: builder.query({
+      query: ({ classRoom, date }) => ({
+        url: '/today',
+        params: { classRoom, date },
+      }),
+      transformResponse: (response) => response.data,
+      providesTags: ['BehaviorScores'],
+    }),
+
+    /**
      * ดูประวัติการบันทึกของนักเรียน
      */
     getStudentHistory: builder.query({
@@ -54,9 +66,9 @@ export const behaviorScoreApi = createApi({
      * รายงานสรุป
      */
     getBehaviorReportsSummary: builder.query({
-      query: ({ classRoom, search, period }) => ({
+      query: ({ classRoom, search, period, weekDate, monthDate }) => ({
         url: '/reports/summary',
-        params: { classRoom, search, period },
+        params: { classRoom, search, period, weekDate, monthDate },
       }),
       providesTags: ['BehaviorReports'],
     }),
@@ -89,6 +101,7 @@ export const behaviorScoreApi = createApi({
 
 export const {
   useSaveBehaviorScoresMutation,
+  useGetTodayBehaviorScoresQuery,
   useGetStudentHistoryQuery,
   useGetBehaviorReportsHistoryQuery,
   useGetBehaviorReportsSummaryQuery,

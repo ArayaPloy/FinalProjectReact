@@ -15,7 +15,7 @@ import HomeVisits from "../pages/miniPage/HomeVisits";
 import AllStudents from "../pages/miniPage/AllStudents";
 import FlagpoleAttendance from "../pages/miniPage/FlagpoleAttendance";
 import BehaviorScore from "../pages/miniPage/BehaviorScore";
-import PrivacyPolicy from "../pages/miniPage/PrivacyPolicy";
+import AcademicInfo from "../pages/miniPage/AcademicInfo";
 import ContactUs from "../pages/miniPage/ContactUs";
 import StudentAttendanceHistory from "../pages/miniPage/StudentAttendanceHistory";
 import StudentBehaviorScore from "../pages/miniPage/StudentBehaviorScore";
@@ -37,6 +37,7 @@ import ErrorPage from "../components/ErrorPage";
 import EditSchoolHistory from "../pages/admin/school-history/SchoolHistory";
 import ManageClubsPosts from "../pages/admin/post/ManageClubsPosts";
 import ManageTeacher from "../pages/admin/manage-teacher/ManageTeacher";
+import ManageStudent from "../pages/admin/manage-student/ManageStudent";
 import FlagpoleAttendanceReport from "../pages/admin/reports/FlagpoleAttendanceReport";
 import BehaviorScoreReport from "../pages/admin/reports/BehaviorScoreReport";
 import HomeVisitReport from "../pages/admin/reports/HomeVisitReport";
@@ -136,8 +137,8 @@ const router = createBrowserRouter([
         element: <StudentBehaviorScore />
       },
       {
-        path: "/privacy-policy",
-        element: <PrivacyPolicy />
+        path: "/academic-info",
+        element: <AcademicInfo />
       },
       {
         path: "/contact-us", // ติดต่อเรา
@@ -229,6 +230,10 @@ const router = createBrowserRouter([
           {
             path: 'manage-teachers', // จัดการครูและบุคลากร
             element: <ManageTeacher />,
+          },
+          {
+            path: 'manage-students', // จัดการข้อมูลนักเรียน
+            element: <ManageStudent />,
           },
           {
             path: 'manage-classrooms', // จัดการห้องเรียน

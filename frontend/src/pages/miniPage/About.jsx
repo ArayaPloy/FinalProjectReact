@@ -142,7 +142,7 @@ const About = () => {
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/90 to-amber-700/90 z-10" />
         <img
-          src={schoolInfo?.hero_image || "/thabo_school.jpg"}
+          src={schoolInfo?.heroImage || "/thabo_school.jpg"}
           alt="ประวัติโรงเรียน"
           className="w-full h-[400px] object-cover"
           onError={(e) => {

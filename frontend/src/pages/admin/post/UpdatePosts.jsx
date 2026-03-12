@@ -3,10 +3,12 @@ import { useFetchBlogByIdQuery, useUpdateBlogMutation, useFetchBlogCategoriesQue
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
 import EditorJS from '@editorjs/editorjs';
 import List from '@editorjs/list'; 
 import Header from '@editorjs/header';
 import { getApiURL } from "../../../utils/apiConfig";
+import { MdClose, MdSave } from "react-icons/md";
 
 const UpdatePosts = () => {
   const editorRef = useRef(null);
@@ -29,6 +31,10 @@ const UpdatePosts = () => {
   const { data: blog = {}, error, isLoading, refetch } = useFetchBlogByIdQuery(id);
   const { data: categories = [], isLoading: isCategoriesLoading } = useFetchBlogCategoriesQuery();
   const { user } = useSelector((state) => state.auth);
+  const currentUserRole = typeof user?.role === 'object'
+    ? user?.role?.roleName || user?.role?.name || 'user'
+    : user?.role || 'user';
+  const isAdminUser = currentUserRole === 'admin' || currentUserRole === 'super_admin';
   const navigate = useNavigate();
 
   // ตั้งค่าข้อมูลเริ่มต้นจาก blog ที่โหลดมา
@@ -224,25 +230,30 @@ const UpdatePosts = () => {
       const response = await PostBlog({ id, ...updatedPost }).unwrap();
       console.log('Update response:', response);
       
-      await Swal.fire({
-        icon: 'success',
-        title: 'สำเร็จ',
-        text: response.message || 'แก้ไขบทความเรียบร้อยแล้ว',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      
-      refetch();
-      navigate(`/blogs/${id}`);
+      if (response.pending) {
+        // ผู้ใช้ที่ไม่ใช่แอดมิน — รอการอนุญาต
+        await Swal.fire({
+          icon: 'info',
+          title: '📨 ส่งคำขอสำเร็จ!',
+          html: '<p>คำขอแก้ไขบทความถูกส่งเพื่อรอการตรวจสอบจากแอดมิน</p><p class="text-sm text-gray-500 mt-2">บทความเดิมยังคงแสดงอยู่จนกว่าแอดมินจะอนุมัติ</p>',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#6366f1'
+        });
+        navigate(`/blogs/${id}`);
+      } else {
+        await Swal.fire({
+          icon: 'success',
+          title: 'สำเร็จ',
+          text: response.message || 'แก้ไขบทความเรียบร้อยแล้ว',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        refetch();
+        navigate(`/blogs/${id}`);
+      }
     } catch (error) {
       console.error('Error updating post:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'แก้ไขบทความไม่สำเร็จ กรุณาลองอีกครั้ง',
-        confirmButtonColor: '#d97706',
-        confirmButtonText: 'ตกลง'
-      });
+      showApiError(error, 'แก้ไขบทความไม่สำเร็จ กรุณาลองอีกครั้ง', 'แก้ไขบทความ');
     }
   };
 
@@ -442,13 +453,23 @@ const UpdatePosts = () => {
           </div>
 
           {message && <p className="text-red-500 text-center font-medium">{message}</p>}
-          <button
-            type="submit"
-            disabled={isUpdating || !isEditorReady || !categoryId}
-            className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {isUpdating ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !categoryId ? "กรุณาเลือกหมวดหมู่" : "อัปเดตบทความ"}
-          </button>
+          <div className="flex gap-3 mt-5">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/manage-items')}
+              className="flex-1 inline-flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <MdClose className="w-5 h-5" /> ยกเลิก
+            </button>
+            <button
+              type="submit"
+              disabled={isUpdating || !isEditorReady || !categoryId}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <MdSave className="w-5 h-5" />
+              {isUpdating ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !categoryId ? "กรุณาเลือกหมวดหมู่" : isAdminUser ? "อัปเดตบทความ" : "ส่งคำขอแก้ไขบทความ"}
+            </button>
+          </div>
         </form>
       )}
     </div>

@@ -121,11 +121,17 @@ export const aboutApi = createApi({
                     description: schoolInfo.description,
                     heroImage: schoolInfo.heroImage,
                     director_image: schoolInfo.director_image,
-                    director_quote: schoolInfo.director_quote
+                    director_quote: schoolInfo.director_quote,
+                    phone: schoolInfo.phone,
+                    officeHoursOpen: schoolInfo.officeHoursOpen,
+                    officeHoursClose: schoolInfo.officeHoursClose,
+                    email: schoolInfo.email,
+                    facebookUrl: schoolInfo.facebookUrl,
+                    facebookName: schoolInfo.facebookName,
                 },
                 credentials: 'include'
             }),
-            invalidatesTags: ['SchoolHistory']
+            invalidatesTags: ['SchoolInfo', 'SchoolHistory']
         }),
 
         updateTimelineEvent: builder.mutation({

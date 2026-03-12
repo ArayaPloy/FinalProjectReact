@@ -7,7 +7,7 @@ import FlagpoleAttendancePage from '../../components/FlagpoleAttendance/Flagpole
 const FlagpoleAttendance = () => {
     return (
         <div>
-            <FlagpoleAttendancePage />
+            <FlagpoleAttendancePage/>
         </div>
     );
 };

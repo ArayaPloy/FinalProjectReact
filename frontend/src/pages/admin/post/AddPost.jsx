@@ -3,10 +3,11 @@ import { usePostBlogMutation, useFetchBlogCategoriesQuery } from "../../../redux
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import EditorJS from '@editorjs/editorjs';
-import List from '@editorjs/list'; 
+import List from '@editorjs/list';
 import Header from '@editorjs/header';
 import { getApiURL } from "../../../utils/apiConfig";
 import Swal from 'sweetalert2';
+import { showApiError } from '../../../utils/sweetAlertHelper';
 
 const AddPost = () => {
   const editorRef = useRef(null);
@@ -16,17 +17,21 @@ const AddPost = () => {
   const [categoryId, setCategoryId] = useState("");
   const [message, setMessage] = useState("");
   const [isEditorReady, setIsEditorReady] = useState(false);
-  
+
   // States สำหรับ upload รูปภาพ
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  
+
   const [PostBlog, { isLoading }] = usePostBlogMutation();
   const { data: categories = [], isLoading: isCategoriesLoading } = useFetchBlogCategoriesQuery();
 
   const { user } = useSelector((state) => state.auth);
+  const currentUserRole = typeof user?.role === 'object'
+    ? user?.role?.roleName || user?.role?.name || 'user'
+    : user?.role || 'user';
+  const isAdminUser = currentUserRole === 'admin' || currentUserRole === 'super_admin';
   const navigate = useNavigate();
 
   // ตั้งค่า editor js
@@ -45,11 +50,11 @@ const AddPost = () => {
       tools: {
         header: {
           class: Header,
-          inlineToolbar: true 
+          inlineToolbar: true
         },
-        list: { 
-          class: List, 
-          inlineToolbar: true 
+        list: {
+          class: List,
+          inlineToolbar: true
         },
       },
       placeholder: 'เขียนเนื้อหาบทความที่นี่...',
@@ -69,7 +74,7 @@ const AddPost = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     setUploadError("");
-    
+
     if (!file) return;
 
     // ตรวจสอบประเภทไฟล์
@@ -86,7 +91,7 @@ const AddPost = () => {
     }
 
     setSelectedFile(file);
-    
+
     // แสดง preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -111,7 +116,7 @@ const AddPost = () => {
 
       // ใช้ getApiURL แทนการ hardcode URL
       const uploadURL = getApiURL('/upload/image');
-      
+
       const response = await fetch(uploadURL, {
         method: 'POST',
         body: formData,
@@ -144,7 +149,7 @@ const AddPost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // ตรวจสอบว่า editor พร้อมหรือยัง
     if (!editorRef.current || !isEditorReady) {
       await Swal.fire({
@@ -160,7 +165,7 @@ const AddPost = () => {
     try {
       // บันทึกข้อมูลจาก EditorJS
       const content = await editorRef.current.save();
-      
+
       // ตรวจสอบว่ามีเนื้อหาหรือไม่
       if (!content.blocks || content.blocks.length === 0) {
         await Swal.fire({
@@ -185,38 +190,42 @@ const AddPost = () => {
       });
 
       const newPost = {
-        title, 
+        title,
         content, // ส่ง object ไป backend จะ stringify เอง
-        coverImg, 
-        categoryId: categoryId ? parseInt(categoryId) : null, 
+        coverImg,
+        categoryId: categoryId ? parseInt(categoryId) : null,
         description: metaDescription,
         author: user.id,
       };
 
       console.log('Sending post data:', newPost);
-      
+
       const response = await PostBlog(newPost).unwrap();
-      
-      // แสดงความสำเร็จ
-      await Swal.fire({
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: response.message || 'เพิ่มบทความสำเร็จ',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#10b981'
-      });
-      
-      navigate("/blogs");
+
+      if (response.pending) {
+        // ผู้ใช้ที่ไม่ใช่แอดมิน — รอการอนุญาต
+        await Swal.fire({
+          icon: 'info',
+          title: '📨 ส่งคำขอสำเร็จ!',
+          html: '<p>บทความของคุณถูกส่งเพื่อรอการตรวจสอบจากแอดมิน</p><p class="text-sm text-gray-500 mt-2">เมื่อแอดมินอนุมัติแล้ว บทความจะถูกเผยแพร่โดยอัตโนมัติ</p>',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#6366f1'
+        });
+        navigate("/dashboard");
+      } else {
+        // แอดมิน — โพสต์ทันที
+        await Swal.fire({
+          icon: 'success',
+          title: 'สำเร็จ!',
+          text: response.message || 'เพิ่มบทความสำเร็จ',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#10b981'
+        });
+        navigate("/blogs");
+      }
     } catch (error) {
       console.error('Error creating post:', error);
-      
-      await Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: error.data?.message || 'เพิ่มบทความไม่สำเร็จ กรุณาลองอีกครั้ง',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#ef4444'
-      });
+      await showApiError(error, 'เพิ่มบทความไม่สำเร็จ กรุณาลองอีกครั้ง', 'เพิ่มบทความ');
     }
   }
 
@@ -242,11 +251,26 @@ const AddPost = () => {
           <div className="md:w-2/3 w-full">
             <p className="font-semibold text-xl mb-5">ส่วนเนื้อหา</p>
             <p className="text-sm text-gray-600 mb-4">
-              เขียนเนื้อหาบทความ 
+              เขียนเนื้อหาบทความ
               {isEditorReady && <span className="text-green-600 ml-2">● พร้อมใช้งาน</span>}
               {!isEditorReady && <span className="text-orange-600 ml-2">● กำลังโหลด...</span>}
             </p>
             <div id="editorjs" className="bg-gray-100 p-4 rounded-lg min-h-[300px]"></div>
+
+            {/* คำอธิบายเมตา */}
+            <div className="space-y-3 mt-5">
+              <label className="font-semibold">คำอธิบายเมตา: </label>
+              <textarea
+                type="text"
+                cols={4}
+                rows={4}
+                value={metaDescription}
+                className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
+                onChange={(e) => setMetaDescription(e.target.value)}
+                placeholder="เพิ่มคำอธิบายเมตาเพื่อเพิ่มประสิทธิภาพ SEO..."
+                required
+              />
+            </div>
           </div>
 
           {/* ด้านขวา */}
@@ -256,13 +280,13 @@ const AddPost = () => {
             {/* รูปภาพ - File Upload */}
             <div className="space-y-3">
               <label className="font-semibold">ภาพปกบทความ: </label>
-              
+
               {/* แสดง preview หรือ URL ที่อัปโหลดแล้ว */}
               {(imagePreview || coverImg) && (
                 <div className="relative">
-                  <img 
-                    src={imagePreview || coverImg} 
-                    alt="Preview" 
+                  <img
+                    src={imagePreview || coverImg}
+                    alt="Preview"
                     className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                   />
                   <button
@@ -284,7 +308,7 @@ const AddPost = () => {
                   onChange={handleFileSelect}
                   className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
                 />
-                
+
                 {/* ปุ่มอัปโหลด */}
                 {selectedFile && !coverImg && (
                   <button
@@ -306,7 +330,7 @@ const AddPost = () => {
                     )}
                   </button>
                 )}
-                
+
                 {/* แสดง error */}
                 {uploadError && (
                   <p className="text-red-500 text-sm flex items-center gap-1">
@@ -314,7 +338,7 @@ const AddPost = () => {
                     {uploadError}
                   </p>
                 )}
-                
+
                 {/* แสดง URL ที่อัปโหลดสำเร็จ */}
                 {coverImg && (
                   <p className="text-green-600 text-sm flex items-center gap-1">
@@ -358,21 +382,6 @@ const AddPost = () => {
               )}
             </div>
 
-            {/* คำอธิบายเมตา */}
-            <div className="space-y-3">
-              <label className="font-semibold">คำอธิบายเมตา: </label>
-              <textarea
-                type="text"
-                cols={4}
-                rows={4}
-                value={metaDescription}
-                className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
-                onChange={(e) => setMetaDescription(e.target.value)}
-                placeholder="เพิ่มคำอธิบายเมตาเพื่อเพิ่มประสิทธิภาพ SEO..."
-                required
-              />
-            </div>
-
             {/* ผู้เขียน */}
             <div className="space-y-3">
               <label className="font-semibold">ผู้เขียน: </label>
@@ -393,7 +402,7 @@ const AddPost = () => {
           disabled={isLoading || !isEditorReady || !coverImg || !categoryId}
           className="w-full mt-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด Editor..." : !coverImg ? "กรุณาอัปโหลดรูปภาพปก" : !categoryId ? "กรุณาเลือกหมวดหมู่" : "เพิ่มบทความ"}
+          {isLoading ? "กำลังบันทึก..." : !isEditorReady ? "กำลังโหลด ผู้เขียน..." : !coverImg ? "กรุณาอัปโหลดรูปภาพปก" : !categoryId ? "กรุณาเลือกหมวดหมู่" : isAdminUser ? "เพิ่มบทความ" : "ส่งคำขอสร้างบทความ"}
         </button>
       </form>
     </div>

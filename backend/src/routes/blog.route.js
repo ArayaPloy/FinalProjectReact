@@ -35,8 +35,8 @@ router.get('/categories', async (req, res) => {
     }
 });
 
-// Create post (protected route)
-router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
+// Create post (protected route — admin = published immediately, others = pending approval)
+router.post('/create-post', verifyToken, async (req, res) => {
     try {
         const { title, description, content, categoryId, coverImg } = req.body;
 
@@ -54,41 +54,184 @@ router.post('/create-post', verifyToken, isAdmin, async (req, res) => {
             }
         }
 
+        const role = req.user?.role || 'user';
+        const isAdminUser = role === 'admin' || role === 'super_admin';
+        const postStatus = isAdminUser ? 'published' : 'pending';
+
         const newPost = await prisma.blogs.create({
             data: {
                 title,
                 description,
-                content: JSON.stringify(content), // convert object เป็น string
+                content: JSON.stringify(content),
                 categoryId: categoryId ? parseInt(categoryId) : null,
                 coverImg,
-                author: req.userId, // จาก middleware verifyToken
+                author: req.userId,
+                status: postStatus,
             },
             include: {
                 users_blogs_authorTousers: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
+                    select: { id: true, username: true, email: true }
                 },
                 blog_categories: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                        icon: true
-                    }
+                    select: { id: true, name: true, slug: true, icon: true }
                 }
             }
         });
 
-        res.status(201).json({
-            message: 'สร้างโพสต์สำเร็จ',
-            post: newPost
-        });
+        if (isAdminUser) {
+            res.status(201).json({ message: 'สร้างโพสต์สำเร็จ', post: newPost });
+        } else {
+            res.status(201).json({
+                message: 'ส่งคำขอสร้างบทความสำเร็จ กรุณารอการอนุญาตจากแอดมิน',
+                pending: true,
+                post: newPost
+            });
+        }
     } catch (error) {
         console.error('Error creating post:', error);
         res.status(500).json({ message: 'สร้างโพสต์ไม่สำเร็จ' });
+    }
+});
+
+// GET pending blog posts (admin only)
+router.get('/pending', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const pendingPosts = await prisma.blogs.findMany({
+            where: {
+                status: 'pending',
+                isDeleted: false
+            },
+            include: {
+                users_blogs_authorTousers: {
+                    select: { id: true, username: true, email: true }
+                },
+                blog_categories: {
+                    select: { id: true, name: true, slug: true, icon: true }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.status(200).json(pendingPosts);
+    } catch (error) {
+        console.error('Error fetching pending posts:', error);
+        res.status(500).json({ message: 'ไม่สามารถดึงข้อมูลคำขอได้' });
+    }
+});
+
+// APPROVE a pending post (admin only)
+router.patch('/approve/:id', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) return res.status(400).json({ message: 'Invalid post ID' });
+
+        const pendingPost = await prisma.blogs.findFirst({
+            where: { id: postId, status: 'pending', isDeleted: false }
+        });
+        if (!pendingPost) return res.status(404).json({ message: 'ไม่พบคำขอที่รอดำเนินการ' });
+
+        if (pendingPost.pendingUpdateForId) {
+            // This is a pending UPDATE request — copy content to the original post, then soft-delete this draft
+            const originalId = pendingPost.pendingUpdateForId;
+            await prisma.$transaction(async (tx) => {
+                await tx.blogs.update({
+                    where: { id: originalId },
+                    data: {
+                        title: pendingPost.title,
+                        description: pendingPost.description,
+                        content: pendingPost.content,
+                        coverImg: pendingPost.coverImg,
+                        categoryId: pendingPost.categoryId,
+                        updatedBy: req.userId,
+                        updatedAt: new Date(),
+                    }
+                });
+                await tx.blogs.update({
+                    where: { id: postId },
+                    data: { isDeleted: true, deletedAt: new Date() }
+                });
+            });
+            try {
+                await prisma.audit_logs.create({
+                    data: {
+                        userId: req.userId || null,
+                        tableName: 'blogs',
+                        recordId: originalId,
+                        action: 'UPDATE',
+                        oldValues: JSON.stringify({ status: 'pending', pendingUpdateForId: postId }),
+                        newValues: JSON.stringify({ status: 'merged' }),
+                        ipAddress: req.ip || req.connection?.remoteAddress || null,
+                        userAgent: req.get('user-agent') || null
+                    }
+                });
+            } catch (auditError) {
+                console.error('Error creating audit log:', auditError);
+            }
+            return res.status(200).json({ message: 'อนุมัติการแก้ไขบทความสำเร็จ' });
+        } else {
+            // New post — just publish it
+            await prisma.blogs.update({
+                where: { id: postId },
+                data: { status: 'published', updatedBy: req.userId, updatedAt: new Date() }
+            });
+            try {
+                await prisma.audit_logs.create({
+                    data: {
+                        userId: req.userId || null,
+                        tableName: 'blogs',
+                        recordId: postId,
+                        action: 'UPDATE',
+                        oldValues: JSON.stringify({ status: 'pending' }),
+                        newValues: JSON.stringify({ status: 'published' }),
+                        ipAddress: req.ip || req.connection?.remoteAddress || null,
+                        userAgent: req.get('user-agent') || null
+                    }
+                });
+            } catch (auditError) {
+                console.error('Error creating audit log:', auditError);
+            }
+            return res.status(200).json({ message: 'อนุมัติบทความสำเร็จ' });
+        }
+    } catch (error) {
+        console.error('Error approving post:', error);
+        res.status(500).json({ message: 'ไม่สามารถอนุมัติบทความได้' });
+    }
+});
+
+// REJECT a pending post (admin only)
+router.patch('/reject/:id', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const postId = parseInt(req.params.id);
+        if (isNaN(postId)) return res.status(400).json({ message: 'Invalid post ID' });
+
+        const pendingPost = await prisma.blogs.findFirst({
+            where: { id: postId, status: 'pending', isDeleted: false }
+        });
+        if (!pendingPost) return res.status(404).json({ message: 'ไม่พบคำขอที่รอดำเนินการ' });
+
+        await prisma.blogs.update({
+            where: { id: postId },
+            data: { status: 'rejected', isDeleted: true, deletedAt: new Date() }
+        });
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'blogs',
+                    recordId: postId,
+                    action: 'UPDATE',
+                    oldValues: JSON.stringify({ status: 'pending' }),
+                    newValues: JSON.stringify({ status: 'rejected' }),
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
+        res.status(200).json({ message: 'ปฏิเสธคำขอบทความแล้ว' });
+    } catch (error) {
+        console.error('Error rejecting post:', error);
+        res.status(500).json({ message: 'ไม่สามารถปฏิเสธคำขอได้' });
     }
 });
 
@@ -99,6 +242,7 @@ router.get("/", async (req, res) => {
 
         let whereClause = {
             isDeleted: false,
+            status: 'published',
         };
 
         if (search) {
@@ -207,8 +351,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Update a post (protected route)
-router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
+// Update a post (admin = immediate, non-admin = pending update request)
+router.patch('/update-post/:id', verifyToken, async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
         const { title, description, content, categoryId, coverImg } = req.body;
@@ -219,10 +363,7 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
 
         // ตรวจสอบว่าโพสต์มีอยู่และไม่ถูกลบ
         const existingPost = await prisma.blogs.findFirst({
-            where: {
-                id: postId,
-                isDeleted: false
-            }
+            where: { id: postId, isDeleted: false, status: 'published' }
         });
 
         if (!existingPost) {
@@ -232,52 +373,54 @@ router.patch('/update-post/:id', verifyToken, isAdmin, async (req, res) => {
         // ตรวจสอบว่า categoryId มีอยู่จริง (ถ้ามีการส่งมา)
         if (categoryId) {
             const categoryExists = await prisma.blog_categories.findFirst({
-                where: {
-                    id: parseInt(categoryId),
-                    isDeleted: false
-                }
+                where: { id: parseInt(categoryId), isDeleted: false }
             });
-
             if (!categoryExists) {
                 return res.status(400).json({ message: 'ไม่พบหมวดหมู่ที่เลือก' });
             }
         }
 
-        const updatedPost = await prisma.blogs.update({
-            where: {
-                id: postId
-            },
-            data: {
-                title,
-                description,
-                content: JSON.stringify(content), //  convert object -> string 
-                categoryId: categoryId ? parseInt(categoryId) : null,
-                coverImg,
-                updatedBy: req.userId
-            },
-            include: {
-                users_blogs_authorTousers: {
-                    select: {
-                        id: true,
-                        username: true,
-                        email: true
-                    }
-                },
-                blog_categories: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                        icon: true
-                    }
-                }
-            }
-        });
+        const role = req.user?.role || 'user';
+        const isAdminUser = role === 'admin' || role === 'super_admin';
 
-        res.status(200).json({
-            message: 'Post updated successfully',
-            post: updatedPost
-        });
+        if (isAdminUser) {
+            // แอดมิน — อัปเดตทันที
+            const updatedPost = await prisma.blogs.update({
+                where: { id: postId },
+                data: {
+                    title,
+                    description,
+                    content: JSON.stringify(content),
+                    categoryId: categoryId ? parseInt(categoryId) : null,
+                    coverImg,
+                    updatedBy: req.userId
+                },
+                include: {
+                    users_blogs_authorTousers: { select: { id: true, username: true, email: true } },
+                    blog_categories: { select: { id: true, name: true, slug: true, icon: true } }
+                }
+            });
+            return res.status(200).json({ message: 'แก้ไขบทความสำเร็จ', post: updatedPost });
+        } else {
+            // ไม่ใช่แอดมิน — สร้าง draft pending update แนบ originalPostId
+            const draft = await prisma.blogs.create({
+                data: {
+                    title,
+                    description,
+                    content: JSON.stringify(content),
+                    categoryId: categoryId ? parseInt(categoryId) : null,
+                    coverImg,
+                    author: req.userId,
+                    status: 'pending',
+                    pendingUpdateForId: postId,
+                }
+            });
+            return res.status(201).json({
+                message: 'ส่งคำขอแก้ไขบทความสำเร็จ กรุณารอการอนุญาตจากแอดมิน',
+                pending: true,
+                post: draft
+            });
+        }
     } catch (error) {
         console.error('Error updating post:', error);
         res.status(500).json({ message: 'Failed to update post' });
@@ -328,6 +471,23 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
                 }
             });
         });
+
+        try {
+            await prisma.audit_logs.create({
+                data: {
+                    userId: req.userId || null,
+                    tableName: 'blogs',
+                    recordId: postId,
+                    action: 'DELETE',
+                    oldValues: JSON.stringify({ title: existingPost.title, status: existingPost.status }),
+                    newValues: null,
+                    ipAddress: req.ip || req.connection?.remoteAddress || null,
+                    userAgent: req.get('user-agent') || null
+                }
+            });
+        } catch (auditError) {
+            console.error('Error creating audit log:', auditError);
+        }
 
         res.status(200).json({
             message: 'Post and associated comments deleted successfully'
@@ -402,34 +562,6 @@ router.get('/related/:id', async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch related posts' });
     }
 });
-
-// Get all categories (public route) - DEPRECATED: Now using /categories endpoint with blog_categories table
-// router.get('/categories/all', async (req, res) => {
-//     try {
-//         const categories = await prisma.blogs.groupBy({
-//             by: ['category'],
-//             where: {
-//                 isDeleted: false,
-//                 category: {
-//                     not: null
-//                 }
-//             },
-//             _count: {
-//                 category: true
-//             },
-//             orderBy: {
-//                 _count: {
-//                     category: 'desc'
-//                 }
-//             }
-//         });
-
-//         res.status(200).json(categories);
-//     } catch (error) {
-//         console.error('Error fetching categories:', error);
-//         res.status(500).json({ message: 'Failed to fetch categories' });
-//     }
-// });
 
 
 module.exports = router;

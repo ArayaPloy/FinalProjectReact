@@ -209,22 +209,32 @@ ON DUPLICATE KEY UPDATE
 
   // Additional Users
   await prisma.$executeRawUnsafe(`
-    INSERT INTO users (id, username, email, password, roleId, createdAt, updatedAt, isDeleted, deletedAt, updatedBy) VALUES
-(2, 'admin1', 'admin1@admin.com', '$2b$10$UgEpibtV9td3fQ4nYR.db.IJdMWy69v4khxa1FUXsfF8CI.G9vHDO', 2, '2025-11-02 22:39:08', '2025-11-02 22:39:08', 0, NULL, NULL),
-(3, 'admin2', 'admin2@admin.com', '$2b$10$SaQ7gIcyQUpg8WQYgCjgW.b9N1iUJ6PJQ1RgTEKKZMD9IRJ9jYG7q', 2, '2025-11-02 22:41:06', '2025-11-02 22:41:06', 0, NULL, NULL),
-(4, 'admin3', 'admin3@admin.com', '$2b$10$XDEJPJpT4LzNDO7ejxT.eeUGw5x2Cw1l6FjK0ntYuS4SvES3QWUUC', 2, '2025-11-02 22:41:42', '2025-11-02 22:41:42', 0, NULL, NULL),
-(5, 'Chumnanwit1', 'Chumnanwit1@gmail.com', '$2b$10$Yn1L3gdHNJlM/pwZlrHVY.r4DXqj72uDWSsSPXzWkJTpxKDH7vp.y', 2, '2025-11-02 22:42:59', '2025-11-02 22:45:10', 0, NULL, NULL),
-(6, 'pitchaya2', 'pitchaya2@gmail.com', '$2b$10$eiEPOk7x7vf32jiemcQGZuRtWXp1Br9U1DmTAn4LpLOgc3qVGthlC', 2, '2025-11-02 22:43:26', '2025-11-02 22:45:15', 0, NULL, NULL),
-(7, 'amon3', 'amon3@gmail.com', '$2b$10$iAr6qGc8zt5kpvCO/hTduu.hX/Gr0d13GgG.gRrW53UOX1dWMLzgq', 3, '2025-11-02 22:43:51', '2025-11-02 22:45:19', 0, NULL, NULL),
-(8, 'pornsiri4', 'pornsiri4@gmail.com', '$2b$10$4sKmmYvmgoX8ROJJEbEeUuJ3icyCAv.yjE/78DxG6sWYoZA9IPdPK', 3, '2025-11-02 22:44:09', '2025-11-02 22:45:22', 0, NULL, NULL),
-(9, 'kesorn5', 'kesorn5@gmail.com', '$2b$10$jXy1p7dEs3EU7MgiNSweKOebbQTIm9O.Zy1avpTdpCdTSMUbrlcMa', 3, '2025-11-02 22:44:27', '2025-11-02 22:45:25', 0, NULL, NULL),
-(10, 'Nutthawut6', 'Nutthawut6@gmail.com', '$2b$10$QgJ5USJQhliOX4kP1KbE/Oep3vd61WUXN/bFeSoulDEus3QuvfFRG', 3, '2025-11-02 22:45:57', '2025-11-03 08:32:33', 0, NULL, NULL),
-(11, 'wilailak7', 'wilailak7@gmail.com', '$2b$10$gHvMOSOTf4nm5nfT0o0Reug0tS9o7VaQ8Wwy/xNcXLe9VhbSGVvI2', 3, '2025-11-02 22:46:27', '2025-11-03 08:32:37', 0, NULL, NULL),
-(12, 'surangkana8', 'surangkana8@gmail.com', '$2b$10$lbBwVPCEuaitnLsuJeI0POVojTn0yE15gE1omCtlXy6FyzRflOlG2', 3, '2025-11-02 22:46:46', '2025-11-03 08:32:40', 0, NULL, NULL)
-    ON DUPLICATE KEY UPDATE email=VALUES(email);
+    INSERT INTO users (id, username, email, password, roleId, teacherId, createdAt, updatedAt, isDeleted, deletedAt, updatedBy, mustChangePassword) VALUES
+(2, 'admin1', 'admin1@admin.com', '$2b$10$UgEpibtV9td3fQ4nYR.db.IJdMWy69v4khxa1FUXsfF8CI.G9vHDO', 2, NULL, '2025-11-02 22:39:08', '2025-11-02 22:39:08', 0, NULL, NULL, 0),
+(3, 'admin2', 'admin2@admin.com', '$2b$10$SaQ7gIcyQUpg8WQYgCjgW.b9N1iUJ6PJQ1RgTEKKZMD9IRJ9jYG7q', 2, NULL, '2025-11-02 22:41:06', '2025-11-02 22:41:06', 0, NULL, NULL, 0),
+(4, 'admin3', 'admin3@admin.com', '$2b$10$XDEJPJpT4LzNDO7ejxT.eeUGw5x2Cw1l6FjK0ntYuS4SvES3QWUUC', 2, NULL, '2025-11-02 22:41:42', '2025-11-02 22:41:42', 0, NULL, NULL, 0),
+(5, 'Chumnanwit1', 'Chumnanwit1@gmail.com', '$2b$10$Yn1L3gdHNJlM/pwZlrHVY.r4DXqj72uDWSsSPXzWkJTpxKDH7vp.y', 2, 1, '2025-11-02 22:42:59', '2025-11-02 22:45:10', 0, NULL, NULL, 0),
+(6, 'pitchaya2', 'pitchaya2@gmail.com', '$2b$10$eiEPOk7x7vf32jiemcQGZuRtWXp1Br9U1DmTAn4LpLOgc3qVGthlC', 2, 2, '2025-11-02 22:43:26', '2025-11-02 22:45:15', 0, NULL, NULL, 0),
+(7, 'amon3', 'amon3@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 3, NOW(), NOW(), 0, NULL, NULL, 1),
+(8, 'pornsiri4', 'pornsiri4@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 4, NOW(), NOW(), 0, NULL, NULL, 1),
+(9, 'kesorn5', 'kesorn5@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 5, NOW(), NOW(), 0, NULL, NULL, 1),
+(10, 'Nutthawut6', 'Nutthawut6@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 6, NOW(), NOW(), 0, NULL, NULL, 1),
+(11, 'wilailak7', 'wilailak7@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 7, NOW(), NOW(), 0, NULL, NULL, 1),
+(12, 'surangkana8', 'surangkana8@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 8, NOW(), NOW(), 0, NULL, NULL, 1),
+(13, 'sarunya9', 'sarunya9@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 9, NOW(), NOW(), 0, NULL, NULL, 1),
+(14, 'jeeranan10', 'jeeranan10@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 10, NOW(), NOW(), 0, NULL, NULL, 1),
+(15, 'silikanya11', 'silikanya11@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 11, NOW(), NOW(), 0, NULL, NULL, 1),
+(16, 'kamonchanok12', 'kamonchanok12@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 12, NOW(), NOW(), 0, NULL, NULL, 1),
+(17, 'taweesak18', 'taweesak18@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 13, NOW(), NOW(), 0, NULL, NULL, 1),
+(18, 'suphachai13', 'suphachai13@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 14, NOW(), NOW(), 0, NULL, NULL, 1),
+(19, 'ubon14', 'ubon14@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 15, NOW(), NOW(), 0, NULL, NULL, 1),
+(20, 'waraporn15', 'waraporn15@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 16, NOW(), NOW(), 0, NULL, NULL, 1),
+(21, 'theeraphong16', 'theeraphong16@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 17, NOW(), NOW(), 0, NULL, NULL, 1),
+(22, 'larn17', 'larn17@gmail.com', '$2b$10$n7hRel3YTtBIlMi/oyd1A.5bWcraaraQ8I2MTvDuOiG23zIe2huB.', 3, 18, NOW(), NOW(), 0, NULL, NULL, 1)
+    ON DUPLICATE KEY UPDATE email=VALUES(email), teacherId=VALUES(teacherId), mustChangePassword=VALUES(mustChangePassword);
   `);
 
-  console.log('✅ Imported 11 additional users from existing database');
+  console.log('✅ Imported 21 additional users from existing database');
 
 
   // Academic Clubs
