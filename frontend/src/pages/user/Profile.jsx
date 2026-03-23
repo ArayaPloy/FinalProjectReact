@@ -115,6 +115,19 @@ const Profile = () => {
   // 🔹 บันทึกข้อมูลโปรไฟล์
   // ========================================
   const handleSaveProfile = async () => {
+    // Username Validation
+    const trimmedUsername = formData.username.trim();
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 12) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ชื่อผู้ใช้ไม่ถูกต้อง',
+        text: 'ชื่อผู้ใช้ต้องมี 3-12 ตัวอักษร',
+        confirmButtonColor: '#f59e0b',
+        confirmButtonText: 'ตกลง'
+      });
+      return;
+    }
+
     // Email Validation
     if (!validateEmail(formData.email)) {
       Swal.fire({
@@ -210,11 +223,11 @@ const Profile = () => {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
+    if (passwordData.newPassword.length < 8) {
       Swal.fire({
         icon: 'warning',
         title: 'รหัสผ่านสั้นเกินไป',
-        text: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+        text: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',
         confirmButtonColor: '#f59e0b',
         confirmButtonText: 'ตกลง'
       });
@@ -491,6 +504,8 @@ const Profile = () => {
                   value={formData.username}
                   onChange={handleInputChange}
                   disabled={!isEditMode}
+                  minLength={3}
+                  maxLength={12}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 />
               </div>

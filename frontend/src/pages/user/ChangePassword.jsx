@@ -54,8 +54,8 @@ const ChangePassword = () => {
             setError("รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน");
             return;
         }
-        if (newPassword.length < 6) {
-            setError("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+        if (newPassword.length < 8) {
+            setError("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร");
             return;
         }
         if (currentPassword === newPassword) {
