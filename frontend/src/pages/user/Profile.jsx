@@ -543,11 +543,11 @@ const Profile = () => {
                 />
               </div>
 
-              {/* วุฒิการศึกษา - แสดงเฉพาะครู */}
+              {/* วุฒิการศึกษาสูงสุด - แสดงเฉพาะครู */}
               {profile?.teacher_profile && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    วุฒิการศึกษา
+                    วุฒิการศึกษาสูงสุด
                   </label>
                   <input
                     type="text"
