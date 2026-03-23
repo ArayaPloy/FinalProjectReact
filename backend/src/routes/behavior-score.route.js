@@ -244,13 +244,13 @@ router.get('/history/:studentId', verifyToken, async (req, res) => {
  * รายงานประวัติการบันทึกคะแนน (สำหรับ admin)
  * Query params: classRoom, studentId, search, startDate, endDate
  */
-router.get('/reports/history', verifyToken, isAdmin, async (req, res) => {
+router.get('/reports/history', verifyToken, async (req, res) => {
   try {
     const { classRoom, studentId, search, startDate, endDate } = req.query;
 
     // Build where clause
     let whereClause = {
-      isDeleted: false
+      NOT: { isDeleted: true }  // รองรับทั้ง false และ null
     };
 
     // Filter by date range
@@ -434,7 +434,7 @@ router.get('/reports/history', verifyToken, isAdmin, async (req, res) => {
  * รายงานสรุปคะแนนความประพฤติ
  * Query params: classRoom, search, period (week/month/semester)
  */
-router.get('/reports/summary', verifyToken, isAdmin, async (req, res) => {
+router.get('/reports/summary', verifyToken, async (req, res) => {
   try {
     const { classRoom, search, period = 'week', weekDate, monthDate } = req.query;
 

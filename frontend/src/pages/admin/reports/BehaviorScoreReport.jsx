@@ -55,7 +55,7 @@ const ReportBehaviorScore = () => {
 
     // RTK Query hooks
     const { data: classroomsData, isLoading: isLoadingClassrooms } = useGetClassroomsQuery();
-    const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory, isFetching } = useGetBehaviorReportsHistoryQuery({
+    const { data: historyData, isLoading: isLoadingHistory, refetch: refetchHistory, isFetching, isError: isHistoryError, error: historyError } = useGetBehaviorReportsHistoryQuery({
         classRoom: selectedClass === 'ทั้งหมด' ? undefined : selectedClass,
         search: searchStudent || undefined, // ใช้สำหรับค้นหาชื่อ/รหัสนักเรียน
         startDate: dateRange.start || undefined,
@@ -677,6 +677,12 @@ const ReportBehaviorScore = () => {
                             <div className="text-center py-12">
                                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                                 <p className="text-gray-600 font-medium mt-4">กำลังโหลดข้อมูล...</p>
+                            </div>
+                        ) : isHistoryError ? (
+                            <div className="text-center py-12">
+                                <History className="w-16 h-16 text-red-300 mx-auto mb-4" />
+                                <p className="text-red-600 font-medium">เกิดข้อผิดพลาด: {historyError?.data?.message || historyError?.status || 'ไม่สามารถโหลดข้อมูลได้'}</p>
+                                <button onClick={refetchHistory} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">ลองใหม่</button>
                             </div>
                         ) : allRecords.length === 0 ? (
                             <div className="text-center py-12">

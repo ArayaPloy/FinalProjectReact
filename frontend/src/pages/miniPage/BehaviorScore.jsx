@@ -408,18 +408,15 @@ const BehaviorScorePage = () => {
                 return;
             }
 
-            // ตรวจสอบการบันทึกซ้ำในวันเดียวกัน
-            // ใช้ทั้ง todayRecords (จาก DB) และ sessionSaveCount (ป้องกัน RTK cache race condition)
+            // ตรวจสอบการบันทึกซ้ำในวันเดียวกัน — เช็คเฉพาะนักเรียนที่กำลังจะบันทึก (per-student)
             const savingStudentIds = new Set(records.map(r => r.studentId));
             const overlappingRecords = todayRecords.filter(r => savingStudentIds.has(r.studentId));
-            const hasTodayData = overlappingRecords.length > 0 || sessionSaveCount > 0;
+            const hasTodayData = overlappingRecords.length > 0;
             if (hasTodayData) {
-                const lastRecord = overlappingRecords[0] || todayRecords[0]; // orderBy desc → record ล่าสุด
-                const recorderName = lastRecord?.recorderName || (sessionSaveCount > 0 ? (currentUser?.username || 'ผู้บันทึกคนล่าสุด') : 'ไม่ระบุ');
-                const savedCount = overlappingRecords.length > 0
-                    ? new Set(overlappingRecords.map(r => r.studentId)).size
-                    : 0;
-                const totalEntries = Math.max(overlappingRecords.length, sessionSaveCount);
+                const lastRecord = overlappingRecords[0];
+                const recorderName = lastRecord?.recorderName || 'ไม่ระบุ';
+                const savedCount = new Set(overlappingRecords.map(r => r.studentId)).size;
+                const totalEntries = overlappingRecords.length;
                 const scopeLabel = selectedClass && selectedClass !== 'ทั้งหมด'
                     ? `ห้อง <strong>${selectedClass}</strong>`
                     : `<strong>นักเรียนที่เลือก</strong>`;

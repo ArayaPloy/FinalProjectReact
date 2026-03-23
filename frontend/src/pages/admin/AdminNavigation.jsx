@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import AdminImg from "../../assets/admin.png";
-import { useLogoutUserMutation } from "../../redux/features/auth/authApi";
+import { useLogoutUserMutation, authApi } from "../../redux/features/auth/authApi";
 import { useDispatch } from "react-redux";
 import { logout } from "../../redux/features/auth/authSlice";
+import { usersApi } from "../../redux/features/users/usersApi";
 import Swal from "sweetalert2";
 import { Menu, X } from "lucide-react";
 
@@ -37,8 +38,11 @@ const AdminNavigation = () => {
 
     try {
       await logoutUser().unwrap();
+      // reset cache ก่อน dispatch(logout) เพื่อป้องกัน refetch /me → 401 → popup ปลอม
+      dispatch(authApi.util.resetApiState());
+      dispatch(usersApi.util.resetApiState());
       dispatch(logout());
-      
+
       Swal.fire({
         title: "ออกจากระบบสำเร็จ!",
         text: "คุณได้ออกจากระบบเรียบร้อยแล้ว",

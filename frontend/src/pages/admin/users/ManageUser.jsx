@@ -3,10 +3,11 @@ import { useSelector } from "react-redux";
 import {
   useDeleteUserMutation,
   useGetUserQuery,
+  useGetPasswordResetRequestsQuery,
 } from "../../../redux/features/auth/authApi";
 import { useFetchPendingBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { MdModeEdit, MdDelete, MdWarning, MdAdminPanelSettings, MdLockReset } from "react-icons/md";
-import { FiUsers, FiUserCheck, FiUserX } from "react-icons/fi";
+import { FiUsers, FiUserCheck, FiUserX, FiSearch } from "react-icons/fi";
 import { HiOutlineNewspaper } from "react-icons/hi";
 import UpdateUserModal from "./UpdateUserModal";
 import PasswordResetRequests from "./PasswordResetRequests";
@@ -43,6 +44,11 @@ const ManageUser = () => {
 
   // ดึงจำนวน pending blog posts (สำหรับ badge บนแท็บ)
   const { data: pendingBlogs = [] } = useFetchPendingBlogsQuery(undefined, {
+    skip: !isAuthorized
+  });
+
+  // ดึงจำนวน password reset requests (สำหรับ badge บนแท็บ)
+  const { data: resetRequests = [] } = useGetPasswordResetRequestsQuery(undefined, {
     skip: !isAuthorized
   });
 
@@ -91,8 +97,7 @@ const ManageUser = () => {
     const term = search.toLowerCase();
     const username = (u.username || u.name || '').toLowerCase();
     const email = (u.email || '').toLowerCase();
-    const role = (typeof u.role === 'object' ? u.role?.roleName || u.role?.name : u.role || '').toLowerCase();
-    return username.includes(term) || email.includes(term) || role.includes(term);
+    return username.includes(term) || email.includes(term);
   });
 
   const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
@@ -205,13 +210,16 @@ const ManageUser = () => {
               </h3>
               <p className="text-gray-600 mt-1">ทั้งหมด {users.length} คน{search && ` · พบ ${filteredUsers.length} รายการ`}</p>
             </div>
-            <input
-              type="text"
-              value={search}
-              onChange={handleSearchChange}
-              placeholder="ค้นหาชื่อผู้ใช้ / อีเมล / บทบาท..."
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-64"
-            />
+            <div className="relative">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="ค้นหาชื่อผู้ใช้ / อีเมล..."
+                className="border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-64"
+              />
+            </div>
           </div>
           {/* Tabs */}
           <div className="flex gap-2">
@@ -236,6 +244,13 @@ const ManageUser = () => {
             >
               <MdLockReset className="text-base" />
               คำขอรีเซ็ตรหัสผ่าน
+              {resetRequests.length > 0 && (
+                <span className={`ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === "reset" ? "bg-white text-amber-600" : "bg-red-500 text-white"
+                }`}>
+                  {resetRequests.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("blogs")}
