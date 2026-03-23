@@ -520,6 +520,54 @@ const ManageClubsPosts = () => {
                                             />
                                         </div>
 
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                วันประชุม
+                                            </label>
+                                            <select
+                                                name="meetingDay"
+                                                value={clubForm.meetingDay}
+                                                onChange={handleClubFormChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">-- เลือกวัน --</option>
+                                                <option value="จันทร์">จันทร์</option>
+                                                <option value="อังคาร">อังคาร</option>
+                                                <option value="พุธ">พุธ</option>
+                                                <option value="พฤหัสบดี">พฤหัสบดี</option>
+                                                <option value="ศุกร์">ศุกร์</option>
+                                                <option value="เสาร์">เสาร์</option>
+                                                <option value="อาทิตย์">อาทิตย์</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                เวลาประชุม
+                                            </label>
+                                            <input
+                                                type="time"
+                                                name="meetingTime"
+                                                value={clubForm.meetingTime}
+                                                onChange={handleClubFormChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                สถานที่
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="location"
+                                                value={clubForm.location}
+                                                onChange={handleClubFormChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="เช่น ห้อง 101 อาคาร 3"
+                                            />
+                                        </div>
+
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 รายละเอียด *
@@ -647,6 +695,43 @@ const ManageClubsPosts = () => {
                                                             value={clubForm.registrationDeadline}
                                                             onChange={handleClubFormChange}
                                                             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <select
+                                                            name="meetingDay"
+                                                            value={clubForm.meetingDay}
+                                                            onChange={handleClubFormChange}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                        >
+                                                            <option value="">-- วันประชุม --</option>
+                                                            <option value="จันทร์">จันทร์</option>
+                                                            <option value="อังคาร">อังคาร</option>
+                                                            <option value="พุธ">พุธ</option>
+                                                            <option value="พฤหัสบดี">พฤหัสบดี</option>
+                                                            <option value="ศุกร์">ศุกร์</option>
+                                                            <option value="เสาร์">เสาร์</option>
+                                                            <option value="อาทิตย์">อาทิตย์</option>
+                                                        </select>
+                                                        <input
+                                                            type="time"
+                                                            name="meetingTime"
+                                                            value={clubForm.meetingTime}
+                                                            onChange={handleClubFormChange}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                            placeholder="เวลาประชุม"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <input
+                                                            type="text"
+                                                            name="location"
+                                                            value={clubForm.location}
+                                                            onChange={handleClubFormChange}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                            placeholder="สถานที่ประชุม"
                                                         />
                                                     </div>
 

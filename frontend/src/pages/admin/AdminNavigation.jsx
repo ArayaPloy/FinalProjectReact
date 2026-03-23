@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import AdminImg from "../../assets/admin.png";
 import { useLogoutUserMutation, authApi } from "../../redux/features/auth/authApi";
 import { useDispatch } from "react-redux";
-import { logout } from "../../redux/features/auth/authSlice";
+import { logout, setVoluntaryLogout } from "../../redux/features/auth/authSlice";
 import { usersApi } from "../../redux/features/users/usersApi";
 import Swal from "sweetalert2";
 import { Menu, X } from "lucide-react";
@@ -37,8 +37,9 @@ const AdminNavigation = () => {
     if (!result.isConfirmed) return;
 
     try {
+      // บอก AuthProvider ว่าล็อกเอาต์เอง → ไม่ต้องแสดง popup session หมดอายุ
+      dispatch(setVoluntaryLogout());
       await logoutUser().unwrap();
-      // reset cache ก่อน dispatch(logout) เพื่อป้องกัน refetch /me → 401 → popup ปลอม
       dispatch(authApi.util.resetApiState());
       dispatch(usersApi.util.resetApiState());
       dispatch(logout());

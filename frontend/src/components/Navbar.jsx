@@ -11,7 +11,7 @@ const getBaseURL = () => {
   return apiUrl.replace('/api', '');
 };
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../redux/features/auth/authSlice';
+import { logout, setVoluntaryLogout } from '../redux/features/auth/authSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
 
@@ -66,14 +66,14 @@ const Navbar = () => {
 
   {/* ฟังก์ชันจัดการการ logout */ }
   const handleLogout = async () => {
+    // บอก AuthProvider ว่าล็อกเอาต์เอง → ไม่ต้องแสดง popup session หมดอายุ
+    dispatch(setVoluntaryLogout());
     try {
       await logoutUser().unwrap();
     } catch (err) {
       // ไม่ต้อง throw — แม้ backend fail ก็ต้อง clear state
       console.error("Failed to logout:", err);
     } finally {
-      // Reset ก่อน dispatch(logout) เพื่อให้ RTK Query data = null
-      // ทันที ป้องกัน AuthProvider อ่าน stale cache แล้ว re-login
       dispatch(authApi.util.resetApiState());
       dispatch(usersApi.util.resetApiState());
       dispatch(logout());

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '../redux/features/auth/authApi';
 import { usersApi } from '../redux/features/users/usersApi';
-import { setUser, logout } from '../redux/features/auth/authSlice';
+import { setUser, logout, selectVoluntaryLogout } from '../redux/features/auth/authSlice';
 import Swal from 'sweetalert2';
 
 export const AuthProvider = ({ children }) => {
@@ -14,6 +14,8 @@ export const AuthProvider = ({ children }) => {
   const didForcePasswordChange = useRef(false);
   // ติดตามว่า user เคย authenticated แล้วหรือยัง (เพื่อแยก "session หมด" จาก "ยังไม่ login")
   const wasAuthenticated = useRef(false);
+  // ตรวจสอบว่า user ออกจากระบบเองหรือไม่ (ไม่ต้องแสดง popup session หมดอายุ)
+  const isVoluntaryLogout = useSelector(selectVoluntaryLogout);
 
   const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
     // Never skip: let the backend decide via the httpOnly cookie
@@ -25,8 +27,8 @@ export const AuthProvider = ({ children }) => {
       if (error.status !== 401 && error.status !== 'FETCH_ERROR') {
         console.error('Authentication error:', error);
       }
-      // แสดง popup เฉพาะเมื่อ session หมดอายุระหว่างใช้งาน (ไม่ใช่ตอนยังไม่ login)
-      if (error.status === 401 && wasAuthenticated.current) {
+      // แสดง popup เฉพาะเมื่อ session หมดอายุระหว่างใช้งาน (ไม่ใช่ตอนยังไม่ login หรือออกจากระบบเอง)
+      if (error.status === 401 && wasAuthenticated.current && !isVoluntaryLogout) {
         wasAuthenticated.current = false;
         Swal.fire({
           icon: 'warning',
