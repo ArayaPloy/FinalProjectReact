@@ -14,7 +14,8 @@ const Dashboard = () => {
   const [hideAlert, setHideAlert] = useState(false);
   const [hideResetAlert, setHideResetAlert] = useState(false);
   const popupShownRef = useRef(false);
-  const { data: blogs = [], error, isLoading } = useFetchBlogsQuery(query);
+  const { data: blogsData = {}, error, isLoading } = useFetchBlogsQuery(query);
+  const blogs = blogsData?.posts || [];
   const { user } = useSelector((state) => state.auth);
   const { data: userStats } = useGetUserStatsQuery();
   const { data: comments = [] } = useGetCommentsQuery();

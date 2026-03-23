@@ -19,6 +19,13 @@ export const blogsApi = createApi({
       query: ({ search = '', category = '', location = '', limit = 10, page = 1 }) => 
         `blogs?search=${search}&category=${category}&location=${location}&limit=${limit}&page=${page}`,
       providesTags: ['Blogs'],
+      transformResponse: (response) => {
+        // รองรับ response แบบ array (เก่า) และ object { posts, total, totalPages } (ใหม่)
+        if (Array.isArray(response)) {
+          return { posts: response, total: response.length, totalPages: 1, page: 1, limit: response.length };
+        }
+        return response;
+      },
     }),
 
     fetchBlogById: builder.query({

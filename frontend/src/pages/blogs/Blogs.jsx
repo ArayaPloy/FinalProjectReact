@@ -14,8 +14,11 @@ const Blogs = ({ limit }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [blogsPerPage, setBlogsPerPage] = useState(6);
 
-  const { data, error, isLoading } = useFetchBlogsQuery(query);
-  const blogs = data || [];
+  const queryArg = limit
+    ? { ...query, limit }
+    : { ...query, page: currentPage, limit: blogsPerPage };
+  const { data, error, isLoading } = useFetchBlogsQuery(queryArg);
+  const blogs = data?.posts || [];
 
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleSearch = () => {
@@ -28,24 +31,19 @@ const Blogs = ({ limit }) => {
     // หากมี limit แสดงว่าเป็นการแสดงใน homepage ไม่ต้องใช้ pagination
     if (limit) {
       return {
-        displayedBlogs: blogs.slice(0, limit),
+        displayedBlogs: blogs,
         totalPages: 1,
         showPagination: false
       };
     }
 
-    // คำนวณ pagination สำหรับหน้า blogs หลัก
-    const indexOfLastBlog = currentPage * blogsPerPage;
-    const indexOfFirstBlog = indexOfLastBlog - blogsPerPage;
-    const displayedBlogs = blogs.slice(indexOfFirstBlog, indexOfLastBlog);
-    const totalPages = Math.ceil(blogs.length / blogsPerPage);
-
+    // ใช้ totalPages จาก server response (server จัดการ pagination แล้ว)
     return {
-      displayedBlogs,
-      totalPages,
+      displayedBlogs: blogs,
+      totalPages: data?.totalPages || 1,
       showPagination: true
     };
-  }, [blogs, currentPage, blogsPerPage, limit]);
+  }, [blogs, data?.totalPages, limit]);
 
   // ฟังก์ชันเปลี่ยนหน้า
   const paginate = (pageNumber) => {
@@ -94,7 +92,7 @@ const Blogs = ({ limit }) => {
           <div className="w-24 h-1 mx-auto mb-1 rounded bg-secondary"></div>
           <p className="text-textSecondary">ติดตามข่าวสารและกิจกรรมล่าสุดจากโรงเรียนท่าบ่อพิทยาคม</p>
           {!limit && (
-            <p className="text-sm text-textSecondary mt-2">มีทั้งหมด {blogs.length} รายการ</p>
+            <p className="text-sm text-textSecondary mt-2">มีทั้งหมด {data?.total || 0} รายการ</p>
           )}
         </motion.div>
 

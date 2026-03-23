@@ -11,7 +11,7 @@ import {
 } from '../../../redux/features/teachers/teachersApi';
 import Swal from 'sweetalert2';
 import { showApiError } from '../../../utils/sweetAlertHelper';
-import { Plus, X, Upload, Search, UserPlus } from 'lucide-react';
+import { Plus, X, Upload, Search, UserPlus, Edit2 } from 'lucide-react';
 import { MdVisibility, MdModeEdit, MdDelete } from 'react-icons/md';
 import { getApiURL, getBackendURL } from '../../../utils/apiConfig';
 

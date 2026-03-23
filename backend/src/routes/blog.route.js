@@ -260,26 +260,36 @@ router.get("/", async (req, res) => {
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
+        const take = parseInt(limit);
 
-        const posts = await prisma.blogs.findMany({
-            where: whereClause,
-            include: {
-                users_blogs_authorTousers: {
-                    select: { id: true, username: true, email: true }
+        const [posts, total] = await prisma.$transaction([
+            prisma.blogs.findMany({
+                where: whereClause,
+                include: {
+                    users_blogs_authorTousers: {
+                        select: { id: true, username: true, email: true }
+                    },
+                    blog_categories: {
+                        select: { id: true, name: true, slug: true, icon: true }
+                    },
+                    _count: {
+                        select: { comments: true }
+                    }
                 },
-                blog_categories: {
-                    select: { id: true, name: true, slug: true, icon: true }
-                },
-                _count: {
-                    select: { comments: true }
-                }
-            },
-            orderBy: { createdAt: 'desc' },
-            skip,
-            take: parseInt(limit)
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            }),
+            prisma.blogs.count({ where: whereClause })
+        ]);
+
+        res.status(200).json({
+            posts,
+            total,
+            page: parseInt(page),
+            limit: take,
+            totalPages: Math.ceil(total / take)
         });
-
-        res.status(200).json(posts);
     } catch (error) {
         console.error('Detailed error:', error);
         res.status(500).json({ message: 'Failed to fetch posts' });

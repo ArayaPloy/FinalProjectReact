@@ -16,9 +16,10 @@ import { MdModeEdit, MdDelete } from "react-icons/md";
 const POSTS_PER_PAGE = 10;
 
 const ManagePosts = () => {
-  const [query, setQuery] = useState({ search: "", category: "" });
+  const [query, setQuery] = useState({ search: "", category: "", limit: 1000 });
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: blogs = [], error, isLoading, refetch } = useFetchBlogsQuery(query); 
+  const { data: blogsData = {}, error, isLoading, refetch } = useFetchBlogsQuery(query);
+  const blogs = blogsData?.posts || [];
   const [deletePost] = useDeleteBlogMutation(); 
 
   const handleSearchChange = (e) => {
