@@ -18,6 +18,11 @@ export const AuthProvider = ({ children }) => {
   const isVoluntaryLogout = useSelector(selectVoluntaryLogout);
 
   const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
+    // ตรวจสอบ session ทุก 10 นาที (token หมดอายุใน 2 ชั่วโมง / 7 วัน)
+    // ป้องกันกรณีtoken หมดอายุระหว่างใช้งานแล้ว API อื่นๆ คืน 401 ก่อนที่ AuthProvider จะรู้
+    pollingInterval: 10 * 60 * 1000, // 10 minutes
+    // refetch เมื่อ tab กลับมา focus (user เปิดหลาย tab หรือกลับมาจาก tab อื่น)
+    refetchOnFocus: true,
     // Never skip: let the backend decide via the httpOnly cookie
   });
 
