@@ -152,7 +152,7 @@ const ChangePassword = () => {
                             onChange={(e) => setNewPassword(e.target.value)}
                             show={showNew}
                             onToggle={() => setShowNew(!showNew)}
-                            placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
+                            placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
                         />
                     </div>
 
