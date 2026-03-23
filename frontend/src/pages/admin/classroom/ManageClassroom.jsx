@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Swal from 'sweetalert2';
-import { MdModeEdit, MdBlock } from 'react-icons/md';
+import { MdModeEdit, MdToggleOn, MdToggleOff } from 'react-icons/md';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
@@ -268,17 +268,19 @@ const ManageClassroom = () => {    const currentUser = useSelector(selectCurrent
         }
     };
 
-    const handleDelete = async (classroom) => {
+    const handleToggle = async (classroom) => {
+        const isActivating = !classroom.isActive;
+        const action = isActivating ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน';
         const result = await Swal.fire({
-            title: `ปิดการใช้งานห้อง "${classroom.className}" ?`,
-            html: classroom.studentCount > 0
+            title: `${action}ห้อง "${classroom.className}" ?`,
+            html: !isActivating && classroom.studentCount > 0
                 ? `<p class="text-yellow-600">มีนักเรียน <strong>${classroom.studentCount}</strong> คนในห้องนี้</p><p class="mt-1">ห้องนี้จะถูก<strong>ปิดการใช้งาน</strong></p>`
-                : '<p>ห้องนี้จะถูก<strong>ปิดการใช้งาน</strong></p>',
+                : `<p>ห้องนี้จะถูก<strong>${action}</strong></p>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d97706',
+            confirmButtonColor: isActivating ? '#16a34a' : '#d97706',
             cancelButtonColor: '#6b7280',
-            confirmButtonText: 'ปิดการใช้งาน',
+            confirmButtonText: action,
             cancelButtonText: 'ยกเลิก',
         });
 
@@ -286,8 +288,10 @@ const ManageClassroom = () => {    const currentUser = useSelector(selectCurrent
 
         try {
             const res = await fetch(`${API_URL}/classrooms/${classroom.id}`, {
-                method: 'DELETE',
-                ...fetchOpts,
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ isActive: isActivating }),
             });
             const json = await res.json();
 
@@ -427,18 +431,25 @@ const ManageClassroom = () => {    const currentUser = useSelector(selectCurrent
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center justify-center gap-2">
+                                            <div className="flex items-center justify-center gap-1.5">
                                                 <button
                                                     onClick={() => { setEditingClassroom(classroom); setModalOpen(true); }}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                                    className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors touch-manipulation border border-amber-200"
                                                 >
                                                     <MdModeEdit className="w-4 h-4" /> แก้ไข
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(classroom)}
-                                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                                    onClick={() => handleToggle(classroom)}
+                                                    className={`inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 rounded-lg text-sm font-medium transition-colors touch-manipulation border ${
+                                                        classroom.isActive
+                                                            ? 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200'
+                                                            : 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
+                                                    }`}
+                                                    title={classroom.isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน'}
                                                 >
-                                                    <MdBlock className="w-4 h-4" /> ปิด
+                                                    {classroom.isActive
+                                                        ? <><MdToggleOn className="w-5 h-5 flex-shrink-0" /><span>ปิด</span></>
+                                                        : <><MdToggleOff className="w-5 h-5 flex-shrink-0" /><span>เปิด</span></>}
                                                 </button>
                                             </div>
                                         </td>

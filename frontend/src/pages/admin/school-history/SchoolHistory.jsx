@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { showApiError } from '../../../utils/sweetAlertHelper';
 import { useSelector } from 'react-redux';
@@ -83,7 +82,6 @@ const SchoolHistoryAdmin = () => {
 
     const [schoolInfoForm, setSchoolInfoForm] = useState(defaultSchoolInfo);
     const [eventForm, setEventForm] = useState(defaultEventForm);
-    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
     const [foundedDateMoment, setFoundedDateMoment] = useState(null);
 
     // States สำหรับ upload รูปภาพหลัก
@@ -118,11 +116,6 @@ const SchoolHistoryAdmin = () => {
             }
         }
     }, [historyData]);
-
-    const showNotification = (message, type = 'success') => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
-    };
 
     const handleSchoolInfoChange = (e) => {
         const { name, value } = e.target;
@@ -169,7 +162,7 @@ const SchoolHistoryAdmin = () => {
             if (data.success) {
                 setSchoolInfoForm(prev => ({ ...prev, heroImage: data.imageUrl }));
                 setHeroImageFile(null);
-                showNotification('อัปโหลดรูปภาพหลักสำเร็จ');
+                Swal.fire({ icon: 'success', title: 'อัปโหลดสำเร็จ', text: 'อัปโหลดรูปภาพหลักสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             } else {
                 setHeroUploadError(data.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
             }
@@ -211,7 +204,7 @@ const SchoolHistoryAdmin = () => {
             if (data.success) {
                 setSchoolInfoForm(prev => ({ ...prev, director_image: data.imageUrl }));
                 setDirectorImageFile(null);
-                showNotification('อัปโหลดรูปภาพผู้อำนวยการสำเร็จ');
+                Swal.fire({ icon: 'success', title: 'อัปโหลดสำเร็จ', text: 'อัปโหลดรูปภาพผู้อำนวยการสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             } else {
                 setDirectorUploadError(data.message || 'เกิดข้อผิดพลาดในการอัปโหลด');
             }
@@ -242,13 +235,13 @@ const SchoolHistoryAdmin = () => {
         try {
             await updateSchoolInfo(schoolInfoForm).unwrap();
             setIsEditing(false);
-            showNotification('บันทึกข้อมูลโรงเรียนเรียบร้อยแล้ว');
+            Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกข้อมูลโรงเรียนเรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             refetch();
         } catch (error) {
             if (error?.status === 403) {
                 showApiError(error, '', 'บันทึกข้อมูลโรงเรียน');
             } else {
-                showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
             console.error('Error updating school info:', error);
         }
@@ -266,13 +259,13 @@ const SchoolHistoryAdmin = () => {
             await addTimelineEvent(payload).unwrap();
             setShowAddEvent(false);
             setEventForm(defaultEventForm);
-            showNotification('เพิ่มเหตุการณ์ใหม่เรียบร้อยแล้ว');
+            Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', text: 'เพิ่มเหตุการณ์ใหม่เรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             refetch();
         } catch (error) {
             if (error?.status === 403) {
                 showApiError(error, '', 'เพิ่มเหตุการณ์');
             } else {
-                showNotification('เกิดข้อผิดพลาดในการเพิ่มเหตุการณ์', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เกิดข้อผิดพลาดในการเพิ่มเหตุการณ์', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
             console.error('Error adding event:', error);
         }
@@ -290,13 +283,13 @@ const SchoolHistoryAdmin = () => {
             await updateTimelineEvent({ id: eventId, ...payload }).unwrap();
             setEditingEventId(null);
             setEventForm(defaultEventForm);
-            showNotification('แก้ไขเหตุการณ์เรียบร้อยแล้ว');
+            Swal.fire({ icon: 'success', title: 'แก้ไขสำเร็จ', text: 'แก้ไขเหตุการณ์เรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             refetch();
         } catch (error) {
             if (error?.status === 403) {
                 showApiError(error, '', 'แก้ไขเหตุการณ์');
             } else {
-                showNotification('เกิดข้อผิดพลาดในการแก้ไขเหตุการณ์', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เกิดข้อผิดพลาดในการแก้ไขเหตุการณ์', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
             console.error('Error updating event:', error);
         }
@@ -369,19 +362,6 @@ const SchoolHistoryAdmin = () => {
     return (
         <ConfigProvider theme={customTheme} locale={thTH}>
             <div className="min-h-screen bg-gray-50 py-8">
-                <AnimatePresence>
-                    {notification.show && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -50 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -50 }}
-                            className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`}
-                        >
-                            {notification.message}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
                 <div className="container mx-auto px-4 max-w-6xl">
                     {/* Header Navigation Tabs */}
                     <div className="bg-white rounded-lg shadow-md mb-6">

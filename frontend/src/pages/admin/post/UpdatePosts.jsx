@@ -298,6 +298,21 @@ const UpdatePosts = () => {
                 {!isEditorReady && <span className="text-orange-600 ml-2">● กำลังโหลด...</span>}
               </p>
               <div id="editorjs" className="bg-gray-100 p-4 rounded-lg min-h-[300px]"></div>
+
+              {/* คำอธิบายเมตา */}
+              <div className="space-y-3 mt-5">
+                <label className="font-semibold">คำอธิบายเมตา: </label>
+                <textarea
+                  type="text"
+                  cols={4}
+                  rows={4}
+                  value={description}
+                  className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="เพิ่มคำอธิบายเมตาเพื่อเพิ่มประสิทธิภาพ SEO..."
+                  required
+                />
+              </div>
             </div>
 
             {/* ด้านขวา */}
@@ -421,21 +436,6 @@ const UpdatePosts = () => {
                     <i className="bi bi-exclamation-triangle"></i> ไม่พบหมวดหมู่ในระบบ
                   </p>
                 )}
-              </div>
-
-              {/* คำอธิบายเมตา */}
-              <div className="space-y-3">
-                <label className="font-semibold">คำอธิบายเมตา: </label>
-                <textarea
-                  type="text"
-                  cols={4}
-                  rows={4}
-                  value={description}
-                  className="w-full inline-block bg-gray-100 focus:outline-none px-5 py-3 rounded-lg"
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="เพิ่มคำอธิบายเมตาเพื่อเพิ่มประสิทธิภาพ SEO..."
-                  required
-                />
               </div>
 
               {/* ผู้เขียน */}

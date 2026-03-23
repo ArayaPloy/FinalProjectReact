@@ -1,4 +1,4 @@
-# 🏗️ การวิเคราะห์ระบบ eduWeb - ระบบบริหารจัดการโรงเรียน
+# การวิเคราะห์ระบบ - ระบบบริหารจัดการโรงเรียน
 
 ## 📊 สถาปัตยกรรมระบบ (System Architecture)
 
@@ -77,7 +77,8 @@ Component → Action → Reducer → Store → Component (Re-render)
    ├── Algorithm: HMAC-SHA256
    ├── Payload: { userId, role, exp }
    ├── Sign with JWT_SECRET_KEY
-   └── Token expires in 1 hour
+   ├── Token expires in 2h (ปกติ) หรือ 7d (Remember Me)
+   └── Cookie maxAge sync กับ tokenExpiry เสมอ
 
 3. TOKEN VERIFICATION
    ├── Extract token from Cookie/Header
@@ -468,40 +469,66 @@ function isOriginAllowed(origin) {
 const originSet = new Set(allowedOrigins);
 ```
 
-### 2. **Rate Limiting** (Not implemented yet)
+### 2. **Rate Limiting** ✅ (ใช้งานแล้ว — `express-rate-limit`)
 ```javascript
-// Token Bucket Algorithm
+// Sliding Window Algorithm (express-rate-limit)
+// จำกัด Login ล้มเหลว 5 ครั้ง / 30 นาที / IP
+// skipSuccessfulRequests: true — นับเฉพาะ request ที่ล้มเหลว
+const loginRateLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true,   // O(1) check per request
+  handler: (req, res) => {
+    res.status(429).json({ message: 'บัญชีถูกล็อค', retryAfterMinutes });
+  }
+});
 
-class RateLimiter {
-  constructor(maxRequests, windowMs) {
-    this.maxRequests = maxRequests;
-    this.windowMs = windowMs;
-    this.requests = new Map();
-  }
-  
-  isAllowed(userId) {
-    const now = Date.now();
-    const userRequests = this.requests.get(userId) || [];
-    
-    // Remove old requests: O(n)
-    const recentRequests = userRequests.filter(
-      time => now - time < this.windowMs
-    );
-    
-    if (recentRequests.length < this.maxRequests) {
-      recentRequests.push(now);
-      this.requests.set(userId, recentRequests);
-      return true;
-    }
-    
-    return false;
-  }
-}
+// เมื่อล้มเหลวแต่ยังไม่ครบ → Frontend แสดง "เหลืออีก X ครั้ง"
+// เมื่อครบ 5 ครั้ง → Backend ตอบ 429 → Frontend แสดง "ถูกล็อค X นาที"
+// Time Complexity: O(1) per request
+// Space Complexity: O(unique IPs in window)
 ```
 
-### 3. **SQL Injection Prevention**
+### 5. **Security Headers — Helmet** ✅ (ใช้งานแล้ว)
 ```javascript
-// Prisma uses parameterized queries automatically
+// index.js — Helmet เพิ่ม HTTP Security Headers อัตโนมัติ
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false
+}));
+// ป้องกัน: MIME sniffing, Clickjacking, Downgrade attack, DNS prefetch
+// headers เพิ่มเติม: X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy
+```
+
+### 6. **Audit Logging (Database)** ✅ (ใช้งานแล้ว)
+```javascript
+// auth.user.js — createAuditLog helper (fire-and-forget)
+// บันทึกทุก action สำคัญลง audit_logs table ผ่าน Prisma
+// ❌ ห้าม log password หรือ hashedPassword เด็ดขาด
+await createAuditLog({
+  actorId: req.user.id,   // ผู้กระทำ
+  tableName: 'users',
+  recordId: userId,
+  action: 'UPDATE',       // CREATE | UPDATE | DELETE
+  oldValues: { username: 'old' },
+  newValues: { username: 'new' },
+  req                     // ดึง ipAddress + userAgent อัตโนมัติ
+});
+// Scope: register, approve/reject reset, change-password,
+//        delete/update/restore user (7 endpoints)
+```
+
+### 7. **Winston Security Logging** ✅ (ใช้งานแล้ว)
+```javascript
+// logger.js — DailyRotateFile (14 วัน, 20MB/ไฟล์, zip archive)
+// ทุก error handler ใช้ logger.error แทน console.error
+logger.info('LOGIN_SUCCESS',  { event, userId, email, role, ip });
+logger.warn('LOGIN_FAILED',   { event, email, reason, ip, remainingAttempts });
+logger.info('USER_REGISTERED', { event, userId, email, ip });
+logger.info('PASSWORD_CHANGED', { event, userId, ip });
+logger.error('LOGIN_ERROR',   { event, error: error.message, stack });
+// req.socket?.remoteAddress (Node.js 16+ recommended แทน req.connection)
+```
 await prisma.users.findMany({
   where: { email: userInput } // Safe: parameterized
 });
@@ -621,6 +648,9 @@ Space Complexity:
 |---------|-----------|------------|
 | Authentication | JWT + bcrypt | O(1) |
 | Authorization | RBAC Hierarchy | O(1) |
+| Rate Limiting | Sliding Window (express-rate-limit) | O(1) |
+| Audit Logging | fire-and-forget DB write | O(1) |
+| Security Headers | Helmet middleware | O(1) |
 | Database Queries | B-Tree Index | O(log n) |
 | API Caching | Hash Map | O(1) |
 | Search | Linear Scan | O(n) ⚠️ |
@@ -641,10 +671,14 @@ Space Complexity:
 ## 🚀 Recommended Next Steps
 
 ### Short-term (1-2 weeks)
-1. ✅ Add input validation (Joi/Yup)
-2. ✅ Implement rate limiting
-3. ✅ Add database indexes
-4. ✅ Setup error logging (Winston)
+1. ✅ เพิ่ม Input Validation (regex + manual — Register, Login)
+2. ✅ Implement Rate Limiting (express-rate-limit — 5 ครั้ง/30 นาที/IP)
+3. ✅ เพิ่ม Database Indexes (schema.prisma — audit_logs, users)
+4. ✅ Setup Error Logging (Winston + DailyRotateFile — log rotation 14 วัน)
+5. ✅ Security Headers (Helmet)
+6. ✅ Audit Logging (audit_logs table + createAuditLog helper — 7 endpoints)
+7. ✅ Token Expiry 2h/7d + Cookie sync
+8. ✅ console.error → logger.error ทุก handler (structured JSON logging)
 
 ### Medium-term (1-3 months)
 1. ⏳ Add Redis caching
@@ -661,5 +695,6 @@ Space Complexity:
 ---
 
 **สร้างเมื่อ**: 3 พฤศจิกายน 2025  
-**เวอร์ชัน**: 1.0  
-**สถานะ**: Production-Ready (ต้องการ optimization เพิ่มเติม)
+**อัปเดตล่าสุด**: 23 มีนาคม 2026  
+**เวอร์ชัน**: 1.3  
+**สถานะ**: Production-Ready (Security hardened — rate limiting, audit logging, Helmet, Winston ✅)

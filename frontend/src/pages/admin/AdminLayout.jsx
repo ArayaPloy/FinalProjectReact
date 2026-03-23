@@ -10,10 +10,10 @@ const AdminLayout = () => {
   return (
     <div className='container py-6 mx-auto flex flex-col md:flex-row gap-4 items-start justify-start shadow-md'>
       
-      <header className='lg:w-1/5 sm:2/5 w-full'>
+      <header className='lg:w-1/5 sm:2/5 w-full md:sticky md:top-6 md:self-start md:h-[calc(100vh-3rem)]'>
         <AdminNavigation/>
       </header>
-      <main className='p-4 bg-white w-full'>
+      <main className='p-4 bg-white w-full min-w-0'>
         <Outlet /> 
       </main>
     </div>

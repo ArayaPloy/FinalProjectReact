@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/features/auth/authSlice";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -55,6 +56,44 @@ const Login = () => {
       
     } catch (err) {
       console.error('Login error:', err);
+
+      // Rate limited — บัญชีถูกล็อคชั่วคราว
+      if (err.status === 429 || err.data?.rateLimited) {
+        const minutes = err.data?.retryAfter ?? 30;
+        Swal.fire({
+          icon: 'error',
+          title: 'เข้าสู่ระบบถูกล็อคชั่วคราว',
+          html: `คุณกรอกรหัสผ่านผิดเกิน <b>5 ครั้ง</b><br>กรุณารอ <b>${minutes} นาที</b> แล้วลองใหม่อีกครั้ง`,
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#b45309',
+        });
+        return;
+      }
+
+      // รหัสผ่านผิด — แสดงจำนวนครั้งที่เหลือ
+      const remaining = err.data?.remainingAttempts;
+      if (remaining !== undefined && remaining !== null) {
+        if (remaining <= 1) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'คำเตือน!',
+            html: `อีเมลหรือรหัสผ่านไม่ถูกต้อง<br><b>เหลือโอกาสอีกเพียง ${remaining} ครั้ง</b> ก่อนบัญชีจะถูกล็อคชั่วคราว`,
+            confirmButtonText: 'ลองใหม่',
+            confirmButtonColor: '#b45309',
+          });
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+            html: `คุณสามารถลองได้อีก <b>${remaining} ครั้ง</b>`,
+            confirmButtonText: 'ลองใหม่',
+            confirmButtonColor: '#b45309',
+          });
+        }
+        return;
+      }
+
+      // Fallback error message (เช่น account deactivated, network error)
       setMessage(err.data?.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง");
     }
   };

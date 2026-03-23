@@ -14,10 +14,10 @@ import {
     useImportStudentsMutation,
 } from '../../../services/studentsApi';
 
-const SwalToast = Swal.mixin({
-    toast: true, position: 'top-end', showConfirmButton: false,
-    timer: 2500, timerProgressBar: true,
-});
+const translateGender = (name) => {
+    const map = { male: 'ชาย', female: 'หญิง', other: 'อื่น ๆ' };
+    return map[(name || '').toLowerCase()] || name || '-';
+};
 
 const NAME_PREFIXES = ['เด็กชาย', 'เด็กหญิง', 'นาย', 'นางสาว', 'นาง', 'ด.ช.', 'ด.ญ.'];
 const GUARDIAN_PREFIXES = ['นาย', 'นาง', 'นางสาว', 'พ่อ', 'แม่'];
@@ -171,7 +171,7 @@ const ImportPreviewModal = ({ isOpen, onClose, rows, classroomsFull, onConfirm, 
                                     <td className={`${tdCls} font-semibold text-gray-800`}>
                                         {[row.namePrefix, row.firstName, row.lastName].filter(Boolean).join(' ') || '-'}
                                     </td>
-                                    <td className={tdCls}>{row.genderName || '-'}</td>
+                                    <td className={tdCls}>{translateGender(row.genderName)}</td>
                                     <td className={tdCls}>{row.dob || '-'}</td>
                                     <td className={tdCls}>{row.nationality || '-'}</td>
                                     <td className={`${tdCls} text-center`}>{row.weight || '-'}</td>
@@ -295,7 +295,7 @@ const StudentFormModal = ({
                             <Field label="เพศ" required>
                                 <select value={formData.genderId} onChange={e => onChange('genderId', e.target.value)} className={cls}>
                                     <option value="">-- เลือกเพศ --</option>
-                                    {genders.map(g => <option key={g.id} value={g.id}>{g.genderName}</option>)}
+                                    {genders.map(g => <option key={g.id} value={g.id}>{translateGender(g.genderName)}</option>)}
                                 </select>
                             </Field>
                             <Field label="ชื่อ" required>
@@ -368,7 +368,19 @@ const StudentFormModal = ({
                                 </select>
                             </Field>
                             <Field label="ความสัมพันธ์">
-                                <input type="text" value={formData.guardianRelation} onChange={e => onChange('guardianRelation', e.target.value)} className={cls} placeholder="เช่น บิดา, มารดา" />
+                                <select value={formData.guardianRelation} onChange={e => onChange('guardianRelation', e.target.value)} className={cls}>
+                                    <option value="">-- เลือก --</option>
+                                    <option value="บิดา">บิดา</option>
+                                    <option value="มารดา">มารดา</option>
+                                    <option value="ปู่">ปู่</option>
+                                    <option value="ย่า">ย่า</option>
+                                    <option value="ตา">ตา</option>
+                                    <option value="ยาย">ยาย</option>
+                                    <option value="ลุง">ลุง</option>
+                                    <option value="ป้า">ป้า</option>
+                                    <option value="ญาติ">ญาติ</option>
+                                    <option value="อื่นๆ">อื่นๆ</option>
+                                </select>
                             </Field>
                             <Field label="ชื่อผู้ปกครอง">
                                 <input type="text" value={formData.guardianFirstName} onChange={e => onChange('guardianFirstName', e.target.value)} className={cls} placeholder="ชื่อ" />
@@ -380,7 +392,14 @@ const StudentFormModal = ({
                                 <input type="text" value={formData.guardianOccupation} onChange={e => onChange('guardianOccupation', e.target.value)} className={cls} placeholder="เช่น เกษตรกร" />
                             </Field>
                             <Field label="รายได้ต่อเดือน (บาท)">
-                                <input type="text" value={formData.guardianMonthlyIncome} onChange={e => onChange('guardianMonthlyIncome', e.target.value)} className={cls} placeholder="15000" />
+                                <select value={formData.guardianMonthlyIncome} onChange={e => onChange('guardianMonthlyIncome', e.target.value)} className={cls}>
+                                    <option value="">-- เลือกช่วงรายได้ --</option>
+                                    <option value="<10000">ต่ำกว่า 10,000</option>
+                                    <option value="10000-20000">10,000 - 20,000</option>
+                                    <option value="21000-30000">21,000 - 30,000</option>
+                                    <option value="31000-40000">31,000 - 40,000</option>
+                                    <option value=">=41000">41,000 ขึ้นไป</option>
+                                </select>
                             </Field>
                             <div className="col-span-2">
                                 <Field label="เบอร์ฉุกเฉิน">
@@ -613,10 +632,10 @@ const ManageStudent = () => {
         try {
             if (editingStudent) {
                 await updateStudent({ id: editingStudent.id, ...formData }).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'แก้ไขข้อมูลสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'แก้ไขข้อมูลสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             } else {
                 await createStudent(formData).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'เพิ่มนักเรียนสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'เพิ่มนักเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             }
             setIsModalOpen(false);
             refetch();
@@ -647,7 +666,7 @@ const ManageStudent = () => {
         if (!result.isConfirmed) return;
         try {
             const res = await toggleStudent(s.id).unwrap();
-            SwalToast.fire({ icon: 'success', title: res.message });
+            Swal.fire({ icon: 'success', title: res.message, confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             refetch();
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.data?.message || 'ดำเนินการไม่สำเร็จ' });
@@ -711,7 +730,7 @@ const ManageStudent = () => {
         a.download = `students_${classLabel}_${today}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-        SwalToast.fire({ icon: 'success', title: `ส่งออก ${filtered.length} รายการสำเร็จ` });
+        Swal.fire({ icon: 'success', title: `ส่งออก ${filtered.length} รายการสำเร็จ`, confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
     };
 
     // Download blank CSV template for importing students
@@ -738,7 +757,7 @@ const ManageStudent = () => {
         a.download = 'import_students_template.csv';
         a.click();
         URL.revokeObjectURL(url);
-        SwalToast.fire({ icon: 'info', title: 'ดาวน์โหลด Template สำเร็จ' });
+        Swal.fire({ icon: 'info', title: 'ดาวน์โหลด Template สำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
     };
 
     const handleImportClick = () => fileInputRef.current.click();
@@ -961,7 +980,7 @@ const ManageStudent = () => {
                                                         {s.studentNumber || '-'}
                                                     </td>
                                                     <td className="px-3 py-3 text-sm">{s.fullName}</td>
-                                                    <td className="px-3 py-3 text-sm whitespace-nowrap">{s.genders?.genderName || '-'}</td>
+                                                    <td className="px-3 py-3 text-sm whitespace-nowrap">{translateGender(s.genders?.genderName)}</td>
                                                     <td className="px-3 py-3">
                                                         {s.classRoom
                                                             ? <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">{s.classRoom}</span>
@@ -1017,7 +1036,7 @@ const ManageStudent = () => {
                                                 </div>
                                                 <p className="font-bold text-gray-800 text-sm truncate">{s.fullName}</p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
-                                                    {s.genders?.genderName || ''}{s.teacherName ? ` • ${s.teacherName}` : ''}
+                                                    {translateGender(s.genders?.genderName)}{s.teacherName ? ` • ${s.teacherName}` : ''}
                                                 </p>
                                             </div>
                                             {s.isDeleted

@@ -261,7 +261,6 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
 
         const teacher = await prisma.teachers.create({
             data: {
-                userId: userId || null,
                 departmentId,
                 namePrefix: namePrefix || '',
                 firstName,
@@ -360,6 +359,9 @@ router.patch('/:id', verifyToken, async (req, res) => {
             updates.lastName = updates.lastName || nameParts.slice(1).join(' ') || '';
             delete updates.fullName;
         }
+
+        // userId ไม่มีใน teachers model (relationship อยู่ที่ users.teacherId)
+        delete updates.userId;
 
         const updatedTeacher = await prisma.teachers.update({
             where: {

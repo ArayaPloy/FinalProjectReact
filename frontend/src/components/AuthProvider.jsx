@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '../redux/features/auth/authApi';
 import { usersApi } from '../redux/features/users/usersApi';
 import { setUser, logout } from '../redux/features/auth/authSlice';
+import Swal from 'sweetalert2';
 
 export const AuthProvider = ({ children }) => {
   const dispatch = useDispatch();
@@ -11,6 +12,8 @@ export const AuthProvider = ({ children }) => {
   const location = useLocation();
   // ป้องกัน navigate ซ้ำในกรณี mustChangePassword
   const didForcePasswordChange = useRef(false);
+  // ติดตามว่า user เคย authenticated แล้วหรือยัง (เพื่อแยก "session หมด" จาก "ยังไม่ login")
+  const wasAuthenticated = useRef(false);
 
   const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
     // Never skip: let the backend decide via the httpOnly cookie
@@ -21,6 +24,17 @@ export const AuthProvider = ({ children }) => {
     if (error) {
       if (error.status !== 401 && error.status !== 'FETCH_ERROR') {
         console.error('Authentication error:', error);
+      }
+      // แสดง popup เฉพาะเมื่อ session หมดอายุระหว่างใช้งาน (ไม่ใช่ตอนยังไม่ login)
+      if (error.status === 401 && wasAuthenticated.current) {
+        wasAuthenticated.current = false;
+        Swal.fire({
+          icon: 'warning',
+          title: 'Session หมดอายุ',
+          text: 'กรุณาเข้าสู่ระบบใหม่',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#f59e0b',
+        });
       }
       dispatch(logout());
       // Reset เฉพาะ usersApi cache (profile data) เท่านั้น
@@ -33,6 +47,7 @@ export const AuthProvider = ({ children }) => {
     // ประมวลผล data เฉพาะเมื่อไม่มี error
     if (data?.user) {
       dispatch(setUser({ user: data.user }));
+      wasAuthenticated.current = true; // บันทึกว่า user เคย authenticated แล้ว
 
       // บังคับเปลี่ยนรหัสผ่านถ้า mustChangePassword = true
       // ใช้ ref ป้องกัน navigate ซ้ำทุกครั้งที่ effect รัน

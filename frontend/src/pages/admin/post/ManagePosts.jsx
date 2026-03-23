@@ -13,10 +13,21 @@ const formatDate = (dateString) => {
 import { MdModeEdit, MdDelete } from "react-icons/md";
 
 
+const POSTS_PER_PAGE = 10;
+
 const ManagePosts = () => {
   const [query, setQuery] = useState({ search: "", category: "" });
+  const [currentPage, setCurrentPage] = useState(1);
   const { data: blogs = [], error, isLoading, refetch } = useFetchBlogsQuery(query); 
   const [deletePost] = useDeleteBlogMutation(); 
+
+  const handleSearchChange = (e) => {
+    setQuery((prev) => ({ ...prev, search: e.target.value }));
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(blogs.length / POSTS_PER_PAGE);
+  const paginatedBlogs = blogs.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -54,13 +65,22 @@ const ManagePosts = () => {
       {isLoading && <div>กำลังโหลด...</div>}
       {error && <div>โหลดบทความไม่สำเร็จ</div>}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h3 className="text-2xl font-semibold text-gray-800">บทความทั้งหมด</h3>
-          <Link to="/blogs">
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-              ดูบทความทั้งหมด
-            </button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="text"
+              value={query.search}
+              onChange={handleSearchChange}
+              placeholder="ค้นหาชื่อบทความ..."
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full sm:w-64"
+            />
+            <Link to="/blogs">
+              <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap w-full">
+                ดูบทความทั้งหมด
+              </button>
+            </Link>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -74,9 +94,9 @@ const ManagePosts = () => {
               </tr>
             </thead>
             <tbody>
-              {blogs.map((blog, index) => (
+              {paginatedBlogs.map((blog, index) => (
                 <tr key={blog.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-700">{index + 1}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{(currentPage - 1) * POSTS_PER_PAGE + index + 1}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{blog.title}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{formatDate(blog.createdAt)}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">
@@ -97,6 +117,69 @@ const ManagePosts = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-5">
+            <span className="text-sm text-gray-500">
+              แสดง {(currentPage - 1) * POSTS_PER_PAGE + 1}–{Math.min(currentPage * POSTS_PER_PAGE, blogs.length)} จาก {blogs.length} รายการ
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .reduce((acc, page, idx, arr) => {
+                  if (idx > 0 && page - arr[idx - 1] > 1) acc.push('...');
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 py-1 text-sm text-gray-400">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item)}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        currentPage === item
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                »
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

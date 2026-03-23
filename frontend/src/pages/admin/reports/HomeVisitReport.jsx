@@ -458,7 +458,7 @@ ${cards}
                 if (exportTeacherId) {
                     params.set('teacherId', exportTeacherId);
                     const t = teachers.find(t => String(t.id) === String(exportTeacherId));
-                    subtitleLabel = t ? `ครู: ${t.namePrefix || ''}${t.name || ''}`.trim() : 'ตามครูผู้เยี่ยม';
+                    subtitleLabel = t ? `ครู: ${t.name || ''}` : 'ตามครูผู้เยี่ยม';
                 }
             } else if (exportMode === 'student') {
                 if (exportStudentSearch) {
@@ -629,6 +629,25 @@ ${cards}
                 {/* Filters and Actions */}
                 <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 print:hidden">
                     <div className="space-y-4">
+                        {/* Filter header row */}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                                <span className="text-sm font-semibold text-gray-700">ตัวกรอง</span>
+                            </div>
+                            <button
+                                onClick={() => setExportModalOpen(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                                <span>ส่งออก PDF</span>
+                            </button>
+                        </div>
+
                         {/* Search and Teacher Filter */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Search */}
@@ -653,7 +672,7 @@ ${cards}
                                     <option value="">ครูทุกคน</option>
                                     {teachers.map((teacher) => (
                                         <option key={teacher.id} value={teacher.id}>
-                                            {teacher.namePrefix} {teacher.name}
+                                            {teacher.name}
                                         </option>
                                     ))}
                                 </select>
@@ -715,18 +734,9 @@ ${cards}
                                     <option value={100}>100 รายการ/หน้า</option>
                                 </select>
                             </div>
+
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3">
-                            <button
-                                onClick={() => setExportModalOpen(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                            >
-                                <Download className="w-4 h-4" />
-                                ส่งออก PDF
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -1319,7 +1329,7 @@ ${cards}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500">
                                             <option value="">ครูทุกคน</option>
                                             {teachers.map(t => (
-                                                <option key={t.id} value={t.id}>{t.namePrefix} {t.name}</option>
+                                                <option key={t.id} value={t.id}>{t.name}</option>
                                             ))}
                                         </select>
                                     </div>

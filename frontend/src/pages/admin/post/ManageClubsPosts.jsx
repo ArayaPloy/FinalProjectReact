@@ -23,6 +23,7 @@ import {
     IoAdd,
     IoCheckmark,
     IoWarning,
+    IoSave,
 } from 'react-icons/io5';
 import { MdModeEdit, MdDelete } from 'react-icons/md';
 
@@ -75,11 +76,9 @@ const ManageClubsPosts = () => {
     } = useClubManagement();
 
     // Local state
-    const [activeTab, setActiveTab] = useState('clubs-list');
     const [editingClubId, setEditingClubId] = useState(null);
     const [showAddClub, setShowAddClub] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
-    const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
 
     // Icon options
     const iconOptions = [
@@ -138,12 +137,6 @@ const ManageClubsPosts = () => {
         return teacher ? teacher.name : 'ไม่พบข้อมูลครู';
     };
 
-    // Show notification
-    const showNotification = (message, type = 'success') => {
-        setNotification({ show: true, message, type });
-        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
-    };
-
     // Handle form changes
     const handleClubFormChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -162,7 +155,7 @@ const ManageClubsPosts = () => {
     // Add new club
     const handleAddClub = async () => {
         if (!clubForm.name.trim() || !clubForm.description.trim()) {
-            showNotification('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+            Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณากรอกชื่อชุมนุมและคำอธิบายให้ครบถ้วน', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             return;
         }
 
@@ -179,13 +172,13 @@ const ManageClubsPosts = () => {
             if (result.success) {
                 setShowAddClub(false);
                 setClubForm(defaultClubForm);
-                showNotification('เพิ่มชุมนุมใหม่เรียบร้อยแล้ว');
-                refetchClubs(); // Refresh the clubs list
+                Swal.fire({ icon: 'success', title: 'เพิ่มชุมนุมสำเร็จ', text: 'เพิ่มชุมนุมใหม่เรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
+                refetchClubs();
             } else {
-                showNotification(result.error || 'เกิดข้อผิดพลาดในการเพิ่มชุมนุม', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: result.error || 'เกิดข้อผิดพลาดในการเพิ่มชุมนุม', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
         } catch (error) {
-            showNotification('เกิดข้อผิดพลาดในการเพิ่มชุมนุม', 'error');
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เกิดข้อผิดพลาดในการเพิ่มชุมนุม', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             console.error('Error creating club:', error);
         }
     };
@@ -213,7 +206,7 @@ const ManageClubsPosts = () => {
     // Update club
     const handleUpdateClub = async (clubId) => {
         if (!clubForm.name.trim() || !clubForm.description.trim()) {
-            showNotification('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+            Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณากรอกชื่อชุมนุมและคำอธิบายให้ครบถ้วน', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             return;
         }
 
@@ -230,16 +223,16 @@ const ManageClubsPosts = () => {
             if (result.success) {
                 setEditingClubId(null);
                 setClubForm(defaultClubForm);
-                showNotification('แก้ไขข้อมูลชุมนุมเรียบร้อยแล้ว');
-                refetchClubs(); // Refresh the clubs list
+                Swal.fire({ icon: 'success', title: 'แก้ไขสำเร็จ', text: 'แก้ไขข้อมูลชุมนุมเรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
+                refetchClubs();
             } else {
-                showNotification(result.error || 'เกิดข้อผิดพลาดในการแก้ไขชุมนุม', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: result.error || 'เกิดข้อผิดพลาดในการแก้ไขชุมนุม', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
         } catch (error) {
             if (error?.status === 403) {
                 showApiError(error, '', 'แก้ไขชุมนุม');
             } else {
-                showNotification('เกิดข้อผิดพลาดในการแก้ไขชุมนุม', 'error');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เกิดข้อผิดพลาดในการแก้ไขชุมนุม', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
             }
             console.error('Error updating club:', error);
         }
@@ -318,7 +311,7 @@ const ManageClubsPosts = () => {
     // Handle refresh
     const handleRefresh = () => {
         refetchClubs();
-        showNotification('รีเฟรชข้อมูลเรียบร้อยแล้ว');
+        Swal.fire({ icon: 'success', title: 'รีเฟรชสำเร็จ', text: 'โหลดข้อมูลชุมนุมใหม่เรียบร้อยแล้ว', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
     };
 
     // Loading state เพิ่ม guard block
@@ -365,27 +358,6 @@ const ManageClubsPosts = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
-            {/* Notification */}
-            <AnimatePresence>
-                {notification.show && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -50 }}
-                        className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
-                            notification.type === 'success' 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-red-500 text-white'
-                        }`}
-                    >
-                        <div className="flex items-center">
-                            {notification.type === 'success' ? <IoCheckmark className="mr-2" /> : <IoWarning className="mr-2" />}
-                            {notification.message}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             <div className="container mx-auto px-4 max-w-6xl">
                 {/* Header */}
                 <div className="mb-8">
@@ -401,41 +373,12 @@ const ManageClubsPosts = () => {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="mb-8">
-                    <div className="border-b border-gray-200">
-                        <nav className="-mb-px flex space-x-8">
-                            <button
-                                onClick={() => setActiveTab('clubs-list')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'clubs-list'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                            >
-                                รายการชุมนุม ({clubsData.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('settings')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'settings'
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                            >
-                                สถิติชุมนุม
-                            </button>
-                        </nav>
-                    </div>
-                </div>
-
-                {/* Clubs List Tab */}
-                {activeTab === 'clubs-list' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                    >
+                {/* Clubs List */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6"
+                >
                         {/* Controls */}
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -846,17 +789,7 @@ const ManageClubsPosts = () => {
                                 </div>
                             </div>
                         )}
-                    </motion.div>
-                )}
-
-                {/* Settings Tab */}
-                {activeTab === 'settings' && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                    >
-                        {/* Statistics */}
+                    {/* Statistics */}
                         {!statsLoading && statsData && (
                             <div className="bg-white rounded-lg shadow-md p-6">
                                 <h2 className="text-xl font-semibold text-gray-800 mb-6">สถิติชุมนุม</h2>
@@ -913,9 +846,8 @@ const ManageClubsPosts = () => {
 
                             </div>
                         )}
-                        
-                    </motion.div>
-                )}
+
+                </motion.div>
             </div>
         </div>
     );

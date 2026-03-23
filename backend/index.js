@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -27,13 +28,11 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-// Security Headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
+// Security Headers — Helmet (ครอบคลุม OWASP recommended headers อัตโนมัติ)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // อนุญาตให้ Frontend โหลดรูปจาก backend ได้
+  contentSecurityPolicy: false // ปิดไว้ก่อน — เปิดเมื่อ configure CSP directives แล้ว
+}));
 
 // CORS Configuration - รองรับทั้ง Development และ Production
 const allowedOrigins = process.env.NODE_ENV === 'production'

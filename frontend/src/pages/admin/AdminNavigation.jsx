@@ -58,9 +58,9 @@ const AdminNavigation = () => {
   };
 
   return (
-    <div className="h-full flex flex-col justify-between shadow-sm bg-white">
+    <div className="h-full flex flex-col shadow-sm bg-white">
       {/* Header with Toggle Button (Mobile) */}
-      <div>
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Mobile Header - Admin Info + Hamburger */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 md:py-6 border-b md:border-0">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -89,9 +89,9 @@ const AdminNavigation = () => {
 
         {/* เมนูนำทาง - Collapsible on Mobile, Always Visible on Desktop */}
         <ul className={`
-          space-y-2 sm:space-y-3 md:space-y-4 
-          px-4 sm:px-6 
-          md:block
+          space-y-2 sm:space-y-3 
+          px-4 sm:px-6 pb-4
+          md:block md:flex-1 md:min-h-0 md:overflow-y-auto md:space-y-2
           ${isMenuOpen ? 'block py-4' : 'hidden'}
         `}>
           <li>

@@ -41,7 +41,7 @@ const verifyToken = async (req, res, next) => {
     } catch (error) {
         console.error('Error verifying token:', error);
         if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expired' });
+            return res.status(401).json({ message: 'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่', sessionExpired: true });
         }
         res.status(401).json({ message: 'Invalid token' });
     }

@@ -14,11 +14,22 @@ const RegisterForm = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const data = {
-      username,
-      email,
-      password,
-    };
+
+    // Client-side validation ก่อนส่ง (ช่วยลด round-trip)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Swal.fire({ icon: 'warning', title: 'อีเมลไม่ถูกต้อง', text: 'กรุณากรอกอีเมลในรูปแบบที่ถูกต้อง เช่น name@domain.com', confirmButtonColor: '#B45309' });
+      return;
+    }
+    if (password.length < 8) {
+      Swal.fire({ icon: 'warning', title: 'รหัสผ่านสั้นเกินไป', text: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', confirmButtonColor: '#B45309' });
+      return;
+    }
+    if (username.trim().length < 3 || username.trim().length > 12) {
+      Swal.fire({ icon: 'warning', title: 'ชื่อผู้ใช้ไม่ถูกต้อง', text: 'ชื่อผู้ใช้ต้องมี 3-12 ตัวอักษร', confirmButtonColor: '#B45309' });
+      return;
+    }
+
+    const data = { username, email, password };
 
     try {
       await registerUser(data).unwrap();
@@ -75,9 +86,12 @@ const RegisterForm = () => {
                 className="w-full pl-10 sm:pl-11 pr-4 py-3 sm:py-3 md:py-3 text-base md:text-base border-2 border-amber-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all touch-manipulation"
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="กรอกชื่อผู้ใช้ของคุณ"
+                minLength={3}
+                maxLength={12}
                 required
               />
             </div>
+            <p className="text-xs text-amber-600">3-12 ตัวอักษร</p>
           </div>
 
           {/* Email Field - Mobile First */}
@@ -111,9 +125,11 @@ const RegisterForm = () => {
                 className="w-full pl-10 sm:pl-11 pr-4 py-3 sm:py-3 md:py-3 text-base md:text-base border-2 border-amber-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all touch-manipulation"
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="กรอกรหัสผ่านของคุณ"
+                minLength={8}
                 required
               />
             </div>
+            <p className="text-xs text-amber-600">อย่างน้อย 8 ตัวอักษร</p>
           </div>
 
           {/* Error Message */}

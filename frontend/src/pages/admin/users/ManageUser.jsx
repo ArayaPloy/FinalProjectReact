@@ -14,11 +14,15 @@ import BlogApprovalRequests from "../post/BlogApprovalRequests";
 import Swal from 'sweetalert2';
 import { showApiError } from '../../../utils/sweetAlertHelper';
 
+const USERS_PER_PAGE = 10;
+
 const ManageUser = () => {
   const [activeTab, setActiveTab] = useState("users");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // unused, kept for safety
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ดึงข้อมูลผู้ใช้ปัจจุบันจาก Redux store
   const currentUser = useSelector((state) => state.auth.user);
@@ -42,17 +46,31 @@ const ManageUser = () => {
     skip: !isAuthorized
   });
 
-  const handleDelete = async (userId) => {
+  const handleDelete = async (user) => {
+    const result = await Swal.fire({
+      title: 'ยืนยันการลบผู้ใช้?',
+      html: `<p class="text-gray-600">คุณแน่ใจหรือไม่ที่จะลบ <strong>${user.username || user.email}</strong>?</p><p class="text-red-500 text-sm mt-1">การกระทำนี้ไม่สามารถย้อนกลับได้</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'ลบผู้ใช้',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
-      await deleteUser(userId).unwrap();
-      setShowDeleteConfirm(null);
+      await deleteUser(user.id).unwrap();
       refetch();
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'ลบผู้ใช้สำเร็จ';
-      document.body.appendChild(successDiv);
-      setTimeout(() => document.body.removeChild(successDiv), 3000);
+      Swal.fire({
+        icon: 'success',
+        title: 'ลบผู้ใช้สำเร็จ!',
+        text: `ลบผู้ใช้ "${user.username || user.email}" เรียบร้อยแล้ว`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (error) {
       console.error("Failed to delete user:", error);
       showApiError(error, 'เกิดข้อผิดพลาดในการลบผู้ใช้', 'ลบผู้ใช้');
@@ -63,6 +81,22 @@ const ManageUser = () => {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const filteredUsers = users.filter((u) => {
+    const term = search.toLowerCase();
+    const username = (u.username || u.name || '').toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    const role = (typeof u.role === 'object' ? u.role?.roleName || u.role?.name : u.role || '').toLowerCase();
+    return username.includes(term) || email.includes(term) || role.includes(term);
+  });
+
+  const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * USERS_PER_PAGE, currentPage * USERS_PER_PAGE);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -169,8 +203,15 @@ const ManageUser = () => {
                 <FiUsers className="mr-3 text-indigo-600" />
                 จัดการผู้ใช้งาน
               </h3>
-              <p className="text-gray-600 mt-1">ทั้งหมด {users.length} คน</p>
+              <p className="text-gray-600 mt-1">ทั้งหมด {users.length} คน{search && ` · พบ ${filteredUsers.length} รายการ`}</p>
             </div>
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="ค้นหาชื่อผู้ใช้ / อีเมล / บทบาท..."
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-64"
+            />
           </div>
           {/* Tabs */}
           <div className="flex gap-2">
@@ -249,10 +290,10 @@ const ManageUser = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user, index) => (
+              {paginatedUsers.map((user, index) => (
                 <tr key={user.id || `user-${index}`} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {index + 1}
+                    {(currentPage - 1) * USERS_PER_PAGE + index + 1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     {user.username || user.name || 'ไม่ระบุชื่อ'}
@@ -277,7 +318,7 @@ const ManageUser = () => {
                         แก้ไข
                       </button>
                       <button
-                        onClick={() => setShowDeleteConfirm(user.id)}
+                        onClick={() => handleDelete(user)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                         title="ลบผู้ใช้"
                         disabled={isDeleting}
@@ -292,51 +333,54 @@ const ManageUser = () => {
             </tbody>
           </table>
           
-          {users.length === 0 && (
+          {paginatedUsers.length === 0 && (
             <div className="text-center py-12">
               <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">ไม่มีผู้ใช้</h3>
-              <p className="mt-1 text-sm text-gray-500">ยังไม่มีข้อมูลผู้ใช้ในระบบ</p>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">{search ? 'ไม่พบผู้ใช้ที่ค้นหา' : 'ไม่มีผู้ใช้'}</h3>
+              <p className="mt-1 text-sm text-gray-500">{search ? `ไม่มีผลลัพธ์สำหรับ "${search}"` : 'ยังไม่มีข้อมูลผู้ใช้ในระบบ'}</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalUserPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+              <span className="text-sm text-gray-500">
+                แสดง {(currentPage - 1) * USERS_PER_PAGE + 1}–{Math.min(currentPage * USERS_PER_PAGE, filteredUsers.length)} จาก {filteredUsers.length} รายการ
+              </span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}
+                  className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">«</button>
+                <button onClick={() => setCurrentPage((p) => p - 1)} disabled={currentPage === 1}
+                  className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">‹</button>
+                {Array.from({ length: totalUserPages }, (_, i) => i + 1)
+                  .filter((page) => page === 1 || page === totalUserPages || Math.abs(page - currentPage) <= 1)
+                  .reduce((acc, page, idx, arr) => {
+                    if (idx > 0 && page - arr[idx - 1] > 1) acc.push('...');
+                    acc.push(page);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === '...' ? (
+                      <span key={`ellipsis-${idx}`} className="px-2 py-1 text-sm text-gray-400">…</span>
+                    ) : (
+                      <button key={item} onClick={() => setCurrentPage(item)}
+                        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          currentPage === item ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                        }`}>{item}</button>
+                    )
+                  )}
+                <button onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage === totalUserPages}
+                  className="px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">›</button>
+                <button onClick={() => setCurrentPage(totalUserPages)} disabled={currentPage === totalUserPages}
+                  className="px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">»</button>
+              </div>
             </div>
           )}
         </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                <MdWarning className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mt-4">ยืนยันการลบผู้ใช้</h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
-                  คุณแน่ใจหรือไม่ที่จะลบผู้ใช้นี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-                </p>
-              </div>
-              <div className="items-center px-4 py-3 flex justify-center space-x-4">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 transition-colors"
-                  disabled={isDeleting}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={() => handleDelete(showDeleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? 'กำลังลบ...' : 'ลบ'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Update User Modal */}
       {isModalOpen && selectedUser && (

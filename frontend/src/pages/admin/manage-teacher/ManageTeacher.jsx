@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
+import defaultAvatar from '../../../assets/commentor.png';
 import {
     useFetchTeachersByDepartmentQuery,
     useCreateTeacherMutation,
@@ -645,11 +646,12 @@ const ManageTeacher = () => {
                                             {/* Preview */}
                                             <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
                                                 <img
-                                                    src={imagePreview || formData.imagePath || 'default-avatar.jpg'}
+                                                    src={imagePreview || formData.imagePath || defaultAvatar}
                                                     alt="Preview"
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
-                                                        e.target.src = 'default-avatar.jpg';
+                                                        e.target.onerror = null;
+                                                        e.target.src = defaultAvatar;
                                                     }}
                                                 />
                                                 {(selectedFile || (formData.imagePath && formData.imagePath !== 'default-avatar.jpg')) && (

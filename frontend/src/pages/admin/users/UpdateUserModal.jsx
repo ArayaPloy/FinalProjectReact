@@ -3,6 +3,7 @@ import { useUpdateUserRoleMutation } from "../../../redux/features/auth/authApi"
 import { MdClose, MdSave, MdPerson, MdEmail, MdVerifiedUser } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../../../redux/features/auth/authSlice";
+import Swal from "sweetalert2";
 
 const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
   const dispatch = useDispatch();
@@ -35,15 +36,12 @@ const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
     
     // Validate username
     if (!username || username.trim() === '') {
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      errorDiv.textContent = 'กรุณากรอกชื่อผู้ใช้';
-      document.body.appendChild(errorDiv);
-      setTimeout(() => {
-        if (document.body.contains(errorDiv)) {
-          document.body.removeChild(errorDiv);
-        }
-      }, 3000);
+      Swal.fire({
+        icon: 'warning',
+        title: 'กรุณากรอกชื่อผู้ใช้',
+        confirmButtonColor: '#6366f1',
+        confirmButtonText: 'ตกลง',
+      });
       return;
     }
     
@@ -62,31 +60,24 @@ const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
         }));
       }
       
-      // Show success message
-      const successDiv = document.createElement('div');
-      successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      successDiv.textContent = 'อัปเดตข้อมูลผู้ใช้สำเร็จ';
-      document.body.appendChild(successDiv);
-      setTimeout(() => {
-        if (document.body.contains(successDiv)) {
-          document.body.removeChild(successDiv);
-        }
-      }, 3000);
-      
       onSuccess();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'อัปเดตข้อมูลสำเร็จ!',
+        text: `อัปเดตข้อมูลผู้ใช้ "${username.trim()}" เรียบร้อยแล้ว`,
+        confirmButtonColor: '#6366f1',
+        confirmButtonText: 'ตกลง',
+      });
     } catch (error) {
       console.error("Failed to update user role:", error);
-      
-      // Show error message
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      errorDiv.textContent = error?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้';
-      document.body.appendChild(errorDiv);
-      setTimeout(() => {
-        if (document.body.contains(errorDiv)) {
-          document.body.removeChild(errorDiv);
-        }
-      }, 3000);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error?.data?.message || 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'ตกลง',
+      });
     }
   };
 
@@ -248,7 +239,7 @@ const UpdateUserModal = ({ user, onClose, onSuccess, currentUserRole }) => {
             ) : (
               <>
                 <MdSave className="mr-1" />
-                บันทึกการเปลี่ยนแปลง
+                บันทึก
               </>
             )}
           </button>

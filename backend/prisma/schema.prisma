@@ -64,7 +64,7 @@ model academicclubs {
   category               String                   @db.VarChar(100)
   categoryId             Int?
   icon                   String                   @db.VarChar(50)
-  registrationDeadline   DateTime                 @db.Date
+  registrationDeadline   DateTime?                @db.Date
   isActive               Boolean                  @default(true)
   meetingDay             String?                  @db.VarChar(20)
   meetingTime            String?                  @db.VarChar(20)

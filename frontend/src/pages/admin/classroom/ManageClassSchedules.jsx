@@ -24,15 +24,6 @@ import {
     useRemoveTeacherMutation,
 } from '../../../services/subjectsApi';
 
-// ── SweetAlert2 Toast (non-blocking top-end notification) ───
-const SwalToast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true,
-});
-
 // ============================================================
 //  จัดการตารางเรียน — Admin / Super Admin only
 // ============================================================
@@ -125,10 +116,10 @@ const SubjectFormModal = ({ isOpen, onClose, editSubject, departments, onSuccess
         try {
             if (isEditing) {
                 await updateSubject({ id: editSubject.id, ...payload }).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'แก้ไขวิชาเรียนสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'แก้ไขวิชาเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             } else {
                 await createSubject(payload).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'เพิ่มวิชาเรียนสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'เพิ่มวิชาเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             }
             onClose();
         } catch (err) {
@@ -418,9 +409,9 @@ const SubjectManagePanel = ({ isOpen, onClose, departments }) => {
         if (!result.isConfirmed) return;
         try {
             await deleteSubject(s.id).unwrap();
-            SwalToast.fire({ icon: 'success', title: 'ลบวิชาเรียนสำเร็จ' });
+            Swal.fire({ icon: 'success', title: 'ลบวิชาเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
         } catch (err) {
-            SwalToast.fire({ icon: 'error', title: err?.data?.message || 'เกิดข้อผิดพลาด' });
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err?.data?.message || 'เกิดข้อผิดพลาด', confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
         }
     };
 
@@ -1201,7 +1192,7 @@ const ManageClassSchedules = () => {
             if (editData) {
                 // Edit mode
                 await updateEntry({ id: editData.id, ...values }).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'แก้ไขคาบเรียนสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'แก้ไขคาบเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             } else {
                 // Add mode — pass selectedClass + selectedSemesterId
                 await createEntry({
@@ -1209,13 +1200,13 @@ const ManageClassSchedules = () => {
                     className: selectedClass,
                     semesterId: selectedSemesterId ? Number(selectedSemesterId) : undefined,
                 }).unwrap();
-                SwalToast.fire({ icon: 'success', title: 'เพิ่มคาบเรียนสำเร็จ' });
+                Swal.fire({ icon: 'success', title: 'เพิ่มคาบเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             }
             setFormOpen(false);
             refetch();
         } catch (err) {
             const msg = err?.data?.message || err?.message || 'เกิดข้อผิดพลาด';
-            SwalToast.fire({ icon: 'error', title: msg });
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg, confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
         }
     };
 
@@ -1235,11 +1226,11 @@ const ManageClassSchedules = () => {
         if (!result.isConfirmed) return;
         try {
             await deleteEntry(cellData.id).unwrap();
-            SwalToast.fire({ icon: 'success', title: 'ลบคาบเรียนสำเร็จ' });
+            Swal.fire({ icon: 'success', title: 'ลบคาบเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
             refetch();
         } catch (err) {
             const msg = err?.data?.message || 'เกิดข้อผิดพลาด';
-            SwalToast.fire({ icon: 'error', title: msg });
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg, confirmButtonColor: '#DC2626', confirmButtonText: 'ตกลง' });
         }
     };
 
@@ -1300,7 +1291,7 @@ const ManageClassSchedules = () => {
         link.download = `schedule_class_${selectedClass}_${today}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
-        SwalToast.fire({ icon: 'success', title: 'ส่งออกตารางเรียนสำเร็จ' });
+        Swal.fire({ icon: 'success', title: 'ส่งออกตารางเรียนสำเร็จ', confirmButtonColor: '#2563EB', confirmButtonText: 'ตกลง' });
     };
 
     // ── Import schedule from CSV ──
@@ -1543,8 +1534,8 @@ const ManageClassSchedules = () => {
                 ) : (
                     <>
                         {/* Desktop Grid — วัน=แถว(Y), คาบ=คอลัมน์(X) */}
-                        <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="overflow-x-auto">
+                        <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-200">
+                            <div className="overflow-x-auto rounded-2xl">
                                 <table className="w-full border-collapse" style={{ minWidth: `${128 + periods.length * 120 + 64}px` }}>
                                     <thead>
                                         <tr className="bg-gray-50">
