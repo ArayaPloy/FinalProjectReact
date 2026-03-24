@@ -25,6 +25,7 @@ const getSunday = (mondayStr) => {
     d.setDate(d.getDate() + 6);
     return d.toISOString().split('T')[0];
 };
+// Format ปฏิทินไทยแบบสั้น (1 ม.ค. 65) (month: 'long', year: 'numeric')
 const formatThaiShortDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
@@ -412,6 +413,80 @@ const ReportBehaviorScore = () => {
         Swal.fire({ icon: 'success', title: 'ส่งออกสำเร็จ', text: 'ดาวน์โหลดไฟล์รายงานเรียบร้อย', timer: 2000, showConfirmButton: false });
     };
 
+    {/* ------------ แสดงข้อมูลนักเรียนที่มีคะแนนความประพฤติสูงสุด
+    const showTopStudent = () => {
+        if (!summaryStats || summaryStats.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'ไม่มีข้อมูล',
+                text: 'ไม่พบข้อมูลนักเรียนในช่วงเวลาที่เลือก',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        // หานักเรียนที่มีคะแนนสูงสุด
+        const topStudent = summaryStats.reduce((max, student) => {
+            return (student.currentScore > max.currentScore) ? student : max;
+        }, summaryStats[0]);
+
+        // หานักเรียนที่มีคะแนนต่ำสุด (ถ้าต้องการแสดงด้วย)
+        const lowestStudent = summaryStats.reduce((min, student) => {
+            return (student.currentScore < min.currentScore) ? student : min;
+        }, summaryStats[0]);
+
+        // แสดง SweetAlert2
+        Swal.fire({
+            title: 'นักเรียนที่มีคะแนนความประพฤติสูงสุด',
+            html: `
+            <div class="text-left">
+                <div class="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg mb-4 border-2 border-yellow-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <h3 class="text-xl font-bold text-amber-700">${topStudent.studentName}</h3>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <span class="text-gray-600">รหัสนักเรียน:</span>
+                            <span class="font-semibold ml-2">${topStudent.studentCode}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">ห้องเรียน:</span>
+                            <span class="font-semibold ml-2">${topStudent.classRoom}</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-600">คะแนนรวม:</span>
+                            <span class="text-xl font-bold text-gray-600">${topStudent.currentScore}</span>
+                            <span class="text-gray-500 text-sm"> คะแนน</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-600">จำนวนครั้งที่บันทึก:</span>
+                            <span class="font-semibold ml-2">${topStudent.recordCount} ครั้ง</span>
+                        </div>
+                    </div>
+                </div>
+                ${lowestStudent && lowestStudent.currentScore < topStudent.currentScore ? `
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div class="text-sm">
+                        <p>นักเรียนที่มีคะแนนต่ำสุด: <span class="font-semibold">${lowestStudent.studentName}</span> 
+                        (คะแนน <span class="text-gray-600 font-bold">${lowestStudent.currentScore}</span> คะแนน)</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `,
+            icon: 'success',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#3085d6',
+            showClass: {
+                popup: 'animate__animated animate__fadeInDown'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__fadeOutUp'
+            }
+        });
+    };
+    ------------------------- */}
+
     const renderPagination = (totalCount, totalPgs, currPage, onPageChange, perPage, onPerPageChange) => {
         if (totalCount === 0 || totalPgs <= 0) return null;
         return (
@@ -474,8 +549,8 @@ const ReportBehaviorScore = () => {
                         <button
                             onClick={() => setActiveTab('history')}
                             className={`flex items-center gap-2 px-4 py-3 text-sm sm:text-base font-semibold whitespace-nowrap transition-colors touch-manipulation flex-shrink-0 border-b-2 -mb-px ${activeTab === 'history'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             <History className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
@@ -484,8 +559,8 @@ const ReportBehaviorScore = () => {
                         <button
                             onClick={() => setActiveTab('summary')}
                             className={`flex items-center gap-2 px-4 py-3 text-sm sm:text-base font-semibold whitespace-nowrap transition-colors touch-manipulation flex-shrink-0 border-b-2 -mb-px ${activeTab === 'summary'
-                                    ? 'border-indigo-600 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
@@ -578,8 +653,8 @@ const ReportBehaviorScore = () => {
                                     <button
                                         onClick={() => setReportPeriod('week')}
                                         className={`px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors touch-manipulation flex-shrink-0 border-b-2 -mb-px ${reportPeriod === 'week'
-                                                ? 'border-indigo-600 text-indigo-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-indigo-600 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         รายสัปดาห์
@@ -587,8 +662,8 @@ const ReportBehaviorScore = () => {
                                     <button
                                         onClick={() => setReportPeriod('month')}
                                         className={`px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors touch-manipulation flex-shrink-0 border-b-2 -mb-px ${reportPeriod === 'month'
-                                                ? 'border-indigo-600 text-indigo-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-indigo-600 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         รายเดือน
@@ -596,8 +671,8 @@ const ReportBehaviorScore = () => {
                                     <button
                                         onClick={() => setReportPeriod('semester')}
                                         className={`px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors touch-manipulation flex-shrink-0 border-b-2 -mb-px ${reportPeriod === 'semester'
-                                                ? 'border-indigo-600 text-indigo-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-indigo-600 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         ภาคเรียน
@@ -1049,6 +1124,15 @@ const ReportBehaviorScore = () => {
                                 )}
                             </div>
                         </div>
+
+                        {summaryStats.length > 0 && (
+                            <button
+                                onClick={showTopStudent}
+                                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg"
+                            >
+                                <span>นักเรียนคะแนนสูงสุด</span>
+                            </button>
+                        )}
 
                         {isLoadingSummary ? (
                             <div className="text-center py-12">

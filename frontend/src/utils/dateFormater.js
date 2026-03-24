@@ -31,7 +31,7 @@ export const formatDateShort = (date) => {
     
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear() + 543; // Buddhist year
+    const year = d.getFullYear() + 543; // พุทธศักราชไทย
     
     return `${day}/${month}/${year}`;
 };
@@ -40,6 +40,7 @@ export const formatDateShort = (date) => {
  * Format datetime to string
  * @param {string|Date} date - Date to format
  * @returns {string} Formatted datetime string
+ * "24 มีนาคม 2569 14:30"
  */
 export const formatDateTime = (date) => {
     if (!date) return '';
