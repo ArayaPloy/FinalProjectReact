@@ -68,7 +68,8 @@ const flagpoleAttendanceApi = createApi({
         url: '/flagpole-attendance/report',
         params: { startDate, endDate, classRoom }
       }),
-      transformResponse: (response) => response.data
+      transformResponse: (response) => response.data,
+      providesTags: ['FlagpoleAttendance']
     }),
 
     // ดึงรายงานสรุปรายนักเรียน (แยกตามช่วงเวลา: week/month/semester)
@@ -77,7 +78,8 @@ const flagpoleAttendanceApi = createApi({
         url: '/flagpole-attendance/summary',
         params: { period, classRoom, search, weekDate, monthDate }
       }),
-      transformResponse: (response) => response.data
+      transformResponse: (response) => response.data,
+      providesTags: ['FlagpoleAttendance']
     })
   })
 });

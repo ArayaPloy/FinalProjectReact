@@ -61,7 +61,7 @@ const FlagpoleAttendanceReport = () => {
     const classRooms = classRoomsData;
     const { data: reportData, isLoading: reportLoading, refetch } = useGetFlagpoleReportQuery(
         { startDate, endDate, classRoom: selectedClass },
-        { skip: !startDate || !endDate }
+        { skip: !startDate || !endDate, refetchOnMountOrArgChange: true }
     );
     const { data: summaryData, isLoading: summaryLoading } = useGetFlagpoleSummaryQuery(
         {
