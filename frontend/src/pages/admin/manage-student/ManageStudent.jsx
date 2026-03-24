@@ -283,7 +283,7 @@ const StudentFormModal = ({
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto min-h-0 p-4">
                     {/* Tab 0: Personal */}
                     {activeTab === 0 && (
                         <div className="grid grid-cols-2 gap-3">
@@ -421,20 +421,61 @@ const StudentFormModal = ({
                                     placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"
                                 />
                             </Field>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Field label="ประเภทที่พัก">
-                                    <input type="text" value={formData.houseType} onChange={e => onChange('houseType', e.target.value)} className={cls} placeholder="เช่น บ้านเดี่ยว" />
-                                </Field>
-                                <Field label="วัสดุก่อสร้าง">
-                                    <input type="text" value={formData.houseMaterial} onChange={e => onChange('houseMaterial', e.target.value)} className={cls} placeholder="เช่น คอนกรีต" />
-                                </Field>
-                                <Field label="สาธารณูปโภค">
-                                    <input type="text" value={formData.utilities} onChange={e => onChange('utilities', e.target.value)} className={cls} placeholder="เช่น ไฟฟ้า, น้ำประปา" />
-                                </Field>
-                                <Field label="บริเวณที่เรียน">
-                                    <input type="text" value={formData.studyArea} onChange={e => onChange('studyArea', e.target.value)} className={cls} placeholder="เช่น ห้องนอน" />
-                                </Field>
-                            </div>
+                            {/* Multi-checkbox helper */}
+                            {(() => {
+                                const parseMulti = (val) => {
+                                    if (!val) return [];
+                                    return val.toString().split(/,\s*/).map(v => v.trim()).filter(Boolean);
+                                };
+                                const toggleMulti = (field, option) => {
+                                    const current = parseMulti(formData[field]);
+                                    const next = current.includes(option)
+                                        ? current.filter(v => v !== option)
+                                        : [...current, option];
+                                    onChange(field, next.join(', '));
+                                };
+                                const chkCls = "w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500";
+                                const groups = [
+                                    {
+                                        label: 'ประเภทที่พัก', field: 'houseType',
+                                        options: ['บ้านเดี่ยว', 'บ้านแถว/ทาวน์เฮาส์', 'อาศัยกับญาติ', 'บ้านเช่า', 'ห้องเช่า', 'กระท่อม', 'อื่นๆ']
+                                    },
+                                    {
+                                        label: 'วัสดุก่อสร้าง', field: 'houseMaterial',
+                                        options: ['คอนกรีต/อิฐ', 'ไม้', 'ไม้ผสมคอนกรีต', 'สังกะสี/วัสดุชั่วคราว', 'อื่นๆ']
+                                    },
+                                    {
+                                        label: 'สาธารณูปโภค', field: 'utilities',
+                                        options: ['ไฟฟ้า', 'ประปา', 'ห้องน้ำในบ้าน', 'อินเทอร์เน็ต', 'การขนส่งสะดวก', 'อื่นๆ']
+                                    },
+                                    {
+                                        label: 'บริเวณที่เรียน', field: 'studyArea',
+                                        options: ['มีโต๊ะอ่านหนังสือ', 'ไม่มีพื้นที่เฉพาะ', 'ใช้พื้นที่ส่วนรวม', 'มีแสงสว่างเพียงพอ', 'มีสิ่งรบกวนเยอะ', 'อื่นๆ']
+                                    },
+                                ];
+                                return (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {groups.map(({ label, field, options }) => (
+                                            <div key={field} className="border border-gray-200 rounded-xl p-3">
+                                                <p className="text-xs font-semibold text-gray-600 mb-2">{label}</p>
+                                                <div className="space-y-1.5">
+                                                    {options.map(opt => (
+                                                        <label key={opt} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={parseMulti(formData[field]).includes(opt)}
+                                                                onChange={() => toggleMulti(field, opt)}
+                                                                className={chkCls}
+                                                            />
+                                                            <span className="text-xs text-gray-700">{opt}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
                 </div>
@@ -860,27 +901,27 @@ const ManageStudent = () => {
                 {/* Filter + Export/Import card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5">
                     {/* Top row: section label + action buttons */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <span className="text-sm font-semibold text-gray-600">ค้นหานักเรียน</span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 onClick={handleExportStudents}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all"
                             >
-                                <ExportIcon /> ส่งออก Excel
+                                <ExportIcon/>ส่งออก
                             </button>
                             <button
                                 onClick={handleDownloadTemplate}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold text-sm transition-all"
                                 title="ดาวน์โหลด Template สำหรับนำเข้าข้อมูล"
                             >
-                                <ExportIcon /> Template
+                                <ImportIcon/>เทมเพลต
                             </button>
                             <button
                                 onClick={handleImportClick}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all"
                             >
-                                <ImportIcon /> นำเข้า Excel
+                                <ImportIcon/>นำเข้า
                             </button>
                             <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
                         </div>
