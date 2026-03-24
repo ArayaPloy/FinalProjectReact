@@ -870,9 +870,9 @@ const ManageStudent = () => {
                     </div>
                     <button
                         onClick={handleOpenAdd}
-                        className="flex items-center gap-2 px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl font-bold text-sm transition-colors shadow"
+                        className="flex items-center gap-2 px-2 py-2 bg-white text-blue-700 hover:bg-blue-50 rounded-xl font-bold text-sm transition-colors shadow"
                     >
-                        <Plus className="w-4 h-4" /> เพิ่มนักเรียน
+                        <Plus className="w-4 h-4" />เพิ่มนักเรียน
                     </button>
                 </div>
             </div>
