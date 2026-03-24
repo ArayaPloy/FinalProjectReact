@@ -760,7 +760,7 @@ const HomeVisits = () => {
                                                     const pfx = formData.guardianNamePrefix || '';
                                                         const first = formData.guardianFirstName || '';
                                                         const last = formData.guardianLastName || '';
-                                                        const fullGuardian = `${pfx ? pfx + ' ' : ''}${first}${last ? ' ' + last : ''}`.trim();
+                                                        const fullGuardian = `${pfx ? pfx + '' : ''}${first}${last ? ' ' + last : ''}`.trim();
                                                         return fullGuardian || <span className="text-amber-600">ยังไม่ระบุ</span>;
                                                 })()}
                                             </span>
