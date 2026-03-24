@@ -1568,7 +1568,7 @@ const HomeVisits = () => {
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold text-white">
-                                    แบบบันทึกการเยี่ยมบ้านนักเรียน
+                                    แบบฟอร์มบันทึกการเยี่ยมบ้านนักเรียน
                                 </h1>
                                 <p className="text-amber-100 mt-1 flex items-center gap-2">
                                     <i className="bi bi-building"></i>

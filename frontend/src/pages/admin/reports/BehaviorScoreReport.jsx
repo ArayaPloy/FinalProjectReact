@@ -13,7 +13,7 @@ import {
 import { useGetClassroomsQuery } from '../../../services/studentsApi';
 import { selectCurrentUser } from '../../../redux/features/auth/authSlice';
 
-// ─── Week/Month helper functions ────────────────────────────────────────
+//  Week/Month helper functions 
 const getMonday = (dateStr) => {
     const d = new Date(dateStr);
     const day = d.getDay();
@@ -25,6 +25,7 @@ const getSunday = (mondayStr) => {
     d.setDate(d.getDate() + 6);
     return d.toISOString().split('T')[0];
 };
+
 // Format ปฏิทินไทยแบบสั้น (1 ม.ค. 65) (month: 'long', year: 'numeric')
 const formatThaiShortDate = (dateStr) => {
     if (!dateStr) return '';
@@ -485,7 +486,7 @@ const ReportBehaviorScore = () => {
             }
         });
     };
-    ------------------------- */}
+    ------------------------------ */}
 
     const renderPagination = (totalCount, totalPgs, currPage, onPageChange, perPage, onPerPageChange) => {
         if (totalCount === 0 || totalPgs <= 0) return null;
@@ -1125,6 +1126,7 @@ const ReportBehaviorScore = () => {
                             </div>
                         </div>
 
+                        {/* ปุ่มแสดงข้อมูลนักเรียนที่มีคะแนนความประพฤติสูงสุด (ถ้ามี) 
                         {summaryStats.length > 0 && (
                             <button
                                 onClick={showTopStudent}
@@ -1133,6 +1135,7 @@ const ReportBehaviorScore = () => {
                                 <span>นักเรียนคะแนนสูงสุด</span>
                             </button>
                         )}
+                        */}
 
                         {isLoadingSummary ? (
                             <div className="text-center py-12">
