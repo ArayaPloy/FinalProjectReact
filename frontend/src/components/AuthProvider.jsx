@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGetCurrentUserQuery } from '../redux/features/auth/authApi';
 import { usersApi } from '../redux/features/users/usersApi';
-import { setUser, logout, selectVoluntaryLogout } from '../redux/features/auth/authSlice';
+import { setUser, logout } from '../redux/features/auth/authSlice';
+import { store } from '../redux/store';
 import Swal from 'sweetalert2';
 
 export const AuthProvider = ({ children }) => {
@@ -14,8 +15,9 @@ export const AuthProvider = ({ children }) => {
   const didForcePasswordChange = useRef(false);
   // ติดตามว่า user เคย authenticated แล้วหรือยัง (เพื่อแยก "session หมด" จาก "ยังไม่ login")
   const wasAuthenticated = useRef(false);
-  // ตรวจสอบว่า user ออกจากระบบเองหรือไม่ (ไม่ต้องแสดง popup session หมดอายุ)
-  const isVoluntaryLogout = useSelector(selectVoluntaryLogout);
+  // หมายเหตุ: ไม่ใช้ useSelector สำหรับ voluntaryLogout
+  // เพราะ useSelector คืนค่าจาก render cycle ก่อนหน้า (stale closure)
+  // ให้อ่านจาก store.getState() โดยตรงใน effect แทน (synchronous เสมอ)
 
   const { data, error, isLoading } = useGetCurrentUserQuery(undefined, {
     // ตรวจสอบ session ทุก 10 นาที (token หมดอายุใน 2 ชั่วโมง / 7 วัน)
@@ -34,8 +36,11 @@ export const AuthProvider = ({ children }) => {
       }
       // แสดง popup เฉพาะเมื่อ session หมดอายุระหว่างใช้งาน (ไม่ใช่ตอนยังไม่ login หรือออกจากระบบเอง)
       if (error.status === 401 && wasAuthenticated.current) {
-        wasAuthenticated.current = false; // reset เสมอเมื่อ 401 มา ไม่ว่าจะแสดง popup หรือไม่
-        if (!isVoluntaryLogout) {
+        wasAuthenticated.current = false; // reset เสมอเมื่อ 401 มา
+        // อ่านค่าจาก store โดยตรง (synchronous) ไม่ผ่าน React render cycle
+        // เพื่อป้องกัน race condition กับ stale closure ของ useSelector
+        const voluntaryLogout = store.getState().auth.voluntaryLogout;
+        if (!voluntaryLogout) {
           Swal.fire({
             icon: 'warning',
             title: 'Session หมดอายุ',
@@ -72,7 +77,7 @@ export const AuthProvider = ({ children }) => {
     }
   // ไม่ใส่ location.pathname ใน dependencies เพื่อป้องกัน navigate loop
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, error, isVoluntaryLogout, dispatch, navigate]);
+  }, [data, error, dispatch, navigate]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
