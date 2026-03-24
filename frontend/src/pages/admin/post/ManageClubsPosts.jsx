@@ -408,6 +408,7 @@ const ManageClubsPosts = () => {
                                     </select>
                                 </div>
                             </div>
+                            <div className="flex items-center gap-2">
                             <div className="relative w-full sm:w-64">
                                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
                                 <input
@@ -418,7 +419,6 @@ const ManageClubsPosts = () => {
                                     className="border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full"
                                 />
                             </div>
-
                             <button
                                 onClick={() => setShowAddClub(!showAddClub)}
                                 className={showAddClub
@@ -429,6 +429,7 @@ const ManageClubsPosts = () => {
                                 {!showAddClub && <IoAdd />}
                                 <span>{showAddClub ? 'ยกเลิก' : 'เพิ่มชุมนุม'}</span>
                             </button>
+                            </div>
                         </div>
 
                         {/* Add Club Form */}
