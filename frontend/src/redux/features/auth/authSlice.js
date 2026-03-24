@@ -22,7 +22,8 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      state.voluntaryLogout = false;
+      // ไม่ reset voluntaryLogout ที่นี่ — ให้ flag คงอยู่จนกว่าจะ login ใหม่ผ่าน setUser
+      // เพื่อป้องกัน popup "session หมดอายุ" ที่เกิดจาก 401 หลัง logout เอง
       // Clear cookie
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     },

@@ -33,15 +33,17 @@ export const AuthProvider = ({ children }) => {
         console.error('Authentication error:', error);
       }
       // แสดง popup เฉพาะเมื่อ session หมดอายุระหว่างใช้งาน (ไม่ใช่ตอนยังไม่ login หรือออกจากระบบเอง)
-      if (error.status === 401 && wasAuthenticated.current && !isVoluntaryLogout) {
-        wasAuthenticated.current = false;
-        Swal.fire({
-          icon: 'warning',
-          title: 'Session หมดอายุ',
-          text: 'กรุณาเข้าสู่ระบบใหม่',
-          confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#f59e0b',
-        });
+      if (error.status === 401 && wasAuthenticated.current) {
+        wasAuthenticated.current = false; // reset เสมอเมื่อ 401 มา ไม่ว่าจะแสดง popup หรือไม่
+        if (!isVoluntaryLogout) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Session หมดอายุ',
+            text: 'กรุณาเข้าสู่ระบบใหม่',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#f59e0b',
+          });
+        }
       }
       dispatch(logout());
       // Reset เฉพาะ usersApi cache (profile data) เท่านั้น
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     }
   // ไม่ใส่ location.pathname ใน dependencies เพื่อป้องกัน navigate loop
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, error, dispatch, navigate]);
+  }, [data, error, isVoluntaryLogout, dispatch, navigate]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
