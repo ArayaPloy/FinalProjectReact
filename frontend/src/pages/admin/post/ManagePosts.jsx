@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDeleteBlogMutation, useFetchBlogsQuery } from "../../../redux/features/blogs/blogsApi";
 import { Link } from "react-router-dom";
 import Swal from 'sweetalert2';
+import { FiSearch } from "react-icons/fi";
 import { showApiError } from '../../../utils/sweetAlertHelper';
 const formatDate = (dateString) => {
   if (!dateString) return '-';
@@ -69,13 +70,16 @@ const ManagePosts = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h3 className="text-2xl font-semibold text-gray-800">บทความทั้งหมด</h3>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <input
-              type="text"
-              value={query.search}
-              onChange={handleSearchChange}
-              placeholder="ค้นหาชื่อบทความ..."
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full sm:w-64"
-            />
+            <div className="relative w-full sm:w-64">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
+              <input
+                type="text"
+                value={query.search}
+                onChange={handleSearchChange}
+                placeholder="ค้นหาชื่อบทความ..."
+                className="border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-full"
+              />
+            </div>
             <Link to="/blogs">
               <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm whitespace-nowrap w-full">
                 ดูบทความทั้งหมด
