@@ -538,12 +538,20 @@ const FlagpoleAttendanceReport = () => {
                                             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold text-gray-700 transition-colors min-h-[40px]"
                                             title="เดือนก่อนหน้า"
                                         >&#8249;</button>
-                                        <input
-                                            type="month"
-                                            value={summaryMonthDate}
-                                            onChange={e => setSummaryMonthDate(e.target.value)}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm flex-1 min-w-[160px]"
-                                        />
+                                        <div className="flex items-center gap-2 flex-1 min-w-[220px] flex-wrap">
+                                            <input
+                                                type="month"
+                                                value={summaryMonthDate}
+                                                onChange={e => setSummaryMonthDate(e.target.value)}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                            />
+                                            <span className="text-sm font-semibold text-indigo-700 whitespace-nowrap">
+                                                {(() => {
+                                                    const [y, m] = summaryMonthDate.split('-');
+                                                    return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+                                                })()}
+                                            </span>
+                                        </div>
                                         <button
                                             onClick={() => setSummaryMonthDate(prev => { const [y, m] = prev.split('-').map(Number); const d = new Date(y, m, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })}
                                             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold text-gray-700 transition-colors min-h-[40px]"

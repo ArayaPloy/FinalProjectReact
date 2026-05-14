@@ -414,80 +414,6 @@ const ReportBehaviorScore = () => {
         Swal.fire({ icon: 'success', title: 'ส่งออกสำเร็จ', text: 'ดาวน์โหลดไฟล์รายงานเรียบร้อย', timer: 2000, showConfirmButton: false });
     };
 
-    {/* ------------ แสดงข้อมูลนักเรียนที่มีคะแนนความประพฤติสูงสุด
-    const showTopStudent = () => {
-        if (!summaryStats || summaryStats.length === 0) {
-            Swal.fire({
-                icon: 'info',
-                title: 'ไม่มีข้อมูล',
-                text: 'ไม่พบข้อมูลนักเรียนในช่วงเวลาที่เลือก',
-                confirmButtonText: 'ตกลง'
-            });
-            return;
-        }
-
-        // หานักเรียนที่มีคะแนนสูงสุด
-        const topStudent = summaryStats.reduce((max, student) => {
-            return (student.currentScore > max.currentScore) ? student : max;
-        }, summaryStats[0]);
-
-        // หานักเรียนที่มีคะแนนต่ำสุด (ถ้าต้องการแสดงด้วย)
-        const lowestStudent = summaryStats.reduce((min, student) => {
-            return (student.currentScore < min.currentScore) ? student : min;
-        }, summaryStats[0]);
-
-        // แสดง SweetAlert2
-        Swal.fire({
-            title: 'นักเรียนที่มีคะแนนความประพฤติสูงสุด',
-            html: `
-            <div class="text-left">
-                <div class="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg mb-4 border-2 border-yellow-300">
-                    <div class="flex items-center gap-3 mb-3">
-                        <h3 class="text-xl font-bold text-amber-700">${topStudent.studentName}</h3>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                            <span class="text-gray-600">รหัสนักเรียน:</span>
-                            <span class="font-semibold ml-2">${topStudent.studentCode}</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-600">ห้องเรียน:</span>
-                            <span class="font-semibold ml-2">${topStudent.classRoom}</span>
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-gray-600">คะแนนรวม:</span>
-                            <span class="text-xl font-bold text-gray-600">${topStudent.currentScore}</span>
-                            <span class="text-gray-500 text-sm"> คะแนน</span>
-                        </div>
-                        <div class="col-span-2">
-                            <span class="text-gray-600">จำนวนครั้งที่บันทึก:</span>
-                            <span class="font-semibold ml-2">${topStudent.recordCount} ครั้ง</span>
-                        </div>
-                    </div>
-                </div>
-                ${lowestStudent && lowestStudent.currentScore < topStudent.currentScore ? `
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div class="text-sm">
-                        <p>นักเรียนที่มีคะแนนต่ำสุด: <span class="font-semibold">${lowestStudent.studentName}</span> 
-                        (คะแนน <span class="text-gray-600 font-bold">${lowestStudent.currentScore}</span> คะแนน)</p>
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-        `,
-            icon: 'success',
-            confirmButtonText: 'ตกลง',
-            confirmButtonColor: '#3085d6',
-            showClass: {
-                popup: 'animate__animated animate__fadeInDown'
-            },
-            hideClass: {
-                popup: 'animate__animated animate__fadeOutUp'
-            }
-        });
-    };
-    ------------------------------ */}
-
     const renderPagination = (totalCount, totalPgs, currPage, onPageChange, perPage, onPerPageChange) => {
         if (totalCount === 0 || totalPgs <= 0) return null;
         return (
@@ -714,12 +640,20 @@ const ReportBehaviorScore = () => {
                                             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold text-gray-700 transition-colors min-h-[40px]"
                                             title="เดือนก่อนหน้า"
                                         >&#8249;</button>
-                                        <input
-                                            type="month"
-                                            value={summaryMonthDate}
-                                            onChange={e => setSummaryMonthDate(e.target.value)}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm flex-1 min-w-[160px]"
-                                        />
+                                        <div className="flex items-center gap-2 flex-1 min-w-[220px] flex-wrap">
+                                            <input
+                                                type="month"
+                                                value={summaryMonthDate}
+                                                onChange={e => setSummaryMonthDate(e.target.value)}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                            />
+                                            <span className="text-sm font-semibold text-indigo-700 whitespace-nowrap">
+                                                {(() => {
+                                                    const [y, m] = summaryMonthDate.split('-');
+                                                    return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+                                                })()}
+                                            </span>
+                                        </div>
                                         <button
                                             onClick={() => setSummaryMonthDate(prev => { const [y, m] = prev.split('-').map(Number); const d = new Date(y, m, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })}
                                             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold text-gray-700 transition-colors min-h-[40px]"

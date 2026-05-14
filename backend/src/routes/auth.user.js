@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 
 // Audit Log Helper 
 // Fire-and-forget: เขียน 1 row ลง audit_logs และจัดการ error ของตัวเอง
-// ❌ ห้ามส่ง password หรือ hashedPassword เข้าใน oldValues/newValues เด็ดขาด
+// ห้ามส่ง password หรือ hashedPassword เข้าใน oldValues/newValues เด็ดขาด
 const createAuditLog = async ({ actorId, tableName, recordId, action, oldValues, newValues, req }) => {
     try {
         await prisma.audit_logs.create({
@@ -33,7 +33,6 @@ const createAuditLog = async ({ actorId, tableName, recordId, action, oldValues,
         logger.error('AUDIT_LOG_WRITE_ERROR', { event: 'AUDIT_LOG_WRITE_ERROR', error: err.message });
     }
 };
-
 
 // endpoint สมัครสมาชิก
 router.post('/register', async (req, res) => {
@@ -285,7 +284,7 @@ router.post('/password-reset-requests/:id/approve', verifyToken, async (req, res
             return res.status(404).json({ message: 'ไม่พบคำขอหรือดำเนินการแล้ว' });
         }
 
-        // สร้างรหัสชั่วคราว 8 ตัว (ตัวอักษร+ตัวเลข)
+        // สร้างรหัสชั่วคราว 8 ตัว (ตัวอักษร+ตัวเลข) ไม่มี: I, L, O, 0 (สับสนกับ 1, i)
         const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
         let tempPassword = '';
         for (let i = 0; i < 8; i++) {
