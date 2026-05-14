@@ -2,10 +2,10 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./logger');
 
 // Rate limiter เฉพาะ Login endpoint
-// นับเฉพาะ request ที่ล้มเหลว (status >= 400) skipSuccessfulRequests: true
+// นับเฉพาะ request ที่ล้มเหลว (status >= 400)
 const loginRateLimiter = rateLimit({
     windowMs: 30 * 60 * 1000, // หน้าต่างเวลา 30 นาที
-    max: 5,                    // สูงสุด 5 ครั้งที่ล้มเหลวต่อ 30 นาที
+    max: 5,  
     skipSuccessfulRequests: true, // Login สำเร็จไม่นับ
     standardHeaders: 'draft-7',
     legacyHeaders: false,

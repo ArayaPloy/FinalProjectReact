@@ -12,8 +12,7 @@ require('dotenv').config();
 
 const prisma = new PrismaClient();
 
-// Audit Log Helper 
-// Fire-and-forget: เขียน 1 row ลง audit_logs และจัดการ error ของตัวเอง
+// Audit Log Helper - บันทึกเหตุการณ์ 
 // ห้ามส่ง password หรือ hashedPassword เข้าใน oldValues/newValues เด็ดขาด
 const createAuditLog = async ({ actorId, tableName, recordId, action, oldValues, newValues, req }) => {
     try {
@@ -168,9 +167,9 @@ router.post('/login', loginRateLimiter, async (req, res) => {
         // ตั้งค่า cookie ให้ปลอดภัย
         res.cookie('token', token, { 
             httpOnly: true,  // ป้องกัน XSS - JavaScript ไม่สามารถอ่านได้
-            secure: process.env.NODE_ENV === 'production', // HTTPS only ใน production
+            secure: process.env.NODE_ENV === 'production', // HTTPS only 
             sameSite: 'Lax', // ป้องกัน CSRF - ส่ง cookie เฉพาะ same-site requests
-            maxAge: cookieMaxAge // sync กับ tokenExpiry
+            maxAge: cookieMaxAge 
         });
 
         logger.info('LOGIN_SUCCESS', {
@@ -385,7 +384,7 @@ router.post('/change-password', verifyToken, async (req, res) => {
             tableName: 'users',
             recordId: req.user.id,
             action: 'UPDATE',
-            oldValues: { mustChangePassword: true },   // ❌ ห้าม log password/hashedPassword
+            oldValues: { mustChangePassword: true },   // ห้าม log password/hashedPassword
             newValues: { mustChangePassword: false },
             req
         });

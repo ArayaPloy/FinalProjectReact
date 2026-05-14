@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 const verifyToken = require('../middleware/verifyToken');
 const isAdmin = require('../middleware/admin');
 
-
 // ========================================
 // TEACHER ENDPOINTS
 // ========================================
@@ -68,50 +67,6 @@ router.get('/today', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching today behavior scores:', error);
     res.status(500).json({ success: false, message: 'ไม่สามารถดึงข้อมูลได้', error: error.message });
-  }
-});
-
-// รายงานห้องเรียนที่มีนักเรียนได้คะแนนมากที่สุด (รวมคะแนนจากบันทึกทั้งหมด)*
-router.get('/reports/top-score', async (req, res) => {
-  try {
-    const students = await prisma.students.findMany({
-      where: { isDeleted: false },
-      include: {
-        homeroomClass: { select: { className: true } },
-        studentbehaviorscores: { where: { isDeleted: false }, select: { score: true } }
-      }
-    });
-
-    const topByClass = {};
-
-    students.forEach(student => {
-      const classRoom = student.homeroomClass?.className || 'ไม่ระบุ';
-      const totalScore = 100 + student.studentbehaviorscores.reduce((sum, item) => sum + item.score, 0);
-      const studentData = {
-        studentCode: student.studentNumber?.toString().padStart(5, '0') || '',
-        studentName: `${student.namePrefix || ''}${student.firstName || ''}${student.lastName ? ' ' + student.lastName : ''}`.trim(),
-        classRoom,
-        score: totalScore
-      };
-
-      if (!topByClass[classRoom] || topByClass[classRoom].score < totalScore) {
-        topByClass[classRoom] = studentData;
-      }
-    });
-
-    const classHighestScore = Object.values(topByClass).reduce((max, current) =>
-      current.score > max.score ? current : max
-    );
-
-    res.json({
-      success: true,
-      message: 'ห้องเรียนที่มีนักเรียนได้คะแนนมากที่สุด',
-      data: classHighestScore
-    });
-
-  } catch (error) {
-    console.error('Error fetching top scorer:', error);
-    res.status(500).json({ success: false, message: error.message });
   }
 });
 
